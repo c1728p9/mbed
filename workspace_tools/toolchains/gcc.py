@@ -170,7 +170,8 @@ class GCC(mbedToolchain):
             libs.append("-l%s" % name[3:])
         libs.extend(["-l%s" % l for l in self.sys_libs])
 
-        self.default_cmd(self.hook.get_cmdline_linker(self.ld + ["-T%s" % mem_map, "-o", output] +
+        map_file = splitext(output)[0] + ".map"
+        self.default_cmd(self.hook.get_cmdline_linker(self.ld + ["-T%s" % mem_map, "-o", output,  "-Wl,-Map=%s" % map_file] +
             objects + ["-L%s" % L for L in lib_dirs] + ["-Wl,--start-group"] + libs + ["-Wl,--end-group"]))
 
     @hook_tool

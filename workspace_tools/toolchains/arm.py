@@ -129,10 +129,11 @@ class ARM(mbedToolchain):
         self.default_cmd([self.ar, '-r', lib_path] + objects)
 
     def link(self, output, objects, libraries, lib_dirs, mem_map):
+        map_file = splitext(output)[0] + ".map"
         if len(lib_dirs):
-            args = ["-o", output, "--userlibpath", ",".join(lib_dirs), "--info=totals", "--list=.link_totals.txt"]
+            args = ["-o", output, "--userlibpath", ",".join(lib_dirs), "--info=totals", "--map", "--list=%s" % map_file]
         else:
-            args = ["-o", output, "--info=totals", "--list=.link_totals.txt"]
+            args = ["-o", output, "--info=totals", "--map", "--list=%s" % map_file]
 
         if mem_map:
             args.extend(["--scatter", mem_map])
