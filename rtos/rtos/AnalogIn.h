@@ -13,16 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef MBED_ANALOGIN_H
-#define MBED_ANALOGIN_H
+#ifndef RTOS_ANALOGIN_H
+#define RTOS_ANALOGIN_H
 
 #include "platform.h"
 
-#if (DEVICE_ANALOGIN && defined LEGACY_DRIVERS)
+#if DEVICE_ANALOGIN
 
 #include "analogin_api.h"
+#include "Mutex.h"
 
+#ifndef LEGACY_DRIVERS
 namespace mbed {
+#else
+namespace rtos {
+#endif
 
 /** An analog input, used for reading the voltage on a pin
  *
@@ -43,6 +48,7 @@ namespace mbed {
  * }
  * @endcode
  */
+extern rtos::Mutex _AnalogIn_mutex;
 class AnalogIn {
 
 public:
@@ -53,7 +59,9 @@ public:
      * @param name (optional) A string to identify the object
      */
     AnalogIn(PinName pin) {
+        _AnalogIn_mutex.lock();
         analogin_init(&_adc, pin);
+        _AnalogIn_mutex.unlock();
     }
 
     /** Read the input voltage, represented as a float in the range [0.0, 1.0]
@@ -61,7 +69,11 @@ public:
      * @returns A floating-point value representing the current input voltage, measured as a percentage
      */
     float read() {
-        return analogin_read(&_adc);
+        float temp;
+        _AnalogIn_mutex.lock();
+        temp = analogin_read(&_adc);
+        _AnalogIn_mutex.unlock();
+        return temp;
     }
 
     /** Read the input voltage, represented as an unsigned short in the range [0x0, 0xFFFF]
@@ -70,7 +82,11 @@ public:
      *   16-bit unsigned short representing the current input voltage, normalised to a 16-bit value
      */
     unsigned short read_u16() {
-        return analogin_read_u16(&_adc);
+        float temp;
+        _AnalogIn_mutex.lock();
+        temp = analogin_read_u16(&_adc);
+        _AnalogIn_mutex.unlock();
+        return temp;
     }
 
 #ifdef MBED_OPERATORS
@@ -88,7 +104,11 @@ public:
      * @endcode
      */
     operator float() {
-        return read();
+        float temp;
+        _AnalogIn_mutex.lock();
+        temp = read();
+        _AnalogIn_mutex.unlock();
+        return temp;
     }
 #endif
 
