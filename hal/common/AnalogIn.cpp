@@ -13,22 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef MBED_PLATFORM_H
-#define MBED_PLATFORM_H
 
-#define MBED_OPERATORS    1
+#include "mbed.h"
 
-#include "device.h"
-#include "PinNames.h"
-#include "PeripheralNames.h"
+#include "AnalogIn.h"
 
-#include <cstddef>
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
+#if DEVICE_ANALOGIN
 
-#ifdef __CMSIS_RTOS
-#include "Mutex.h"
-#endif
+namespace mbed {
+
+rtos::Mutex AnalogIn::_mutex;
+
+};
 
 #endif
