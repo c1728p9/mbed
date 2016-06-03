@@ -109,6 +109,14 @@ public:
     */
     virtual int write(int value);
 
+    /** Acquire exclusive access to this SPI bus
+     */
+    void lock(void);
+
+    /** Release exclusive access to this SPI bus
+     */
+    void unlock(void);
+
 #if DEVICE_SPI_ASYNCH
 
     /** Start non-blocking SPI transfer using 8bit buffers.
@@ -233,6 +241,7 @@ protected:
 
     void aquire(void);
     static SPI *_owner;
+    rtos::Mutex _mutex;
     int _bits;
     int _mode;
     int _hz;
