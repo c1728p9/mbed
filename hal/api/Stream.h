@@ -55,6 +55,9 @@ protected:
     virtual int _putc(int c) = 0;
     virtual int _getc() = 0;
 
+    virtual void lock() = 0;
+    virtual void unlock() = 0;
+
     std::FILE *_file;
 
     /* disallow copy constructor and assignment operators */

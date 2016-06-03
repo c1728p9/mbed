@@ -37,6 +37,10 @@ public:
     FileLike(const char *name);
 
     virtual ~FileLike();
+
+protected:
+    virtual void lock() = 0;
+    virtual void unlock() = 0;
 };
 
 } // namespace mbed
