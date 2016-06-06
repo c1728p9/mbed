@@ -20,7 +20,7 @@
 namespace mbed {
 
 I2C *I2C::_owner = NULL;
-rtos::Mutex mutex;
+rtos::Mutex _mutex;
 
 I2C::I2C(PinName sda, PinName scl) :
 #if DEVICE_I2C_ASYNCH
