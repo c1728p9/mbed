@@ -120,6 +120,18 @@ public:
      */
     void send_break();
 
+protected:
+
+    /** Acquire exclusive access to this serial port
+     */
+    virtual void lock(void) = 0;
+
+    /** Release exclusive access to this serial port
+     */
+    virtual void unlock(void) = 0;
+
+public:
+
 #if DEVICE_SERIAL_FC
     /** Set the flow control type on the serial port
      *

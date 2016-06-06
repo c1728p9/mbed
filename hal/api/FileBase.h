@@ -62,16 +62,6 @@ public:
 
     static FileBase *get(int n);
 
-protected:
-
-    /** Acquire exclusive access to this object.
-     */
-    virtual void lock() = 0;
-
-    /** Release exclusive access to this object.
-     */
-    virtual void unlock() = 0;
-
     /* disallow copy constructor and assignment operators */
 private:
     static FileBase *_head;
