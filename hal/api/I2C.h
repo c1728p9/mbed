@@ -175,7 +175,7 @@ protected:
     i2c_t _i2c;
     static I2C  *_owner;
     int         _hz;
-    rtos::Mutex _mutex;
+    static rtos::Mutex _mutex;
 };
 
 } // namespace mbed
