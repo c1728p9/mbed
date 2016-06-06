@@ -46,9 +46,7 @@ public:
      *  @param value An integer specifying a bit to write for every corresponding port pin
      */
     void write(int value) {
-        core_util_critical_section_enter();
         port_write(&_port, value);
-        core_util_critical_section_exit();
     }
 
     /** Read the value currently output on the port
@@ -57,9 +55,7 @@ public:
      *    An integer with each bit corresponding to associated port pin setting
      */
     int read() {
-        core_util_critical_section_enter();
         int ret = port_read(&_port);
-        core_util_critical_section_exit();
         return ret;
     }
 

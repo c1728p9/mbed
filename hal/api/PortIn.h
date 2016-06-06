@@ -68,9 +68,7 @@ public:
      *    An integer with each bit corresponding to associated port pin setting
      */
     int read() {
-        core_util_critical_section_enter();
         int ret = port_read(&_port);
-        core_util_critical_section_exit();
         return ret;
     }
 
@@ -79,7 +77,9 @@ public:
      *  @param mode PullUp, PullDown, PullNone, OpenDrain
      */
     void mode(PinMode mode) {
+        core_util_critical_section_enter();
         port_mode(&_port, mode);
+        core_util_critical_section_exit();
     }
 
     /** A shorthand for read()
