@@ -16,6 +16,7 @@
 #include "Timer.h"
 #include "ticker_api.h"
 #include "us_ticker_api.h"
+#include "critical.h"
 
 namespace mbed {
 
@@ -28,15 +29,19 @@ Timer::Timer(const ticker_data_t *data) : _running(), _start(), _time(), _ticker
 }
 
 void Timer::start() {
+    core_util_critical_section_enter();
     if (!_running) {
         _start = ticker_read(_ticker_data);
         _running = 1;
     }
+    core_util_critical_section_exit();
 }
 
 void Timer::stop() {
+    core_util_critical_section_enter();
     _time += slicetime();
-    _running = 0;
+    _running = 0; 
+    core_util_critical_section_exit();
 }
 
 int Timer::read_us() {
@@ -60,8 +65,10 @@ int Timer::slicetime() {
 }
 
 void Timer::reset() {
+    core_util_critical_section_enter();
     _start = ticker_read(_ticker_data);
     _time = 0;
+    core_util_critical_section_exit();
 }
 
 #ifdef MBED_OPERATORS
