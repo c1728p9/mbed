@@ -45,7 +45,10 @@ void Timer::stop() {
 }
 
 int Timer::read_us() {
-    return _time + slicetime();
+    core_util_critical_section_enter();
+    int time = _time + slicetime();
+    core_util_critical_section_exit();
+    return time;
 }
 
 float Timer::read() {
@@ -57,11 +60,12 @@ int Timer::read_ms() {
 }
 
 int Timer::slicetime() {
+    core_util_critical_section_enter();
+    int ret = 0;
     if (_running) {
-        return ticker_read(_ticker_data) - _start;
-    } else {
-        return 0;
+        ret = ticker_read(_ticker_data) - _start;
     }
+    core_util_critical_section_exit();
 }
 
 void Timer::reset() {
