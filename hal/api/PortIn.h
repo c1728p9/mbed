@@ -21,6 +21,7 @@
 #if DEVICE_PORTIN
 
 #include "port_api.h"
+#include "critical.h"
 
 namespace mbed {
 
@@ -56,7 +57,9 @@ public:
      *  @param mask A bitmask to identify which bits in the port should be included (0 - ignore)
         */
     PortIn(PortName port, int mask = 0xFFFFFFFF) {
+        core_util_critical_section_enter();
         port_init(&_port, port, mask, PIN_INPUT);
+        core_util_critical_section_exit();
     }
 
     /** Read the value currently output on the port
@@ -65,7 +68,10 @@ public:
      *    An integer with each bit corresponding to associated port pin setting
      */
     int read() {
-        return port_read(&_port);
+        core_util_critical_section_enter();
+        int ret = port_read(&_port);
+        core_util_critical_section_exit();
+        return ret;
     }
 
     /** Set the input pin mode
