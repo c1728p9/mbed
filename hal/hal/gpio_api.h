@@ -40,6 +40,7 @@ void gpio_init(gpio_t *obj, PinName pin);
 void gpio_mode (gpio_t *obj, PinMode mode);
 void gpio_dir  (gpio_t *obj, PinDirection direction);
 
+/* Write in HAL must be atomic */
 void gpio_write(gpio_t *obj, int value);
 int  gpio_read (gpio_t *obj);
 
