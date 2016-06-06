@@ -98,10 +98,6 @@ public:
     virtual FileHandle *open(const char* name, int flags);
     virtual int remove(const char *filename);
     virtual DirHandle *opendir(const char *name);
-
-protected:
-    virtual void lock();
-    virtual void unlock();
 };
 
 } // namespace mbed

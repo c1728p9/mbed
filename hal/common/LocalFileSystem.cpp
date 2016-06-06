@@ -270,14 +270,6 @@ DirHandle *LocalFileSystem::opendir(const char *name) {
     return new LocalDirHandle();
 }
 
-void lock() {
-    // Do nothing - there is no modifiable state to protect
-}
-
-void unlock() {
-    // Do nothing - there is no modifiable state to protect
-}
-
 } // namespace mbed
 
 #endif
