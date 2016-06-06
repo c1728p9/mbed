@@ -80,7 +80,7 @@ public:
         core_util_critical_section_enter();
         int ret = port_read(&_port);
         core_util_critical_section_exit();
-        return int;
+        return ret;
     }
 
     /** A shorthand for write()
