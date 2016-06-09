@@ -21,7 +21,9 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
+#if !defined (__CC_ARM) && !defined(TOOLCHAIN_IAR)
 #include <reent.h>
+#endif
 
 #define OP_MALLOC  0
 #define OP_REALLOC 1

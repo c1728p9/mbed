@@ -56,13 +56,13 @@ SecureAllocator secure_allocator_create_with_pool(
     /* The internal rt_Memory MEMP structure must be placed AFTER table.page_origins[0] !!! */
     size_t offset = OFFSETOF(SecureAllocatorInternal, table.page_origins) + sizeof(((UvisorPageTable) {0}).page_origins);
     /* Create MEMP structure inside the memory. */
-    if (rt_init_mem(mem + offset, bytes - offset)) {
+    if (rt_init_mem((void*)((char*)mem + offset), bytes - offset)) {
         /* Abort if failed. */
         DPRINTF("secure_allocator_create_with_pool: MEMP allocator creation failed\n\n");
         return NULL;
     }
     /* Remember the MEMP pointer though. */
-    allocator->table.page_origins[0] = mem + offset;
+    allocator->table.page_origins[0] = (void*)((char*)mem + offset);
     DPRINTF("secure_allocator_create_with_pool: Created MEMP allocator %p with offset %d\n\n", mem + offset, offset);
     return allocator;
 }

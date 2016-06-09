@@ -132,7 +132,7 @@ void page_allocator_init(void * const heap_start, void * const heap_end, const u
     }
     g_page_count_free = g_page_count_total;
     /* Remember the end of the heap. */
-    g_page_heap_end = g_page_heap_start + g_page_count_free * g_page_size;
+    g_page_heap_end = (void*)((char*)g_page_heap_start + g_page_count_free * g_page_size);
 
     DPRINTF("uvisor_page_init:\n.page_heap start 0x%08x\n.page_heap end   0x%08x\n.page_heap available %ukB split into %u pages of %ukB\n\n",
             (unsigned int) g_page_heap_start,
@@ -188,7 +188,7 @@ int page_allocator_malloc(UvisorPageTable * const table)
             /* Marry this page to the box id. */
             g_page_owner_table[page] = box_id;
             /* Get the pointer to the page. */
-            void * ptr = (void *) g_page_heap_start + page * g_page_size;
+            void * ptr = (void*)((char*)g_page_heap_start + page * g_page_size);
             /* Zero the entire page before handing it out. */
             memset(ptr, 0, g_page_size);
             /* Write the pages address to the table in the first page. */
@@ -246,7 +246,7 @@ int page_allocator_free(const UvisorPageTable * const table)
             return UVISOR_ERROR_PAGE_INVALID_PAGE_ORIGIN;
         }
         /* Compute the index for the pointer. */
-        uint32_t page_index = (page - g_page_heap_start) / g_page_size;
+        uint32_t page_index = ((uint32_t)page - (uint32_t)g_page_heap_start) / (uint32_t)g_page_size;
         /* Check if the page belongs to the caller. */
         if (g_page_owner_table[page_index] == box_id) {
             g_page_owner_table[page_index] = UVISOR_PAGE_UNUSED;

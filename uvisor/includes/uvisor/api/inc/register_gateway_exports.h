@@ -26,11 +26,11 @@
  * requires the Thumb-2 extensions because otherwise only 16 bits opcodes are
  * accepted.
  */
-#if defined(__thumb__) && defined(__thumb2__)
+//#if defined(__thumb__) && defined(__thumb2__)
 #define UVISOR_REGISTER_GATEWAY_MAGIC 0xF7F3A89E
-#else
-#error "Unsupported instruction set. The ARM Thumb-2 instruction set must be supported."
-#endif /* __thumb__ && __thumb2__ */
+//#else
+//#error "Unsupported instruction set. The ARM Thumb-2 instruction set must be supported."
+//#endif /* __thumb__ && __thumb2__ */
 
 /** Register gateway structure
  *
@@ -48,7 +48,7 @@ typedef struct {
     uint32_t mask;
     uint16_t operation;
     uint16_t bxlr;
-} UVISOR_PACKED __attribute__((aligned(4))) TRegisterGateway;
+} TRegisterGateway;
 
 /** Register gateway operations
  * @warning The operation value must be hardcoded. */

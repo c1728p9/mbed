@@ -45,7 +45,7 @@ static void box_index_init(void *box_bss, uint32_t heap_size)
     /* Initialize user context */
     indexOS->index.ctx = NULL;
     /* Initialize box heap */
-    indexOS->index.box_heap = box_bss + index_size;
+    indexOS->index.box_heap = (void*)((char*)box_bss + index_size);
     indexOS->index.box_heap_size = heap_size;
     /* Active heap pointer is NULL */
     indexOS->index.active_heap = NULL;
