@@ -48,6 +48,8 @@
   #error "Missing __CORTEX_Mx definition"
 #endif
 
+#include "mbed_error.h"
+
 // This affects cmsis_os only, as it's not used anywhere else. This was left by kernel team
 // to suppress the warning in rt_tid2ptcb about incompatible pointer assignment.
 #define os_thread_cb OS_TCB
@@ -1500,39 +1502,63 @@ osStatus svcMutexDelete (osMutexId mutex_id) {
 
 /// Create and Initialize a Mutex object
 osMutexId osMutexCreate (const osMutexDef_t *mutex_def) {
+  osMutexId ret;
   if (__get_IPSR() != 0U) {
+    error("osMutexCreate from ISR");
     return NULL;                                // Not allowed in ISR
   }
   if (((__get_CONTROL() & 1U) == 0U) && (os_running == 0U)) {
     // Privileged and not running
-    return    svcMutexCreate(mutex_def);
+    ret = svcMutexCreate(mutex_def);
   } else {
-    return __svcMutexCreate(mutex_def);
+    ret = __svcMutexCreate(mutex_def);
   }
+  if (NULL == ret) {
+      error("osMutexCreate failed");
+  }
+  return ret;
 }
 
 /// Wait until a Mutex becomes available
 osStatus osMutexWait (osMutexId mutex_id, uint32_t millisec) {
+  osStatus ret;
   if (__get_IPSR() != 0U) {
+    error("osMutexWait from ISR");
     return osErrorISR;                          // Not allowed in ISR
   }
-  return __svcMutexWait(mutex_id, millisec);
+  ret = __svcMutexWait(mutex_id, millisec);
+  if ((ret != OS_R_OK) && (ret != OS_R_TMO)) {
+      error("Incorrect return");
+  }
+  return ret;
 }
 
 /// Release a Mutex that was obtained with osMutexWait
 osStatus osMutexRelease (osMutexId mutex_id) {
+  osStatus ret;
   if (__get_IPSR() != 0U) {
+    error("osMutexRelease from ISR");
     return osErrorISR;                          // Not allowed in ISR
   }
-  return __svcMutexRelease(mutex_id);
+  ret = __svcMutexRelease(mutex_id);
+  if ((ret != OS_R_OK) && (ret != OS_R_TMO)) {
+      error("Incorrect return");
+  }
+  return ret;
 }
 
 /// Delete a Mutex that was created by osMutexCreate
 osStatus osMutexDelete (osMutexId mutex_id) {
+  osStatus ret;
   if (__get_IPSR() != 0U) {
+    error("osMutexDelete from ISR");
     return osErrorISR;                          // Not allowed in ISR
   }
-  return __svcMutexDelete(mutex_id);
+  ret = __svcMutexDelete(mutex_id);
+  if (ret != OS_R_OK) {
+      error("Incorrect return");
+  }
+  return ret;
 }
 
 
