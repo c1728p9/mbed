@@ -533,6 +533,9 @@ extern "C" int errno;
 // For ARM7 only
 register unsigned char * stack_ptr __asm ("sp");
 
+extern uint32_t MBED_HEAP_START;
+extern uint32_t MBED_HEAP_SIZE;
+
 // Dynamic memory allocation related syscall.
 extern "C" caddr_t _sbrk(int incr) {
     static unsigned char* heap = (unsigned char*)&__end__;
@@ -544,7 +547,7 @@ extern "C" caddr_t _sbrk(int incr) {
 #elif defined(TARGET_CORTEX_A)
     if (new_heap >= (unsigned char*)&__HeapLimit) {     /* __HeapLimit is end of heap section */
 #else
-    if (new_heap >= (unsigned char*)__get_MSP()) {
+    if (new_heap >= (void*)(MBED_HEAP_START + MBED_HEAP_SIZE)) {
 #endif
         errno = ENOMEM;
         return (caddr_t)-1;

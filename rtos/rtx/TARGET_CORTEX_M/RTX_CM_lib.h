@@ -518,6 +518,8 @@ osThreadDef_t os_thread_def_main = {(os_pthread)pre_main, osPriorityNormal, 1U, 
 #ifdef __CC_ARM
 extern uint32_t          Image$$RW_IRAM1$$ZI$$Limit[];
 #define HEAP_START      (Image$$RW_IRAM1$$ZI$$Limit)
+extern void *armcc_heap_base;
+extern void* armcc_heap_top;
 #elif defined(__GNUC__)
 extern uint32_t          __end__[];
 #define HEAP_START      (__end__)
@@ -525,6 +527,15 @@ extern uint32_t          __end__[];
 #pragma section="HEAP"
 #define HEAP_START     (void *)__section_begin("HEAP")
 #endif
+
+uint32_t MBED_HEAP_START = 0;
+uint32_t MBED_HEAP_SIZE = 0;
+
+uint32_t MBED_MAIN_STACK_START = 0;
+uint32_t MBED_MAIN_STACK_SIZE = 0;
+
+uint32_t MBED_MSP_STACK_START = 0;
+uint32_t MBED_MSP_STACK_SIZE = 0;
 
 void set_main_stack(void) {
     uint32_t interrupt_stack_size = ((uint32_t)OS_MAINSTKSIZE * 4);
@@ -539,6 +550,20 @@ void set_main_stack(void) {
 
     // Leave OS_MAINSTKSIZE words for the scheduler and interrupts
     os_thread_def_main.stacksize = main_stack_size;
+
+    MBED_MSP_STACK_START = (uint32_t)INITIAL_SP - interrupt_stack_size;
+    MBED_MSP_STACK_SIZE = interrupt_stack_size;
+
+    MBED_MAIN_STACK_START = main_stack_start;
+    MBED_MAIN_STACK_SIZE = MBED_MSP_STACK_START - main_stack_start;
+
+    MBED_HEAP_START = HEAP_START;
+    MBED_HEAP_SIZE = MBED_MAIN_STACK_START - MBED_HEAP_START;
+
+#ifdef __CC_ARM
+    armcc_heap_base = (void *)MBED_HEAP_START;
+    armcc_heap_top = (void *)(MBED_HEAP_START + MBED_HEAP_SIZE);
+#endif
 }
 
 #if defined (__CC_ARM)
