@@ -196,10 +196,6 @@ CCM_AAR_IRQHandler
         SECTION .text:CODE:REORDER:NOROOT(1)
 WDT_IRQHandler
         B .
-        PUBWEAK  RTC1_IRQHandler
-        SECTION .text:CODE:REORDER:NOROOT(1)
-RTC1_IRQHandler
-        B .
         PUBWEAK  QDEC_IRQHandler
         SECTION .text:CODE:REORDER:NOROOT(1)
 QDEC_IRQHandler

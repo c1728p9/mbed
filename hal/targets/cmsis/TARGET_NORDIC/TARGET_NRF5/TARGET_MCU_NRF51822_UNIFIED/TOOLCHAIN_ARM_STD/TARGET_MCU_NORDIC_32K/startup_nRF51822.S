@@ -93,19 +93,19 @@ Reset_Handler   PROC
                 EXPORT  Reset_Handler             [WEAK]
                 IMPORT  SystemInit
                 IMPORT  __main
-                
+
                 MOVS    R1, #NRF_POWER_RAMONx_RAMxON_ONMODE_Msk
-                
+
                 LDR     R0, =NRF_POWER_RAMON_ADDRESS
                 LDR     R2, [R0]
                 ORRS    R2, R2, R1
                 STR     R2, [R0]
-                
+
                 LDR     R0, =NRF_POWER_RAMONB_ADDRESS
                 LDR     R2, [R0]
                 ORRS    R2, R2, R1
                 STR     R2, [R0]
-                
+
                 LDR     R0, =SystemInit
                 BLX     R0
                 LDR     R0, =__main
@@ -154,7 +154,6 @@ Default_Handler PROC
                 EXPORT   ECB_IRQHandler [WEAK]
                 EXPORT   CCM_AAR_IRQHandler [WEAK]
                 EXPORT   WDT_IRQHandler [WEAK]
-                EXPORT   RTC1_IRQHandler [WEAK]
                 EXPORT   QDEC_IRQHandler [WEAK]
                 EXPORT   LPCOMP_IRQHandler [WEAK]
                 EXPORT   SWI0_IRQHandler [WEAK]
@@ -179,7 +178,6 @@ RNG_IRQHandler
 ECB_IRQHandler
 CCM_AAR_IRQHandler
 WDT_IRQHandler
-RTC1_IRQHandler
 QDEC_IRQHandler
 LPCOMP_IRQHandler
 SWI0_IRQHandler
@@ -193,4 +191,3 @@ SWI5_IRQHandler
                 ENDP
                 ALIGN
                 END
-
