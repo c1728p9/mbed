@@ -12,8 +12,9 @@ from tools.export import export, EXPORTERS, mcu_ide_matrix
 from tools.tests import TESTS, TEST_MAP
 from tools.tests import test_known, test_name_known
 from tools.targets import TARGET_NAMES
+from tools.libraries import LIBRARIES
 from utils import argparse_filestring_type, argparse_many
-from utils import argparse_force_lowercase_type, argparse_force_uppercase_type
+from utils import argparse_force_lowercase_type, argparse_force_uppercase_type, argparse_dir_not_parent
 from project_api import setup_project, perform_export, print_results, get_lib_symbols
 
 
@@ -57,8 +58,8 @@ if __name__ == '__main__':
 
     parser.add_argument("-b",
                       dest="build",
-                      action="store_true",
                       default=False,
+                      type=argparse_dir_not_parent(ROOT),
                       help="use the mbed library build, instead of the sources")
 
     group.add_argument("-L", "--list-tests",
@@ -134,14 +135,19 @@ if __name__ == '__main__':
     for mcu in options.mcu:
         # Program Number or name
         p, src, ide = options.program, options.source_dir, options.ide
-        project_dir, project_name, project_temp = setup_project(mcu, ide, p, src, options.build)
+        try:
+            project_dir, project_name, project_temp = setup_project(mcu, ide, p, src, options.build)
+            zip = not bool(src) # create zip when no src_dir provided
+            clean = not bool(src) # don't clean when source is provided, use acrual source tree for IDE files
 
-        zip = not bool(src)  # create zip when no src_dir provided
-        clean = not bool(src)  # don't clean when source is provided, use acrual source tree for IDE files
-
-        # Export to selected toolchain
-        lib_symbols = get_lib_symbols(options.macros, src, p)
-        tmp_path, report = export(project_dir, project_name, ide, mcu, project_dir[0], project_temp, clean=clean, make_zip=zip, extra_symbols=lib_symbols, sources_relative=sources_relative)
+            # Export to selected toolchain
+            lib_symbols = get_lib_symbols(options.macros, src, p)
+            tmp_path, report = export(project_dir, project_name, ide, mcu, project_dir[0], project_temp, clean=clean, make_zip=zip, extra_symbols=lib_symbols, sources_relative=sources_relative)
+        except OSError as e:
+            if e.errno == 2:
+                report = dict(success=False, errormsg="Library path '%s' does not exist. Ensure that the library is built." % (e.filename))
+            else:
+                report = dict(success=False, errormsg="An OS error occured: errno #{}".format(e.errno))
         if report['success']:
             if not zip:
                 zip_path = join(project_temp, project_name)
