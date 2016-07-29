@@ -329,7 +329,6 @@ SECTIONS
   {
     . = ALIGN(8);
     . += STACK_SIZE;
-    __StackTop = .;
   } > m_data_2
 
   /* Heap space for the page allocator */
@@ -352,6 +351,7 @@ SECTIONS
   }
 
   /* Initializes stack on the end of block */
+  __StackTop = ORIGIN(m_data_2) + LENGTH(m_data_2);
   __StackLimit = __StackTop - STACK_SIZE;
   PROVIDE(__stack = __StackTop);
 
