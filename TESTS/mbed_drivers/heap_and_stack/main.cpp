@@ -7,6 +7,15 @@
 #include "rtos.h"
 #include "mbed_assert.h"
 
+#if defined(__CORTEX_M4) | defined(__CORTEX_M4F) | defined(__CORTEX_M7) | \
+defined(__CORTEX_M3) | defined(__CORTEX_M0) | defined(__CORTEX_M0PLUS)
+#define MEMORY_REGIONS_DEFINED 1
+#elif defined(__CORTEX_A9)
+#define MEMORY_REGIONS_DEFINED 0
+#else
+#error "Undefined architecture"
+#endif
+
 // Max size of registers pushed onto the stack for
 // a context switch or interrupt plus the overhead of
 // a recursive function call
@@ -21,6 +30,7 @@
 // Stack fill pattern
 #define STACK_FILL                  0xAA
 
+#if MEMORY_REGIONS_DEFINED
 extern uint32_t mbed_heap_start;
 extern uint32_t mbed_heap_size;
 
@@ -29,12 +39,17 @@ extern uint32_t mbed_stack_main_size;
 
 extern uint32_t mbed_stack_isr_start;
 extern uint32_t mbed_stack_isr_size;
+#endif
 
 static uint32_t max_allocation_size = 0;
+#if MEMORY_REGIONS_DEFINED
 static uint32_t max_stack_size = 0;
+#endif
 
+#if MEMORY_REGIONS_DEFINED
 static bool inrange(uint32_t addr, uint32_t start, uint32_t size);
 static bool rangeinrange(uint32_t addr, uint32_t size, uint32_t start, uint32_t len);
+#endif
 static bool valid_fill(uint8_t * data, uint32_t size, uint8_t fill);
 static bool allocate_and_fill_heap(void);
 static bool check_and_free_heap(void);
@@ -55,6 +70,7 @@ int main (void) {
         GREENTEA_TESTSUITE_RESULT(false);
     }
 
+#if MEMORY_REGIONS_DEFINED
     // Verify addresses of stacks and the main heap
     if (!inrange((uint32_t)initial_stack, mbed_stack_main_start + 1, mbed_stack_main_size)) {
         printf("Main stack in wrong location\n");
@@ -64,12 +80,13 @@ int main (void) {
         printf("Heap in wrong location\n");
         GREENTEA_TESTSUITE_RESULT(false);
     }
-    // MSP stack should be very near end (test using withing 64 bytes)
+    // MSP stack should be very near end (test using within 64 bytes)
     uint32_t msp = __get_MSP();
     if (!inrange(msp, mbed_stack_isr_start + mbed_stack_isr_size - 64, 64)) {
         printf("Interrupt stack in wrong location\n");
         GREENTEA_TESTSUITE_RESULT(false);
     }
+#endif
 
     // Fully allocate the heap and stack
     bool ret = true;
@@ -81,11 +98,14 @@ int main (void) {
     Thread::wait(10);
 
     printf("Total size dynamically allocated: %lu\n", max_allocation_size);
+#if MEMORY_REGIONS_DEFINED
     printf("Usable stack size: %lu\n", max_stack_size);
+#endif
 
     GREENTEA_TESTSUITE_RESULT(ret);
 }
 
+#if MEMORY_REGIONS_DEFINED
 /*
  * Return true if addr is in range [start:start+size)
  */
@@ -93,7 +113,9 @@ static bool inrange(uint32_t addr, uint32_t start, uint32_t size)
 {
     return (addr >= start) && (addr < start + size) ? true : false;
 }
+#endif
 
+#if MEMORY_REGIONS_DEFINED
 /*
  * Return true if [addr:addr+size] is inside [start:start+len]
  */
@@ -107,6 +129,7 @@ static bool rangeinrange(uint32_t addr, uint32_t size, uint32_t start, uint32_t 
     }
     return true;
 }
+#endif
 
 /*
  * Return true of the region is filled only the the specified fill value
@@ -149,11 +172,13 @@ static bool allocate_and_fill_heap()
         if (NULL == temp) {
             break;
         }
+#if MEMORY_REGIONS_DEFINED
         if (!rangeinrange((uint32_t)temp, sizeof(linked_list), mbed_heap_start, mbed_heap_size)) {
             printf("Memory allocation out of range\n");
             pass = false;
             break;
         }
+#endif
 
         // Init
         temp->next = NULL;
@@ -188,12 +213,15 @@ static bool check_and_free_heap()
 static bool test_stack(void)
 {
     uint8_t temp;
+#if MEMORY_REGIONS_DEFINED
     max_stack_size = 0;
+#endif
     return test_stack_recursive(&temp);
 }
 
 static bool test_stack_recursive(uint8_t *prev_stack)
 {
+#if MEMORY_REGIONS_DEFINED
     uint8_t stack_buffer[STACK_BUFFER_SIZE];
     bool fill_valid = true;
     uint32_t stack_left;
@@ -215,4 +243,8 @@ static bool test_stack_recursive(uint8_t *prev_stack)
     } else {
         return valid_fill(stack_buffer, sizeof(stack_buffer), STACK_FILL);
     }
+#else
+    // Stack test cannot be run without knowing the main stack region
+    return 1;
+#endif
 }
