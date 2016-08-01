@@ -490,6 +490,8 @@ osStatus svcKernelInitialize (void) {
     // Create OS Timers resources (Message Queue & Thread)
     osMessageQId_osTimerMessageQ = svcMessageCreate (&os_messageQ_def_osTimerMessageQ, NULL);
     osThreadId_osTimerThread = svcThreadCreate(&os_thread_def_osTimerThread, NULL, NULL);
+    // Initialize thread mutex
+    osMutexId_osThreadMutex = osMutexCreate(osMutex(osThreadMutex));
   }
 
   sysThreadError(osOK);
@@ -806,7 +808,12 @@ osThreadId osThreadContextCreate (const osThreadDef_t *thread_def, void *argumen
     // Privileged and not running
     return   svcThreadCreate(thread_def, argument, context);
   } else {
-    return __svcThreadCreate(thread_def, argument, context);
+    osThreadId id;
+    osMutexWait(osMutexId_osThreadMutex, osWaitForever);
+    // Thread mutex must be held when a thread is created or terminated
+    id = __svcThreadCreate(thread_def, argument, context);
+    osMutexRelease(osMutexId_osThreadMutex);
+    return id;
   }
 }
 
@@ -820,10 +827,15 @@ osThreadId osThreadGetId (void) {
 
 /// Terminate execution of a thread and remove it from ActiveThreads
 osStatus osThreadTerminate (osThreadId thread_id) {
+  osStatus status;
   if (__get_IPSR() != 0U) { 
     return osErrorISR;                          // Not allowed in ISR
   }
-  return __svcThreadTerminate(thread_id);
+  osMutexWait(osMutexId_osThreadMutex, osWaitForever);
+  // Thread mutex must be held when a thread is created or terminated
+  status = __svcThreadTerminate(thread_id);
+  osMutexRelease(osMutexId_osThreadMutex);
+  return status;
 }
 
 /// Pass control to next thread that is in state READY
@@ -850,9 +862,40 @@ osPriority osThreadGetPriority (osThreadId thread_id) {
   return __svcThreadGetPriority(thread_id);
 }
 
+/// Get the current state of an active thread
+osState osThreadGetState(osThreadId thread_id) {
+
+}
+
+/// Get the allocated stack size of an active thread or -1 on failure
+int32_t osThreadGetStackSize(osThreadId thread_id) {
+
+}
+
+/// Get the maximum stack size used for an active thread or -1 on failure
+int32_t osThreadGetMaxStack(osThreadId thread_id) {
+
+}
+
+osThreadEnumId osThreadsEnumStart() {
+    osMutexWait(osMutexId_osThreadMutex, osWaitForever);
+}
+
+osThreadId osThreadEnumNext(osThreadEnumId enum_id) {
+
+}
+
+osStatus osThreadEnumFree(osThreadEnumId enum_id) {
+    osMutexRelease(osMutexId_osThreadMutex);
+}
+
 /// INTERNAL - Not Public
 /// Auto Terminate Thread on exit (used implicitly when thread exists)
-__NO_RETURN void osThreadExit (void) { 
+__NO_RETURN void osThreadExit (void) {
+  // Thread mutex must be held when a thread is created or terminated
+  // Note - the mutex will be released automatically by the os when
+  //        the thread is terminated
+  osMutexWait(osMutexId_osThreadMutex, osWaitForever);
   __svcThreadTerminate(__svcThreadGetId()); 
   for (;;);                                     // Should never come here
 }

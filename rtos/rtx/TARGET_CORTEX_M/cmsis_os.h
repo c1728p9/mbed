@@ -160,6 +160,19 @@ typedef enum  {
   os_status_reserved      =  0x7FFFFFFF  ///< prevent from enum down-size compiler optimization.
 } osStatus;
 
+typedef enum {
+  osThreadInactive,           /**< Not created or terminated */
+  osThreadReady,              /**< Ready to run */
+  osThreadRunning,            /**< Running */
+  osThreadWaitingDelay,       /**< Waiting for a delay to occur */
+  osThreadWaitingInterval,    /**< Waiting for an interval to occur */
+  osThreadWaitingOr,          /**< Waiting for one event in a set to occur */
+  osThreadWaitingAnd,         /**< Waiting for multiple events in a set to occur */
+  osThreadWaitingSemaphore,   /**< Waiting for a semaphore event to occur */
+  osThreadWaitingMailbox,     /**< Waiting for a mailbox event to occur */
+  osThreadWaitingMutex,       /**< Waiting for a mutex event to occur */
+} osState;
+
 
 /// Timer type value for the timer definition.
 typedef enum  {
@@ -257,6 +270,12 @@ typedef struct  {
     osMessageQId       message_id;     ///< message id obtained by \ref osMessageCreate
   } def;                               ///< event definition
 } osEvent;
+
+///
+/// Semaphore Definition structure contains setup information for thread enumeration.
+typedef struct {
+  int                   index;    ///< implementation defined
+} osThreadEnumDef_t;
 
 
 //  ==== Kernel Control Functions ====
