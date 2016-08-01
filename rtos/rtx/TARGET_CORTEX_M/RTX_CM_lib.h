@@ -191,6 +191,10 @@ uint16_t const mp_tmr_size = 0U;
 osMutexId singleton_mutex_id;
 osMutexDef(singleton_mutex);
 
+/* Thread creation and destruction mutex */
+osMutexDef(osThreadMutex);
+osMutexId osMutexId_osThreadMutex;
+
 #if defined (__CC_ARM) && !defined (__MICROLIB)
  /* A memory space for arm standard library. */
  static uint32_t std_libspace[OS_TASK_CNT][96/4];
