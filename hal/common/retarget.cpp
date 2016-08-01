@@ -706,4 +706,58 @@ extern "C" void __env_unlock( struct _reent *_r )
 }
 #endif
 
+extern "C" void * __wrap__malloc_r (struct _reent *ptr, size_t size);
+extern "C" void __wrap__free_r (struct _reent *ptr, void *addr);
+extern "C" void * __wrap__realloc_r (struct _reent *ptr, void *old, size_t newlen);
+
+extern "C" void * __real__malloc_r (struct _reent *ptr, size_t size);
+extern "C" void __real__free_r (struct _reent *ptr, void *addr);
+extern "C" void * __real__realloc_r (struct _reent *ptr, void *old, size_t newlen);
+
+extern "C" uint32_t current_size = 0;
+extern "C" uint32_t max_size = 0;
+
+void * __wrap__malloc_r (struct _reent *ptr, size_t size)
+{
+    uint32_t *data = (uint32_t*)__real__malloc_r(ptr, size + 4);
+    if (data != NULL) {
+        *data = size;
+        data++;
+        current_size += size;
+        max_size = current_size > max_size ? current_size : max_size;
+    }
+    return data;
+}
+
+void __wrap__free_r (struct _reent *ptr, void *addr)
+{
+    uint32_t *data = (uint32_t*)addr;
+    if (data != NULL) {
+        uint32_t size;
+        data--;
+        size = *data;
+        current_size -= size;
+    }
+    __real__free_r(ptr, addr);
+}
+
+void * __wrap__realloc_r (struct _reent *ptr, void *old, size_t newlen)
+{
+    uint32_t *data = (uint32_t*)old;
+    if (data != NULL) {
+        uint32_t size;
+        data--;
+        size = *data;
+        current_size -= size;
+        data = (uint32_t*)__real__realloc_r(ptr, (void*)data, newlen + 4);
+        if (data != NULL) {
+            *data = newlen;
+            data++;
+            current_size += size;
+            max_size = current_size > max_size ? current_size : max_size;
+        }
+    }
+    return data;
+}
+
 } // namespace mbed
