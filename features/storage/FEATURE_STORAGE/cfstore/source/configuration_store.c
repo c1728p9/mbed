@@ -647,21 +647,30 @@ static inline void cfstore_ctx_client_notify(cfstore_ctx_t* ctx, cfstore_client_
 #ifndef CFSTORE_YOTTA_CFG_CFSTORE_SRAM_ADDR
 /* if the client doesnt provide a memory slab then CFSTORE uses realloc internally*/
 
-#ifndef CFSTORE_DEBUG
-#define CFSTORE_FREE        free
-#define CFSTORE_MALLOC      malloc
-#define CFSTORE_REALLOC     realloc
-#else
+//#ifndef CFSTORE_DEBUG
+//#define CFSTORE_FREE        free
+//#define CFSTORE_MALLOC      malloc
+//#define CFSTORE_REALLOC     realloc
+//#else
 
 static uint32_t cfstore_malloc_size_g = 0;
-#define CFSTORE_MALLOC      malloc
+
+static void* CFSTORE_MALLOC(size_t size)
+{
+    void* mem;
+
+    mem = malloc(size);
+    printf("%s:ptr=%p, size=%u.\n", __func__,  mem, (int) size);
+    cfstore_malloc_size_g = size;
+    return mem;
+}
 
 static void* CFSTORE_REALLOC(void *ptr, size_t size)
 {
     void* mem;
 
     mem = realloc(ptr, size);
-    CFSTORE_TP(CFSTORE_TP_MEM, "%s:ptr=%p, mem=%p, old_size=%u, new_size=%u.\n", __func__, ptr, mem, (int) cfstore_malloc_size_g, (int) size);
+    printf("%s:ptr=%p, mem=%p, old_size=%u, new_size=%u.\n", __func__, ptr, mem, (int) cfstore_malloc_size_g, (int) size);
     cfstore_malloc_size_g = size;
     return mem;
 }
@@ -669,11 +678,11 @@ static void* CFSTORE_REALLOC(void *ptr, size_t size)
 static void CFSTORE_FREE(void *ptr)
 {
     free(ptr);
-    CFSTORE_TP(CFSTORE_TP_MEM, "%s:ptr=%p, old_size=%u, new_size=%u.\n", __func__, ptr, (int) cfstore_malloc_size_g, 0);
+    printf("%s:ptr=%p, old_size=%u, new_size=%u.\n", __func__, ptr, (int) cfstore_malloc_size_g, 0);
     cfstore_malloc_size_g = 0;
     return;
 }
-#endif /* CFSTORE_DEBUG */
+//#endif /* CFSTORE_DEBUG */
 
 /* memory tracking */
 
@@ -2235,6 +2244,7 @@ static int32_t cfstore_file_destroy(cfstore_file_t* file)
     CFSTORE_FENTRYLOG("%s:entered\n", __func__);
     if(file) {
         hkvt = cfstore_get_hkvt_from_head_ptr(file->head);
+        printf("cfstore_file_destroy: file=0x%x, head=0x%x\n", file, file->head);
         CFSTORE_ASSERT(cfstore_hkvt_is_valid(&hkvt, cfstore_ctx_get()->area_0_tail) == true);
         ret = ARM_DRIVER_OK;
         cfstore_hkvt_refcount_dec(&hkvt, &refcount);
