@@ -482,6 +482,8 @@ extern "C" WEAK void __cxa_pure_virtual(void) {
 #include "uvisor-lib/uvisor-lib.h"
 #endif/* FEATURE_UVISOR */
 
+bool simulate_failure = false;
+
 #ifndef  FEATURE_UVISOR
 extern "C" {
 void * __wrap__malloc_r(struct _reent * r, size_t size) {
@@ -490,6 +492,9 @@ void * __wrap__malloc_r(struct _reent * r, size_t size) {
 }
 void * __wrap__realloc_r(struct _reent * r, void * ptr, size_t size) {
     extern void * __real__realloc_r(struct _reent * r, void * ptr, size_t size);
+    if (simulate_failure) {
+        return NULL;
+    }
     return __real__realloc_r(r, ptr, size);
 }
 void __wrap__free_r(struct _reent * r, void * ptr) {

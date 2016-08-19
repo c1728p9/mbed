@@ -46,6 +46,8 @@
 
 using namespace utest::v1;
 
+extern bool simulate_failure;
+
 #ifdef CFSTORE_DEBUG
 #define CFSTORE_CREATE_GREENTEA_TIMEOUT_S     360
 #else
@@ -357,6 +359,7 @@ control_t cfstore_create_test_01_end(const size_t call_count)
 
 static int32_t cfstore_create_test_02_core(const size_t call_count)
 {
+    static uint32_t loop_count = 0;
     int32_t ret = ARM_DRIVER_ERROR;
     uint32_t i = 0;
     uint32_t bytes_stored = 0;
@@ -373,12 +376,23 @@ static int32_t cfstore_create_test_02_core(const size_t call_count)
     for(i = 0; i < max_num_kvs_create; i++)
     {
         memset(value_buf, 0, max_value_buf_size);
+
+        if (loop_count == 5) {
+            printf("**Simulating realloc failure start***\n");
+            simulate_failure = true;
+        }
         ret = cfstore_create_kv_create(kv_name_min_len +i, CFSTORE_CREATE_KV_CREATE_NO_TAG, value_buf, kv_value_min_len * (i+1));
+        if (loop_count == 5) {
+            printf("**Simulating realloc failure end***\n");
+            simulate_failure = false;
+        }
+        loop_count++;
+
         bytes_stored += kv_name_min_len + i;         /* kv_name */
         bytes_stored += kv_value_min_len * (i+1);    /* kv value blob */
         bytes_stored += 8;                           /* kv overhead */
         if(ret == ARM_CFSTORE_DRIVER_ERROR_OUT_OF_MEMORY){
-            CFSTORE_ERRLOG("Out of memory on %d-th KV, trying to allocate memory totalling %d.\n", (int) i, (int) bytes_stored);
+            printf("Out of memory on %d-th KV, trying to allocate memory totalling %d.\n", (int) i, (int) bytes_stored);
             break;
         }
         CFSTORE_DBGLOG("Successfully stored %d-th KV bytes,  totalling %d.\n", (int) i, (int) bytes_stored);
