@@ -361,10 +361,9 @@ int32_t cfstore_test_delete_all(void)
     int32_t ret = ARM_DRIVER_ERROR;
     ARM_CFSTORE_DRIVER* drv = &cfstore_driver;
     ARM_CFSTORE_HANDLE_INIT(next);
-    ARM_CFSTORE_HANDLE_INIT(prev);
 
     CFSTORE_FENTRYLOG("%s:entered.\r\n", __func__);
-    while((ret = drv->Find(key_name_query, prev, next)) == ARM_DRIVER_OK)
+    while((ret = drv->Find(key_name_query, NULL, next)) == ARM_DRIVER_OK)
     {
         len = CFSTORE_KEY_NAME_MAX_LENGTH+1;
         drv->GetKeyName(next, key_name, &len);
@@ -374,11 +373,17 @@ int32_t cfstore_test_delete_all(void)
             CFSTORE_ERRLOG("%s:Error: failed to delete key_name=%s, len=%d\r\n", __func__, key_name, (int) len);
             return ret;
         }
-        CFSTORE_HANDLE_SWAP(prev, next);
+        ret = drv->Close(next);
+        if(ret < ARM_DRIVER_OK){
+            CFSTORE_ERRLOG("%s:Error: failed to close key_name=%s, len=%d\r\n", __func__, key_name, (int) len);
+            return ret;
+        }
     }
     if(ret == ARM_CFSTORE_DRIVER_ERROR_KEY_NOT_FOUND) {
         /* as expected, no more keys have been found by the Find()*/
         ret = ARM_DRIVER_OK;
+    } else {
+        printf("Find returned %i\n", ret);
     }
     // todo: find portable format specification CFSTORE_FENTRYLOG("%s:exiting (ret=%ld).\r\n", __func__, ret);
     CFSTORE_FENTRYLOG("%s:exiting (ret=%d).\r\n", __func__, (int) ret);
