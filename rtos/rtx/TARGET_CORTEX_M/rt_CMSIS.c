@@ -853,7 +853,6 @@ int32_t svcThreadGetMaxStack (osThreadId thread_id) {
   return stack_size - i * 4;
 }
 
-
 // Thread Public API
 
 /// Create a thread and add it to Active Threads and set it to state READY
