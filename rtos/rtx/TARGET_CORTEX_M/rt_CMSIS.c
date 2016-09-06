@@ -946,8 +946,6 @@ int32_t osThreadGetMaxStack(osThreadId thread_id) {
   return __svcThreadGetMaxStack(thread_id);
 }
 
-//TODO - this is a hack
-
 osThreadEnumId osThreadsEnumStart() {
   static uint32_t thread_enum_index;
   osMutexWait(osMutexId_osThreadMutex, osWaitForever);

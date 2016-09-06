@@ -712,10 +712,17 @@ osStatus osMailFree (osMailQId queue_id, void *mail);
 
 #if (defined (osFeature_ThreadEnum)  &&  (osFeature_ThreadEnum != 0))     // Thread enumeration available
 
-osThreadEnumId osThreadsEnumStart();
+/// Start a thread enumeration.
+/// \return an enumeration ID or NULL on error.
+osThreadEnumId osThreadsEnumStart(void);
 
+/// Get the next task ID in the enumeration.
+/// \return a thread ID or NULL on if the end of the enumeration has been reached.
 osThreadId osThreadEnumNext(osThreadEnumId enum_id);
 
+/// Free the enumeration structure.
+/// \param[in]     enum_id       pointer to the enumeration ID that was obtained with \ref osThreadsEnumStart.
+/// \return status code that indicates the execution status of the function.
 osStatus osThreadEnumFree(osThreadEnumId enum_id);
 
 #endif  // Thread Enumeration available
