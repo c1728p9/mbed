@@ -640,8 +640,8 @@ SVC_0_1(svcThreadYield,       osStatus,                                      RET
 SVC_2_1(svcThreadSetPriority, osStatus,         osThreadId,      osPriority, RET_osStatus)
 SVC_1_1(svcThreadGetPriority, osPriority,       osThreadId,                  RET_osPriority)
 SVC_1_1(svcThreadGetState,    osState,          osThreadId,                  RET_osState)
-SVC_1_1(svcThreadGetStackSize,uint32_t,         osThreadId,                  RET_uint32_t)
-SVC_1_1(svcThreadGetMaxStack, uint32_t,         osThreadId,                  RET_uint32_t)
+SVC_1_1(svcThreadGetStackSize,int32_t,          osThreadId,                  RET_uint32_t)
+SVC_1_1(svcThreadGetMaxStack, int32_t,          osThreadId,                  RET_uint32_t)
 
 // Thread Service Calls
 
@@ -814,9 +814,9 @@ osState svcThreadGetState (osThreadId thread_id) {
 }
 
 /// Get stack size of an active thread
-uint32_t svcThreadGetStackSize (osThreadId thread_id) {
+int32_t svcThreadGetStackSize (osThreadId thread_id) {
   P_TCB ptcb;
-  uint32_t size;
+  int32_t size;
 
   ptcb = rt_tid2ptcb(thread_id);                // Get TCB pointer
   if (ptcb == NULL) {
@@ -832,11 +832,11 @@ uint32_t svcThreadGetStackSize (osThreadId thread_id) {
 }
 
 /// Get max stack size of an active thread
-uint32_t svcThreadGetMaxStack (osThreadId thread_id) {
+int32_t svcThreadGetMaxStack (osThreadId thread_id) {
   P_TCB ptcb;
   uint32_t *stack_ptr;
-  uint32_t stack_size;
-  uint32_t i;
+  int32_t stack_size;
+  int32_t i;
 
   ptcb = rt_tid2ptcb(thread_id);                // Get TCB pointer
   if (ptcb == NULL) {

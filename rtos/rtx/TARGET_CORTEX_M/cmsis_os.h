@@ -203,9 +203,6 @@ typedef struct os_messageQ_cb *osMessageQId;
 /// Mail ID identifies the mail queue (pointer to a mail queue control block).
 typedef struct os_mailQ_cb *osMailQId;
 
-/// Mail ID identifies the mail queue (pointer to a mail queue control block).
-typedef struct os_mailQ_cb *osMailQId;
-
 /// Thread enumeration ID identifies the enumeration (pointer to a thread enumeration control block).
 typedef struct os_threadE_cb *osThreadEnumId;
 
@@ -379,14 +376,21 @@ osStatus osThreadSetPriority (osThreadId thread_id, osPriority priority);
 /// \return current priority value of the thread function.
 osPriority osThreadGetPriority (osThreadId thread_id);
 
-//TODO - docs
-/// Get current thread state.
+/// Get current state of an active thread.
+/// \param[in]     thread_id     thread ID obtained by \ref osThreadCreate or \ref osThreadGetId.
+/// \return current state of the thread function.
 osState osThreadGetState(osThreadId thread_id);
+
+/// Get the stack size used of an active thread.
+/// \param[in]     thread_id     thread ID obtained by \ref osThreadCreate or \ref osThreadGetId.
+/// \return stack size or -1 on error.
 int32_t osThreadGetStackSize(osThreadId thread_id);
+
+/// Get the maximum stack used of an active thread.
+/// \param[in]     thread_id     thread ID obtained by \ref osThreadCreate or \ref osThreadGetId.
+/// \return maximum stack usage or -1 on error.
 int32_t osThreadGetMaxStack(osThreadId thread_id);
-osThreadEnumId osThreadsEnumStart();
-osThreadId osThreadEnumNext(osThreadEnumId enum_id);
-osStatus osThreadEnumFree(osThreadEnumId enum_id);
+
 
 //  ==== Generic Wait Functions ====
 
@@ -710,21 +714,27 @@ osStatus osMailFree (osMailQId queue_id, void *mail);
 #endif  // Mail Queues available
 
 
-//  ==== Mail Queue Management Functions ====
+//  ==== Thread Enumeration Functions ====
 
 #if (defined (osFeature_ThreadEnum)  &&  (osFeature_ThreadEnum != 0))     // Thread enumeration available
 
 /// \brief Create a Mail Queue Definition.
 /// \param         name          name of the thread enumeration object
 #if defined (osObjectsExternal)  // object is external
-#define osThreadEnumQDef(name) \
+#define osThreadEnumDef(name) \
 extern const osThreadEnumDef_t os_threadEnum_def_##name
 #else                            // define the object
-#define osThreadEnumQDef(name) \
+#define osThreadEnumDef(name) \
 static osThreadEnumDef_t os_threadEnum_##name = {}; \
 const osThreadEnumDef_t os_threadEnum_def_##name =  \
 { &os_threadEnum_##name }
 #endif
+
+osThreadEnumId osThreadsEnumStart();
+
+osThreadId osThreadEnumNext(osThreadEnumId enum_id);
+
+osStatus osThreadEnumFree(osThreadEnumId enum_id);
 
 #endif  // Thread Enumeration available
 
