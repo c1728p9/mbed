@@ -99,6 +99,7 @@
 #define osFeature_Semaphore    65535   ///< Maximum count for \ref osSemaphoreCreate function
 #define osFeature_Wait         0       ///< osWait not available
 #define osFeature_SysTick      1       ///< osKernelSysTick functions available
+#define osFeature_ThreadEnum   1       ///< Thread enumeration available
 
 #if defined (__CC_ARM)
 #define os_InRegs __value_in_regs      // Compiler specific: force struct in registers
@@ -163,6 +164,7 @@ typedef enum {
   osThreadWaitingSemaphore,   /**< Waiting for a semaphore event to occur */
   osThreadWaitingMailbox,     /**< Waiting for a mailbox event to occur */
   osThreadWaitingMutex,       /**< Waiting for a mutex event to occur */
+  osThreadError            = 0xFF        ///< system cannot determine state or thread has illegal state
 } osState;
 
 
@@ -201,6 +203,11 @@ typedef struct os_messageQ_cb *osMessageQId;
 /// Mail ID identifies the mail queue (pointer to a mail queue control block).
 typedef struct os_mailQ_cb *osMailQId;
 
+/// Mail ID identifies the mail queue (pointer to a mail queue control block).
+typedef struct os_mailQ_cb *osMailQId;
+
+/// Thread enumeration ID identifies the enumeration (pointer to a thread enumeration control block).
+typedef struct os_threadE_cb *osThreadEnumId;
 
 /// Thread Definition structure contains startup information of a thread.
 typedef struct os_thread_def  {
@@ -249,6 +256,12 @@ typedef struct os_mailQ_def  {
   void                       *pool;    ///< memory array for mail
 } osMailQDef_t;
 
+/// Semaphore Definition structure contains setup information for thread enumeration.
+typedef struct {
+//  int                   index;//TODO
+  void                  *enum_data;    ///< implementation defined
+} osThreadEnumDef_t;
+
 /// Event structure contains detailed information about an event.
 typedef struct  {
   osStatus                 status;     ///< status code: event or error information
@@ -262,12 +275,6 @@ typedef struct  {
     osMessageQId       message_id;     ///< message id obtained by \ref osMessageCreate
   } def;                               ///< event definition
 } osEvent;
-
-///
-/// Semaphore Definition structure contains setup information for thread enumeration.
-typedef struct {
-  int                   index;    ///< implementation defined
-} osThreadEnumDef_t;
 
 
 //  ==== Kernel Control Functions ====
@@ -372,10 +379,14 @@ osStatus osThreadSetPriority (osThreadId thread_id, osPriority priority);
 /// \return current priority value of the thread function.
 osPriority osThreadGetPriority (osThreadId thread_id);
 
-#ifdef __MBED_CMSIS_RTOS_CM
+//TODO - docs
 /// Get current thread state.
-uint8_t osThreadGetState (osThreadId thread_id);
-#endif
+osState osThreadGetState(osThreadId thread_id);
+int32_t osThreadGetStackSize(osThreadId thread_id);
+int32_t osThreadGetMaxStack(osThreadId thread_id);
+osThreadEnumId osThreadsEnumStart();
+osThreadId osThreadEnumNext(osThreadEnumId enum_id);
+osStatus osThreadEnumFree(osThreadEnumId enum_id);
 
 //  ==== Generic Wait Functions ====
 
@@ -697,6 +708,25 @@ os_InRegs osEvent osMailGet (osMailQId queue_id, uint32_t millisec);
 osStatus osMailFree (osMailQId queue_id, void *mail);
 
 #endif  // Mail Queues available
+
+
+//  ==== Mail Queue Management Functions ====
+
+#if (defined (osFeature_ThreadEnum)  &&  (osFeature_ThreadEnum != 0))     // Thread enumeration available
+
+/// \brief Create a Mail Queue Definition.
+/// \param         name          name of the thread enumeration object
+#if defined (osObjectsExternal)  // object is external
+#define osThreadEnumQDef(name) \
+extern const osThreadEnumDef_t os_threadEnum_def_##name
+#else                            // define the object
+#define osThreadEnumQDef(name) \
+static osThreadEnumDef_t os_threadEnum_##name = {}; \
+const osThreadEnumDef_t os_threadEnum_def_##name =  \
+{ &os_threadEnum_##name }
+#endif
+
+#endif  // Thread Enumeration available
 
 
 //  ==== RTX Extensions ====

@@ -161,6 +161,7 @@ typedef uint32_t __attribute__((vector_size(16))) ret128;
 #define RET_uint32_t   __r0
 #define RET_osStatus   __r0
 #define RET_osPriority __r0
+#define RET_osState    __r0
 #define RET_osEvent    {(osStatus)__r0, {(uint32_t)__r1}, {(void *)__r2}}
 #define RET_osCallback {(void *)__r0, (void *)__r1}
 
@@ -391,6 +392,10 @@ extern const osThreadDef_t   os_thread_def_osTimerThread;
 extern       osThreadId      osThreadId_osTimerThread;
 extern const osMessageQDef_t os_messageQ_def_osTimerMessageQ;
 extern       osMessageQId    osMessageQId_osTimerMessageQ;
+
+// OS Thread enumeration external resources
+extern const osMutexDef_t   os_mutex_def_osThreadMutex;
+extern       osMutexId      osMutexId_osThreadMutex;
 
 
 // ==== Helper Functions ====
@@ -634,6 +639,9 @@ SVC_1_1(svcThreadTerminate,   osStatus,         osThreadId,                  RET
 SVC_0_1(svcThreadYield,       osStatus,                                      RET_osStatus)
 SVC_2_1(svcThreadSetPriority, osStatus,         osThreadId,      osPriority, RET_osStatus)
 SVC_1_1(svcThreadGetPriority, osPriority,       osThreadId,                  RET_osPriority)
+SVC_1_1(svcThreadGetState,    osState,          osThreadId,                  RET_osState)
+SVC_1_1(svcThreadGetStackSize,uint32_t,         osThreadId,                  RET_uint32_t)
+SVC_1_1(svcThreadGetMaxStack, uint32_t,         osThreadId,                  RET_uint32_t)
 
 // Thread Service Calls
 
@@ -793,6 +801,59 @@ osPriority svcThreadGetPriority (osThreadId thread_id) {
   return (osPriority)(ptcb->prio - 1 + osPriorityIdle); 
 }
 
+/// Get current state of an active thread
+osState svcThreadGetState (osThreadId thread_id) {
+  P_TCB ptcb;
+
+  ptcb = rt_tid2ptcb(thread_id);                // Get TCB pointer
+  if (ptcb == NULL) {
+    return osThreadError;
+  }
+
+  return (osState)(ptcb->state);
+}
+
+/// Get stack size of an active thread
+uint32_t svcThreadGetStackSize (osThreadId thread_id) {
+  P_TCB ptcb;
+  uint32_t size;
+
+  ptcb = rt_tid2ptcb(thread_id);                // Get TCB pointer
+  if (ptcb == NULL) {
+    return -1;
+  }
+  size = ptcb->priv_stack;
+  if (0 == size) {
+    // This is an OS task - always a fixed size
+    size = (U16)os_stackinfo & 0x3FFFF;
+  }
+
+  return size;
+}
+
+/// Get max stack size of an active thread
+uint32_t svcThreadGetMaxStack (osThreadId thread_id) {
+  P_TCB ptcb;
+  uint32_t *stack_ptr;
+  uint32_t stack_size;
+  uint32_t i;
+
+  ptcb = rt_tid2ptcb(thread_id);                // Get TCB pointer
+  if (ptcb == NULL) {
+    return -1;
+  }
+  stack_ptr = (uint32_t*)ptcb->stack;
+
+  stack_size = svcThreadGetStackSize(thread_id);
+  for (i = 1; i <stack_size / 4; i++) {
+    if (stack_ptr[i] != MAGIC_PATTERN) {
+      break;
+    }
+  }
+
+  return stack_size - i * 4;
+}
+
 
 // Thread Public API
 
@@ -864,29 +925,52 @@ osPriority osThreadGetPriority (osThreadId thread_id) {
 
 /// Get the current state of an active thread
 osState osThreadGetState(osThreadId thread_id) {
-
+  if (__get_IPSR() != 0U) {
+    return osPriorityError;                     // Not allowed in ISR
+  }
+  return __svcThreadGetState(thread_id);
 }
 
 /// Get the allocated stack size of an active thread or -1 on failure
 int32_t osThreadGetStackSize(osThreadId thread_id) {
-
+  if (__get_IPSR() != 0U) {
+    return osPriorityError;                     // Not allowed in ISR
+  }
+  return __svcThreadGetStackSize(thread_id);
 }
 
 /// Get the maximum stack size used for an active thread or -1 on failure
 int32_t osThreadGetMaxStack(osThreadId thread_id) {
-
+  if (__get_IPSR() != 0U) {
+    return osPriorityError;                     // Not allowed in ISR
+  }
+  return __svcThreadGetMaxStack(thread_id);
 }
 
+//TODO - this is a hack
+static uint32_t index;
 osThreadEnumId osThreadsEnumStart() {
-    osMutexWait(osMutexId_osThreadMutex, osWaitForever);
+  osMutexWait(osMutexId_osThreadMutex, osWaitForever);
+  index = 0;
+  return NULL;//TODO
 }
 
 osThreadId osThreadEnumNext(osThreadEnumId enum_id) {
-
+  uint32_t i;
+  osThreadId id = NULL;
+  for (i = index; i < os_maxtaskrun; i++) {
+    if (os_active_TCB[i] != NULL) {
+      id = (osThreadId)os_active_TCB[i];
+      break;
+    }
+  }
+  index = i + 1;
+  return id;
 }
 
 osStatus osThreadEnumFree(osThreadEnumId enum_id) {
-    osMutexRelease(osMutexId_osThreadMutex);
+  osMutexRelease(osMutexId_osThreadMutex);
+  return osOK;
 }
 
 /// INTERNAL - Not Public
@@ -899,20 +983,6 @@ __NO_RETURN void osThreadExit (void) {
   __svcThreadTerminate(__svcThreadGetId()); 
   for (;;);                                     // Should never come here
 }
-
-#ifdef __MBED_CMSIS_RTOS_CM
-/// Get current thread state
-uint8_t osThreadGetState (osThreadId thread_id) {
-  P_TCB ptcb;
-
-  if (__get_IPSR() != 0U) return osErrorISR;     // Not allowed in ISR
-
-  ptcb = rt_tid2ptcb(thread_id);                // Get TCB pointer
-  if (ptcb == NULL) return INACTIVE;
-
-  return ptcb->state;
-}
-#endif
 
 // ==== Generic Wait Functions ====
 
