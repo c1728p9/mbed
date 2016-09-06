@@ -397,7 +397,6 @@ extern       osMessageQId    osMessageQId_osTimerMessageQ;
 extern const osMutexDef_t   os_mutex_def_osThreadMutex;
 extern       osMutexId      osMutexId_osThreadMutex;
 
-
 // ==== Helper Functions ====
 
 /// Convert timeout in millisec to system ticks
@@ -948,27 +947,31 @@ int32_t osThreadGetMaxStack(osThreadId thread_id) {
 }
 
 //TODO - this is a hack
-static uint32_t index;
+
 osThreadEnumId osThreadsEnumStart() {
+  static uint32_t thread_enum_index;
   osMutexWait(osMutexId_osThreadMutex, osWaitForever);
-  index = 0;
-  return NULL;//TODO
+  thread_enum_index = 0;
+  return &thread_enum_index;
 }
 
 osThreadId osThreadEnumNext(osThreadEnumId enum_id) {
   uint32_t i;
   osThreadId id = NULL;
-  for (i = index; i < os_maxtaskrun; i++) {
+  uint32_t *index = (uint32_t*)enum_id;
+  for (i = *index; i < os_maxtaskrun; i++) {
     if (os_active_TCB[i] != NULL) {
       id = (osThreadId)os_active_TCB[i];
       break;
     }
   }
-  index = i + 1;
+  *index = i + 1;
   return id;
 }
 
 osStatus osThreadEnumFree(osThreadEnumId enum_id) {
+  uint32_t *index = (uint32_t*)enum_id;
+  *index = 0;
   osMutexRelease(osMutexId_osThreadMutex);
   return osOK;
 }

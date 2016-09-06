@@ -204,7 +204,7 @@ typedef struct os_messageQ_cb *osMessageQId;
 typedef struct os_mailQ_cb *osMailQId;
 
 /// Thread enumeration ID identifies the enumeration (pointer to a thread enumeration control block).
-typedef struct os_threadE_cb *osThreadEnumId;
+typedef uint32_t *osThreadEnumId;
 
 /// Thread Definition structure contains startup information of a thread.
 typedef struct os_thread_def  {
@@ -252,12 +252,6 @@ typedef struct os_mailQ_def  {
   uint32_t                 item_sz;    ///< size of an item
   void                       *pool;    ///< memory array for mail
 } osMailQDef_t;
-
-/// Semaphore Definition structure contains setup information for thread enumeration.
-typedef struct {
-//  int                   index;//TODO
-  void                  *enum_data;    ///< implementation defined
-} osThreadEnumDef_t;
 
 /// Event structure contains detailed information about an event.
 typedef struct  {
@@ -717,18 +711,6 @@ osStatus osMailFree (osMailQId queue_id, void *mail);
 //  ==== Thread Enumeration Functions ====
 
 #if (defined (osFeature_ThreadEnum)  &&  (osFeature_ThreadEnum != 0))     // Thread enumeration available
-
-/// \brief Create a Mail Queue Definition.
-/// \param         name          name of the thread enumeration object
-#if defined (osObjectsExternal)  // object is external
-#define osThreadEnumDef(name) \
-extern const osThreadEnumDef_t os_threadEnum_def_##name
-#else                            // define the object
-#define osThreadEnumDef(name) \
-static osThreadEnumDef_t os_threadEnum_##name = {}; \
-const osThreadEnumDef_t os_threadEnum_def_##name =  \
-{ &os_threadEnum_##name }
-#endif
 
 osThreadEnumId osThreadsEnumStart();
 
