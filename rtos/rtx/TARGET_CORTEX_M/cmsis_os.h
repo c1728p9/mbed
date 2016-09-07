@@ -375,6 +375,11 @@ osPriority osThreadGetPriority (osThreadId thread_id);
 /// \return current state of the thread function.
 osState osThreadGetState(osThreadId thread_id);
 
+/// Get start entry point of an active thread.
+/// \param[in]     thread_id     thread ID obtained by \ref osThreadCreate or \ref osThreadGetId.
+/// \return entry point of the given thread or NULL on error.
+os_pthread osThreadGetEntryPoint(osThreadId thread_id);
+
 /// Get the stack size used of an active thread.
 /// \param[in]     thread_id     thread ID obtained by \ref osThreadCreate or \ref osThreadGetId.
 /// \return stack size or -1 on error.

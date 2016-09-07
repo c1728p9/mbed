@@ -162,6 +162,7 @@ typedef uint32_t __attribute__((vector_size(16))) ret128;
 #define RET_osStatus   __r0
 #define RET_osPriority __r0
 #define RET_osState    __r0
+#define RET_os_pthread __r0
 #define RET_osEvent    {(osStatus)__r0, {(uint32_t)__r1}, {(void *)__r2}}
 #define RET_osCallback {(void *)__r0, (void *)__r1}
 
@@ -639,6 +640,7 @@ SVC_0_1(svcThreadYield,       osStatus,                                      RET
 SVC_2_1(svcThreadSetPriority, osStatus,         osThreadId,      osPriority, RET_osStatus)
 SVC_1_1(svcThreadGetPriority, osPriority,       osThreadId,                  RET_osPriority)
 SVC_1_1(svcThreadGetState,    osState,          osThreadId,                  RET_osState)
+SVC_1_1(svcThreadGetEntryPoint,os_pthread,      osThreadId,                  RET_os_pthread)
 SVC_1_1(svcThreadGetStackSize,int32_t,          osThreadId,                  RET_uint32_t)
 SVC_1_1(svcThreadGetMaxStack, int32_t,          osThreadId,                  RET_uint32_t)
 
@@ -812,6 +814,17 @@ osState svcThreadGetState (osThreadId thread_id) {
   return (osState)(ptcb->state);
 }
 
+os_pthread svcThreadGetEntryPoint(osThreadId thread_id) {
+    P_TCB ptcb;
+
+    ptcb = rt_tid2ptcb(thread_id);                // Get TCB pointer
+    if (ptcb == NULL) {
+      return NULL;
+    }
+
+    return (os_pthread)(ptcb->ptask);
+}
+
 /// Get stack size of an active thread
 int32_t svcThreadGetStackSize (osThreadId thread_id) {
   P_TCB ptcb;
@@ -927,6 +940,14 @@ osState osThreadGetState(osThreadId thread_id) {
     return osPriorityError;                     // Not allowed in ISR
   }
   return __svcThreadGetState(thread_id);
+}
+
+/// Get the entry point of an active thread
+os_pthread osThreadGetEntryPoint(osThreadId thread_id) {
+  if (__get_IPSR() != 0U) {
+    return NULL;                                // Not allowed in ISR
+  }
+  return __svcThreadGetEntryPoint(thread_id);
 }
 
 /// Get the allocated stack size of an active thread or -1 on failure
