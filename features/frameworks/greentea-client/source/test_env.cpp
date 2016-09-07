@@ -65,6 +65,9 @@ static void greentea_notify_version();
  *           This function is blocking.
  */
 void GREENTEA_SETUP(const int timeout, const char *host_test_name) {
+
+    //TODO - add task kill logging here
+
     // Key-value protocol handshake function. Waits for {{__sync;...}} message
     // Sync preamble: "{{__sync;0dad4a9d-59a3-4aec-810d-d5fb09d852c1}}"
     // Example value of sync_uuid == "0dad4a9d-59a3-4aec-810d-d5fb09d852c1"

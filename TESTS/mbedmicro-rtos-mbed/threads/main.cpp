@@ -5,6 +5,7 @@
 #include "rtos.h"
 #include "SynchronizedIntegral.h"
 #include "LockGuard.h"
+#include "cmsis_os.h"
 
 #if defined(MBED_RTOS_SINGLE_THREAD)
   #error [NOT_SUPPORTED] test not supported
@@ -53,6 +54,18 @@ void increment_with_murder(counter_t* counter) {
         // modify counter.
         LockGuard lock(counter->internal_mutex());
         Thread child(counter, increment, osPriorityNormal, STACK_SIZE);
+
+        osThreadEnumId enum_id = osThreadsEnumStart();
+        osThreadId thread_id = osThreadEnumNext(enum_id);
+        while (thread_id != NULL) {
+            void *entry = (void*)osThreadGetEntryPoint(thread_id);
+            int32_t max_stack = osThreadGetMaxStack(thread_id);
+            int32_t stack_size = osThreadGetStackSize(thread_id);
+            printf("Thread %p %li / %li\n", entry, max_stack, stack_size);
+            thread_id = osThreadEnumNext(enum_id);
+        }
+        osThreadEnumFree(enum_id);
+
         child.terminate();
     }
 
@@ -128,5 +141,6 @@ Case cases[] = {
 Specification specification(test_setup, cases);
 
 int main() {
-    return !Harness::run(specification);
+    bool ret = Harness::run(specification);
+    return !ret;
 }
