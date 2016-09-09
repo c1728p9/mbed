@@ -220,7 +220,8 @@ static int lwip_err_remap(err_t err) {
 static nsapi_addr_t lwip_getaddr(nsapi_stack_t *stack)
 {
     if (!lwip_get_ip_address()) {
-        return (nsapi_addr_t){0};
+        nsapi_addr_t zero_addr = {};
+        return zero_addr;
     }
 
     nsapi_addr_t addr;
@@ -460,20 +461,23 @@ static void lwip_socket_attach(nsapi_stack_t *stack, nsapi_socket_t handle, void
 
 /* LWIP network stack */
 const nsapi_stack_api_t lwip_stack_api = {
-    .get_ip_address     = lwip_getaddr,
-    .gethostbyname      = lwip_gethostbyname,
-    .socket_open        = lwip_socket_open,
-    .socket_close       = lwip_socket_close,
-    .socket_bind        = lwip_socket_bind,
-    .socket_listen      = lwip_socket_listen,
-    .socket_connect     = lwip_socket_connect,
-    .socket_accept      = lwip_socket_accept,
-    .socket_send        = lwip_socket_send,
-    .socket_recv        = lwip_socket_recv,
-    .socket_sendto      = lwip_socket_sendto,
-    .socket_recvfrom    = lwip_socket_recvfrom,
-    .setsockopt         = lwip_setsockopt,
-    .socket_attach      = lwip_socket_attach,
+    /* .get_ip_address      */ lwip_getaddr,
+    /* .gethostbyname       */ lwip_gethostbyname,
+    /* .setstackopt         */ NULL,
+    /* .getstackopt         */ NULL,
+    /* .socket_open         */ lwip_socket_open,
+    /* .socket_close        */ lwip_socket_close,
+    /* .socket_bind         */ lwip_socket_bind,
+    /* .socket_listen       */ lwip_socket_listen,
+    /* .socket_connect      */ lwip_socket_connect,
+    /* .socket_accept       */ lwip_socket_accept,
+    /* .socket_send         */ lwip_socket_send,
+    /* .socket_recv         */ lwip_socket_recv,
+    /* .socket_sendto       */ lwip_socket_sendto,
+    /* .socket_recvfrom     */ lwip_socket_recvfrom,
+    /* .socket_attach       */ lwip_socket_attach,
+    /* .setsockopt          */ lwip_setsockopt,
+    /* .getsockopt          */ NULL,
 };
 
 nsapi_stack_t lwip_stack = {

@@ -19,11 +19,6 @@
 
 #include "nsapi.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
 // Access to lwip through the nsapi
 int lwip_bringup(void);
 void lwip_bringdown(void);
@@ -33,9 +28,5 @@ extern nsapi_stack_t lwip_stack;
 const char *lwip_get_mac_address(void);
 const char *lwip_get_ip_address(void);
 
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
