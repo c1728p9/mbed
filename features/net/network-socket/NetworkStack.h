@@ -277,6 +277,8 @@ protected:
      *  @return         0 on success, negative error code on failure
      */    
     virtual int getsockopt(nsapi_socket_t handle, int level, int optname, void *optval, unsigned *optlen);
+public:
+    virtual int add_mac(EmacInterface *mac);
 };
 
 

@@ -18,6 +18,7 @@
 #define NSAPI_TYPES_H
 
 #include <stdint.h>
+#include "EmacInterface.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -437,6 +438,8 @@ typedef struct nsapi_stack_api
      *  @return         0 on success, negative error code on failure
      */    
     int (*getsockopt)(nsapi_stack_t *stack, nsapi_socket_t socket, int level, int optname, void *optval, unsigned *optlen);
+
+    int (*add_mac)(nsapi_stack_t *stack, EmacInterface *new_mac);
 } nsapi_stack_api_t;
 
 

@@ -15,12 +15,15 @@
  */
 
 #include "EthernetInterface.h"
+#include "EmacInterfaceOnchip.h"
 #include "lwip_stack.h"
 
+EmacInterface *get_onchip_emac(void);
 
 /* Interface implementation */
 int EthernetInterface::connect()
 {
+    get_stack()->add_mac(get_onchip_emac());
     return lwip_bringup();
 }
 

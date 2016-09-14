@@ -47,6 +47,11 @@ int NetworkStack::getsockopt(void *handle, int level, int optname, void *optval,
     return NSAPI_ERROR_UNSUPPORTED;
 }
 
+int NetworkStack::add_mac(EmacInterface *mac)
+{
+    return NSAPI_ERROR_UNSUPPORTED;
+}
+
 
 // NetworkStackWrapper class for encapsulating the raw nsapi_stack structure
 class NetworkStackWrapper : public NetworkStack
@@ -242,6 +247,15 @@ protected:
         }
 
         return _stack_api()->getsockopt(_stack(), socket, level, optname, optval, optlen);
+    }
+
+    virtual int add_mac(EmacInterface *mac)
+    {
+        if (!_stack_api()->add_mac) {
+            return NSAPI_ERROR_UNSUPPORTED;
+        }
+
+        return _stack_api()->add_mac(_stack(), mac);
     }
 };
 

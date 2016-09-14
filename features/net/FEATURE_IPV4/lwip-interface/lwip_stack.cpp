@@ -29,7 +29,14 @@
 #include "lwip/tcpip.h"
 #include "lwip/tcp.h"
 #include "lwip/ip.h"
+#include "netif/etharp.h"
+#include "netif/ppp_oe.h"
+#include "EmacInterface.h"
 
+EmacInterface *mac;
+static err_t default_etharp_output(struct netif *netif, struct pbuf *q, ip_addr_t *ipaddr);
+static err_t low_level_output(struct netif *netif, struct pbuf *p);
+static err_t eth_enetif_init(struct netif *netif);
 
 /* Static arena of sockets */
 static struct lwip_socket {
@@ -157,13 +164,13 @@ int lwip_bringup(void)
         sys_arch_sem_wait(&lwip_tcpip_inited, 0);
 
         memset(&lwip_netif, 0, sizeof lwip_netif);
-        netif_add(&lwip_netif, 0, 0, 0, NULL, eth_arch_enetif_init, tcpip_input);
+        netif_add(&lwip_netif, 0, 0, 0, NULL, eth_enetif_init, tcpip_input);
         netif_set_default(&lwip_netif);
 
         netif_set_link_callback  (&lwip_netif, lwip_netif_link_irq);
         netif_set_status_callback(&lwip_netif, lwip_netif_status_irq);
 
-        eth_arch_enable_interrupts();
+        //eth_arch_enable_interrupts();
     }
 
     // Zero out socket set
@@ -458,6 +465,76 @@ static void lwip_socket_attach(nsapi_stack_t *stack, nsapi_socket_t handle, void
     s->data = data;
 }
 
+class LwipMemAllocator : public StackMemory
+{
+public:
+    LwipMemAllocator() {
+        // Nothing to do
+    }
+
+    ~LwipMemAllocator() {
+        // Nothing to do
+    }
+
+    virtual StackMem *alloc(uint32_t size, uint32_t align) {
+        struct pbuf *pbuf;
+        //TODO - check for power of 2 and for null
+        pbuf = pbuf_alloc(PBUF_RAW, size + align, PBUF_RAM);
+        if (pbuf != NULL) {
+            uint32_t remainder = (uint32_t)pbuf->payload % align;
+            uint32_t offset = align - remainder;
+            if (offset >= align) {
+                offset = align;
+            }
+            pbuf->payload = (void*)((char*)pbuf->payload + offset);
+            pbuf->tot_len -= offset;
+            pbuf->len -= offset;
+        }
+        return (StackMem *)pbuf;
+    }
+
+    virtual void free(StackMem *ptr) {
+        pbuf_free((struct pbuf *)ptr);
+    }
+
+    virtual uint8_t* data_ptr(StackMem *ptr) {
+        return (uint8_t*)((struct pbuf *)ptr)->payload;
+    }
+
+    virtual uint32_t len(StackMem *ptr) {
+        return ((struct pbuf *)ptr)->len;
+    }
+    virtual void set_len(StackMem *ptr, uint32_t len) {
+        struct pbuf *p = (struct pbuf *)ptr;
+        p->len = len;
+        //TODO - assert length only decreases
+    }
+    virtual StackMem *dequeue_alloc(StackMemChain **ptr) {
+        struct pbuf **link = (struct pbuf **)ptr;
+        struct pbuf *p = *link;
+        *link = (*link)->next;
+        return (StackMem *)p;
+
+    }
+    virtual void enqueue_free(StackMemChain *ptr, StackMem *mem) {
+        //TODO
+    }
+    virtual uint32_t len(StackMemChain* ptr) {
+        return ((struct pbuf *)ptr)->tot_len;
+    }
+};
+
+
+static int add_mac(nsapi_stack_t *stack, EmacInterface *new_mac)
+{
+    static LwipMemAllocator allocator;
+    new_mac->set_mem_allocator(&allocator);
+    // Only one interface can be added at the moment
+    MBED_ASSERT(NULL == mac);
+    mac = new_mac;
+    return 0;
+}
+
 
 /* LWIP network stack */
 const nsapi_stack_api_t lwip_stack_api = {
@@ -478,8 +555,122 @@ const nsapi_stack_api_t lwip_stack_api = {
     /* .socket_attach       */ lwip_socket_attach,
     /* .setsockopt          */ lwip_setsockopt,
     /* .getsockopt          */ NULL,
+    /* .add_mac             */ add_mac,
 };
 
 nsapi_stack_t lwip_stack = {
     .stack_api = &lwip_stack_api,
 };
+
+/**
+ * This function is the ethernet packet send function. It calls
+ * etharp_output after checking link status.
+ *
+ * \param[in] netif the lwip network interface structure for this enetif
+ * \param[in] q Pointer to pbug to send
+ * \param[in] ipaddr IP address
+ * \return ERR_OK or error code
+ */
+static err_t default_etharp_output(struct netif *netif, struct pbuf *q, ip_addr_t *ipaddr)
+{
+  /* Only send packet is link is up */
+  if (netif->flags & NETIF_FLAG_LINK_UP)
+    return etharp_output(netif, q, ipaddr);
+
+  return ERR_CONN;
+}
+
+static err_t low_level_output(struct netif *netif, struct pbuf *p)
+{
+    bool ret = mac->linkoutput((StackMemChain*)p);
+    return ret ? ERR_OK : ERR_IF;
+}
+
+/** \brief  Attempt to read a packet from the EMAC interface.
+ *
+ *  \param[in] netif the lwip network interface structure
+ *  \param[in] idx   index of packet to be read
+ */
+void enetif_input(void *user_data, StackMem* buf)
+{
+  struct eth_hdr *ethhdr;
+  struct pbuf *p = (struct pbuf *)buf;
+  struct netif *netif = (struct netif *)user_data;
+
+  /* points to packet payload, which starts with an Ethernet header */
+  ethhdr = (struct eth_hdr*)p->payload;
+
+  switch (htons(ethhdr->type)) {
+    case ETHTYPE_IP:
+    case ETHTYPE_ARP:
+#if PPPOE_SUPPORT
+    case ETHTYPE_PPPOEDISC:
+    case ETHTYPE_PPPOE:
+#endif /* PPPOE_SUPPORT */
+      /* full packet send to tcpip_thread to process */
+      if (netif->input(p, netif) != ERR_OK) {
+        LWIP_DEBUGF(NETIF_DEBUG, ("k64f_enetif_input: IP input error\n"));
+        /* Free buffer */
+        pbuf_free(p);
+      }
+      break;
+
+    default:
+      /* Return buffer */
+      pbuf_free(p);
+      break;
+  }
+}
+
+static void link_state_change(void *user_data, bool up)
+{
+    struct netif *netif = (struct netif *)user_data;
+    if (up) {
+        tcpip_callback_with_block((tcpip_callback_fn)netif_set_link_up, (void*) netif, 1);
+    } else {
+        tcpip_callback_with_block((tcpip_callback_fn)netif_set_link_down, (void*) netif, 1);
+    }
+}
+
+/**
+ * Should be called at the beginning of the program to set up the
+ * network interface.
+ *
+ * This function should be passed as a parameter to netif_add().
+ *
+ * @param[in] netif the lwip network interface structure for this netif
+ * @return ERR_OK if the loopif is initialized
+ *         ERR_MEM if private data couldn't be allocated
+ *         any other err_t on error
+ */
+static err_t eth_enetif_init(struct netif *netif)
+{
+  mac->set_link_input(enetif_input, (void*)netif);
+  mac->set_link_state_cb(link_state_change, (void*)netif);
+
+  /* set MAC hardware address */
+  mac->get_hwaddr(netif->hwaddr);
+  netif->hwaddr_len = ETHARP_HWADDR_LEN;
+
+  /* maximum transfer unit */
+  netif->mtu = mac->get_mtu_size();
+
+  /* device capabilities */
+  // TODOETH: check if the flags are correct below
+  // TODO: Get flags from mac
+  netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_IGMP;
+
+  netif->hostname = (char*)mac->get_hostname();
+  netif->name[0] = 'e';
+  netif->name[1] = 'n';
+
+  netif->output = default_etharp_output;
+  netif->linkoutput = low_level_output;
+
+  mac->set_hwaddr(netif->hwaddr);
+
+  mac->powerup();
+
+  return ERR_OK;
+}
+
