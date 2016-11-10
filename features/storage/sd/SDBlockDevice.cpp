@@ -112,15 +112,16 @@
  * | 0xFE | data[0] | data[1] |        | data[n] | crc[15:8] | crc[7:0] |
  * +------+---------+---------+- -  - -+---------+-----------+----------+
  */
-#include "SDFileSystem.h"
+#include "SDBlockDevice.h"
+
 #include "mbed_debug.h"
 
 #define SD_COMMAND_TIMEOUT 5000
 
 #define SD_DBG             0
 
-SDFileSystem::SDFileSystem(PinName mosi, PinName miso, PinName sclk, PinName cs, const char* name) :
-    FATFileSystem(name), _spi(mosi, miso, sclk), _cs(cs), _is_initialized(0) {
+SDBlockDevice::SDBlockDevice(PinName mosi, PinName miso, PinName sclk, PinName cs) :
+    _spi(mosi, miso, sclk), _cs(cs), _is_initialized(0) {
     _cs = 1;
 
     // Set default to 100kHz for initialisation and 1MHz for data transfer
@@ -146,7 +147,7 @@ SDFileSystem::SDFileSystem(PinName mosi, PinName miso, PinName sclk, PinName cs,
 #define SDCARD_V2   2
 #define SDCARD_V2HC 3
 
-int SDFileSystem::initialise_card() {
+int SDBlockDevice::initialise_card() {
 	_dbg = SD_DBG;
     // Set to SCK for initialisation, and clock card with cs = 1
     _spi.lock();
@@ -175,7 +176,7 @@ int SDFileSystem::initialise_card() {
     }
 }
 
-int SDFileSystem::initialise_card_v1() {
+int SDBlockDevice::initialise_card_v1() {
     for (int i = 0; i < SD_COMMAND_TIMEOUT; i++) {
         _cmd(55, 0);
         if (_cmd(41, 0) == 0) {
@@ -189,7 +190,7 @@ int SDFileSystem::initialise_card_v1() {
     return SDCARD_FAIL;
 }
 
-int SDFileSystem::initialise_card_v2() {
+int SDBlockDevice::initialise_card_v2() {
     for (int i = 0; i < SD_COMMAND_TIMEOUT; i++) {
         wait_ms(50);
         _cmd58();
@@ -206,7 +207,7 @@ int SDFileSystem::initialise_card_v2() {
     return SDCARD_FAIL;
 }
 
-int SDFileSystem::disk_initialize() {
+int SDBlockDevice::disk_initialize() {
     lock();
     _is_initialized = initialise_card();
     if (_is_initialized == 0) {
@@ -230,7 +231,7 @@ int SDFileSystem::disk_initialize() {
     return 0;
 }
 
-int SDFileSystem::disk_write(const uint8_t* buffer, uint32_t block_number, uint32_t count) {
+int SDBlockDevice::disk_write(const uint8_t* buffer, uint32_t block_number, uint32_t count) {
     lock();
     if (!_is_initialized) {
         unlock();
@@ -253,7 +254,7 @@ int SDFileSystem::disk_write(const uint8_t* buffer, uint32_t block_number, uint3
     return 0;
 }
 
-int SDFileSystem::disk_read(uint8_t* buffer, uint32_t block_number, uint32_t count) {
+int SDBlockDevice::disk_read(uint8_t* buffer, uint32_t block_number, uint32_t count) {
     lock();
     if (!_is_initialized) {
         unlock();
@@ -276,7 +277,7 @@ int SDFileSystem::disk_read(uint8_t* buffer, uint32_t block_number, uint32_t cou
     return 0;
 }
 
-int SDFileSystem::disk_status() {
+int SDBlockDevice::disk_status() {
     lock();
     // FATFileSystem::disk_status() returns 0 when initialized
     int ret = _is_initialized ? 0 : 1;
@@ -284,21 +285,53 @@ int SDFileSystem::disk_status() {
     return ret;
 }
 
-int SDFileSystem::disk_sync() { return 0; }
-uint32_t SDFileSystem::disk_sectors() {
+int SDBlockDevice::disk_sync() { return 0; }
+uint32_t SDBlockDevice::disk_sectors() {
     lock();
     uint32_t sectors = _sectors;
     unlock();
     return sectors;
 }
 
-void SDFileSystem::debug(bool dbg){
+void SDBlockDevice::debug(bool dbg){
     _dbg = dbg;
 }
 
+int SDBlockDevice::init(void) {
+    return disk_initialize();
+}
+
+int SDBlockDevice::uninit(void) {
+    sync();
+    return 0;
+}
+
+int SDBlockDevice::read(uint8_t* buffer, uint32_t offset, uint32_t count) {
+    MBED_ASSERT(offset % 512 == 0);
+    MBED_ASSERT(count % 512 == 0);
+    return disk_read(buffer, offset / 512, count / 512);
+}
+
+int SDBlockDevice::write(const uint8_t* buffer, uint32_t offset, uint32_t count) {
+    MBED_ASSERT(offset % 512 == 0);
+    MBED_ASSERT(count % 512 == 0);
+    return disk_write(buffer, offset / 512, count / 512);
+}
+
+int SDBlockDevice::sync() {
+    return disk_sync();
+}
+
+uint32_t SDBlockDevice::block_size(void) {
+    return 512;
+}
+
+uint64_t SDBlockDevice::total_size(void) {
+    return disk_sectors() * 512;
+}
 
 // PRIVATE FUNCTIONS
-int SDFileSystem::_cmd(int cmd, int arg) {
+int SDBlockDevice::_cmd(int cmd, int arg) {
     _spi.lock();
     _cs = 0;
 
@@ -325,7 +358,7 @@ int SDFileSystem::_cmd(int cmd, int arg) {
     _spi.unlock();
     return -1; // timeout
 }
-int SDFileSystem::_cmdx(int cmd, int arg) {
+int SDBlockDevice::_cmdx(int cmd, int arg) {
     _spi.lock();
     _cs = 0;
 
@@ -353,7 +386,7 @@ int SDFileSystem::_cmdx(int cmd, int arg) {
 }
 
 
-int SDFileSystem::_cmd58() {
+int SDBlockDevice::_cmd58() {
     _spi.lock();
     _cs = 0;
     int arg = 0;
@@ -386,7 +419,7 @@ int SDFileSystem::_cmd58() {
     return -1; // timeout
 }
 
-int SDFileSystem::_cmd8() {
+int SDBlockDevice::_cmd8() {
     _spi.lock();
     _cs = 0;
 
@@ -418,7 +451,7 @@ int SDFileSystem::_cmd8() {
     return -1; // timeout
 }
 
-int SDFileSystem::_read(uint8_t *buffer, uint32_t length) {
+int SDBlockDevice::_read(uint8_t *buffer, uint32_t length) {
     _spi.lock();
     _cs = 0;
 
@@ -438,7 +471,7 @@ int SDFileSystem::_read(uint8_t *buffer, uint32_t length) {
     return 0;
 }
 
-int SDFileSystem::_write(const uint8_t*buffer, uint32_t length) {
+int SDBlockDevice::_write(const uint8_t*buffer, uint32_t length) {
     _spi.lock();
     _cs = 0;
 
@@ -484,7 +517,7 @@ static uint32_t ext_bits(unsigned char *data, int msb, int lsb) {
     return bits;
 }
 
-uint32_t SDFileSystem::_sd_sectors() {
+uint32_t SDBlockDevice::_sd_sectors() {
     uint32_t c_size, c_size_mult, read_bl_len;
     uint32_t block_len, mult, blocknr, capacity;
     uint32_t hc_c_size;

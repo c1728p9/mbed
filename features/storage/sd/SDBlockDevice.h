@@ -19,20 +19,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef MBED_SDFILESYSTEM_H
-#define MBED_SDFILESYSTEM_H
+#ifndef MBED_SDBLOCKDEVICE_H
+#define MBED_SDBLOCKDEVICE_H
 
 #include "mbed.h"
-#include "FATFileSystem.h"
+#include "BlockDevice.h"
 #include <stdint.h>
 
-/** Access the filesystem on an SD Card using SPI
+/** Access an SD Card using SPI
  *
  * @code
  * #include "mbed.h"
- * #include "SDFileSystem.h"
+ * #include "SDBlockDevice.h"
+ * #include "FATFileSystem.h"
  *
- * SDFileSystem sd(p5, p6, p7, p12, "sd"); // mosi, miso, sclk, cs
+ * SDFileSystem sd(p5, p6, p7, p12); // mosi, miso, sclk, cs
+ * FATFileSystem fs("sd", &sd);
  *
  * int main() {
  *     FILE *fp = fopen("/sd/myfile.txt", "w");
@@ -40,18 +42,17 @@
  *     fclose(fp);
  * }
  */
-class SDFileSystem : public FATFileSystem {
+class SDBlockDevice : public BlockDevice {
 public:
 
-    /** Create the File System for accessing an SD Card using SPI
+    /** Create the block device for accessing an SD Card using SPI
      *
      * @param mosi SPI mosi pin connected to SD Card
      * @param miso SPI miso pin conencted to SD Card
      * @param sclk SPI sclk pin connected to SD Card
      * @param cs   DigitalOut pin used as SD Card chip select
-     * @param name The name used to access the virtual filesystem
      */
-    SDFileSystem(PinName mosi, PinName miso, PinName sclk, PinName cs, const char* name);
+    SDBlockDevice(PinName mosi, PinName miso, PinName sclk, PinName cs);
     virtual int disk_initialize();
     virtual int disk_status();
     virtual int disk_read(uint8_t* buffer, uint32_t block_number, uint32_t count);
@@ -59,6 +60,22 @@ public:
     virtual int disk_sync();
     virtual uint32_t disk_sectors();
     void debug(bool dbg);
+
+    virtual int init(void);
+    virtual int uninit(void);
+    virtual int read(uint8_t* buffer, uint32_t offset, uint32_t count);
+    virtual int write(const uint8_t* buffer, uint32_t offset, uint32_t count);
+    virtual int sync();
+    virtual uint32_t block_size(void);
+    virtual uint64_t total_size(void);
+
+    virtual void lock() {
+        // Do nothing
+    }
+
+    virtual void unlock() {
+        // Do nothing
+    }
 
 protected:
 

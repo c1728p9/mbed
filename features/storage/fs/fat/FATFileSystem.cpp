@@ -59,7 +59,7 @@ PlatformMutex * get_fat_mutex() {
     return mutex;
 }
 
-FATFileSystem::FATFileSystem(const char* n) : FileSystemLike(n), _mutex(get_fat_mutex()) {
+FATFileSystem::FATFileSystem(const char* n, BlockDevice *device) : FileSystemLike(n), _mutex(get_fat_mutex()), _device(device) {
     lock();
     debug_if(FFS_DBG, "FATFileSystem(%s)\n", n);
     for(int i=0; i<_VOLUMES; i++) {
@@ -69,6 +69,7 @@ FATFileSystem::FATFileSystem(const char* n) : FileSystemLike(n), _mutex(get_fat_
             _fsid[1] = '\0';
             debug_if(FFS_DBG, "Mounting [%s] on ffs drive [%s]\n", getName(), _fsid);
             f_mount(&_fs, _fsid, 0);
+            _device->init();
             unlock();
             return;
         }
@@ -83,6 +84,7 @@ FATFileSystem::~FATFileSystem() {
         if (_ffs[i] == this) {
             _ffs[i] = 0;
             f_mount(NULL, _fsid, 0);
+            _device->uninit();
         }
     }
     unlock();
@@ -206,4 +208,19 @@ void FATFileSystem::lock() {
 
 void FATFileSystem::unlock() {
     _mutex->unlock();
+}
+
+int FATFileSystem::disk_read(uint8_t *buffer, uint32_t sector, uint32_t count) {
+    uint32_t block_size = _device->block_size();
+    return _device->read(buffer, sector * block_size, count * block_size);
+}
+int FATFileSystem::disk_write(const uint8_t *buffer, uint32_t sector, uint32_t count) {
+    uint32_t block_size = _device->block_size();
+    return _device->write(buffer, sector * block_size, count * block_size);
+}
+int FATFileSystem::disk_sync() {
+    return _device->sync();
+}
+uint32_t FATFileSystem::disk_sectors() {
+    return _device->total_size() / _device->block_size();
 }

@@ -26,6 +26,8 @@
 #include "FileHandle.h"
 #include "ff.h"
 #include <stdint.h>
+
+#include "BlockDevice.h"
 #include "PlatformMutex.h"
 
 using namespace mbed;
@@ -36,7 +38,7 @@ using namespace mbed;
 class FATFileSystem : public FileSystemLike {
 public:
 
-    FATFileSystem(const char* n);
+    FATFileSystem(const char* n, BlockDevice *device);
     virtual ~FATFileSystem();
 
     static FATFileSystem * _ffs[_VOLUMES];   // FATFileSystem objects, as parallel to FatFs drives array
@@ -85,10 +87,10 @@ public:
 
     virtual int disk_initialize() { return 0; }
     virtual int disk_status() { return 0; }
-    virtual int disk_read(uint8_t *buffer, uint32_t sector, uint32_t count) = 0;
-    virtual int disk_write(const uint8_t *buffer, uint32_t sector, uint32_t count) = 0;
-    virtual int disk_sync() { return 0; }
-    virtual uint32_t disk_sectors() = 0;
+    virtual int disk_read(uint8_t *buffer, uint32_t sector, uint32_t count);
+    virtual int disk_write(const uint8_t *buffer, uint32_t sector, uint32_t count);
+    virtual int disk_sync();
+    virtual uint32_t disk_sectors();
 
 protected:
 
@@ -98,6 +100,7 @@ protected:
 private:
 
     PlatformMutex *_mutex;
+    BlockDevice *_device;
 
 };
 
