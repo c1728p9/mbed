@@ -35,6 +35,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *---------------------------------------------------------------------------*/
 #include "mbed_error.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
 
 #if   defined (__CC_ARM)
 #include <rt_misc.h>
@@ -342,6 +345,89 @@ __attribute__((used)) void _mutex_release (OS_ID *mutex) {
     /* RTX running, release a mutex. */
     mutex_rel (*mutex);
   }
+}
+
+#endif
+
+#if defined(__GNUC__) && !defined (__CC_ARM)
+
+#if defined(__lock_init_recursive)
+#undef __lock_init_recursive
+#endif
+#if defined(__lock_close_recursive)
+#undef __lock_close_recursive
+#endif
+#if defined(__lock_acquire_recursive)
+#undef __lock_acquire_recursive
+#endif
+#if defined(__lock_try_acquire_recursive)
+#undef __lock_try_acquire_recursive
+#endif
+#if defined(__lock_release_recursive)
+#undef __lock_release_recursive
+#endif
+
+typedef struct {
+    osMutexId id;
+    OS_MUT state;
+} gcc_lock_t;
+
+void __lock_init_recursive(_LOCK_T lock)
+{
+    osMutexDef_t def;
+    gcc_lock_t *gcc_lock = (gcc_lock_t*)malloc(sizeof(gcc_lock_t));
+    if (NULL == gcc_lock) {
+        error("Could not allocate space for lock");
+    }
+    memset((void*)gcc_lock, 0, sizeof(gcc_lock_t));
+
+    def.mutex = &gcc_lock->state;
+    gcc_lock->id = osMutexCreate(&def);
+
+    *(gcc_lock_t **)lock = gcc_lock;
+}
+
+ void __lock_close_recursive(_LOCK_T lock)
+{
+     gcc_lock_t *gcc_lock = *(gcc_lock_t**)lock;
+
+     osMutexDelete(gcc_lock->id);
+     free(gcc_lock);
+
+     *(gcc_lock_t **)lock = NULL;
+}
+
+void __lock_acquire_recursive(_LOCK_T lock)
+{
+    gcc_lock_t *gcc_lock = *(gcc_lock_t**)lock;
+    if (NULL == gcc_lock) {
+        //TODO - replace with assert
+        return;
+    }
+
+    osMutexWait(gcc_lock->id, osWaitForever);
+}
+
+void __lock_try_acquire_recursive(_LOCK_T lock)
+{
+    gcc_lock_t *gcc_lock = *(gcc_lock_t**)lock;
+    if (NULL == gcc_lock) {
+        //TODO - replace with assert
+        return;
+    }
+
+    osMutexWait(gcc_lock->id, 0);
+}
+
+void __lock_release_recursive(_LOCK_T lock)
+{
+    gcc_lock_t *gcc_lock = *(gcc_lock_t**)lock;
+    if (NULL == gcc_lock) {
+        //TODO - replace with assert
+        return;
+    }
+
+    osMutexRelease(gcc_lock->id);
 }
 
 #endif
