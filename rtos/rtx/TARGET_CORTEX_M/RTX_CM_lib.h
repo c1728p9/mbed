@@ -35,6 +35,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *---------------------------------------------------------------------------*/
 #include "mbed_error.h"
+#include "mbed_assert.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
 
 #if   defined (__CC_ARM)
 #include <rt_misc.h>
@@ -346,6 +351,89 @@ __attribute__((used)) void _mutex_release (OS_ID *mutex) {
 
 #endif
 
+#if defined(__GNUC__) && !defined (__CC_ARM)
+
+/* newlib expects lock of type struct _lock * (aka _LOCK_T).  */
+struct _lock
+{
+  uintptr_t lock;
+};
+
+typedef struct {
+    osMutexId id;
+    OS_MUT state;
+} gcc_lock_t;
+
+#define NEWLIB_LOCK_COUNT   4
+gcc_lock_t newlib_locks[NEWLIB_LOCK_COUNT];
+
+/* Newlib expects mbed-os to provide the static lock it uses  */
+struct _lock _lock___atexit_lock = { (uintptr_t)(newlib_locks + 0) };
+struct _lock _lock___malloc_lock_object = { (uintptr_t)(newlib_locks + 1) };
+struct _lock _lock___sinit_lock = { (uintptr_t)(newlib_locks + 2) };
+struct _lock _lock___sfp_lock = { (uintptr_t)(newlib_locks + 3) };
+
+void __retarget_lock_init_recursive(_LOCK_T* lock)
+{
+    osMutexDef_t def;
+    gcc_lock_t *gcc_lock = (gcc_lock_t*)malloc(sizeof(gcc_lock_t));
+    if (NULL == gcc_lock) {
+        error("Could not allocate space for lock");
+    }
+    memset((void*)gcc_lock, 0, sizeof(gcc_lock_t));
+
+    def.mutex = &gcc_lock->state;
+    gcc_lock->id = osMutexCreate(&def);
+
+    *(gcc_lock_t **)lock = gcc_lock;
+}
+
+ void __retarget_lock_close_recursive(_LOCK_T lock)
+{
+     gcc_lock_t *gcc_lock = (gcc_lock_t*)lock;
+
+     osMutexDelete(gcc_lock->id);
+     free(gcc_lock);
+}
+
+void __retarget_lock_acquire_recursive(_LOCK_T lock)
+{
+    gcc_lock_t *gcc_lock = (gcc_lock_t*)lock;
+    if (NULL == gcc_lock) {
+        MBED_ASSERT(0);
+        return;
+    }
+
+    osMutexWait(gcc_lock->id, osWaitForever);
+}
+
+int __retarget_lock_try_acquire_recursive(_LOCK_T lock)
+{
+    osStatus status;
+    gcc_lock_t *gcc_lock = (gcc_lock_t*)lock;
+    if (NULL == gcc_lock) {
+        MBED_ASSERT(0);
+        return -1;
+    }
+
+    status = osMutexWait(gcc_lock->id, 0);
+
+    return status == osOK ? 0 : -1;
+}
+
+void __retarget_lock_release_recursive(_LOCK_T lock)
+{
+    gcc_lock_t *gcc_lock = (gcc_lock_t*)lock;
+    if (NULL == gcc_lock) {
+        MBED_ASSERT(0);
+        return;
+    }
+
+    osMutexRelease(gcc_lock->id);
+}
+
+#endif
+
 
 /*----------------------------------------------------------------------------
  *      RTX Startup
@@ -592,9 +680,20 @@ extern void __libc_init_array (void);
 extern int main(int argc, char **argv);
 
 void pre_main(void) {
+    int i;
+    osMutexDef_t def;
+
     singleton_mutex_id = osMutexCreate(osMutex(singleton_mutex));
     malloc_mutex_id = osMutexCreate(osMutex(malloc_mutex));
     env_mutex_id = osMutexCreate(osMutex(env_mutex));
+
+    for (i = 0; i < NEWLIB_LOCK_COUNT; i++) {
+        memset((void*)(newlib_locks + i) , 0, sizeof(gcc_lock_t));
+        def.mutex = (void*)(newlib_locks + i);
+        newlib_locks[i].id = osMutexCreate(&def);
+        MBED_ASSERT(newlib_locks[i].id != NULL);
+    }
+
     __libc_init_array();
     main(0, NULL);
 }
