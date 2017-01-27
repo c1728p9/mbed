@@ -58,6 +58,7 @@
         SECTION .intvec:CODE:NOROOT(2)
 
         EXTERN  __iar_program_start
+        EXTERN  mbed_application_boot_check
         EXTERN  SystemInit
         PUBLIC  __vector_table
         PUBLIC  __vector_table_0x1c
@@ -355,6 +356,8 @@ Reset_Handler
         LDR     R0, =0xE000ED08
         LDR     R1, =__vector_table
         STR     R1, [R0]
+        LDR     R0, =mbed_application_boot_check
+        BLX     R0
         LDR     R0, =SystemInit
         BLX     R0
         CPSIE   I               ; Unmask interrupts

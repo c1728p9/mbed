@@ -22,7 +22,7 @@ import sys
 import json
 from time import sleep
 from shutil import copy
-from os.path import join, abspath, dirname
+from os.path import join, abspath, dirname, exists
 
 # Be sure that the tools directory is in the search path
 ROOT = abspath(join(dirname(__file__), ".."))
@@ -45,6 +45,7 @@ from tools.tests import test_known, test_name_known
 from tools.targets import TARGET_MAP
 from tools.options import get_default_options_parser
 from tools.options import extract_profile
+from tools.options import extract_layout
 from tools.build_api import build_project
 from tools.build_api import mcu_toolchain_matrix
 from utils import argparse_filestring_type
@@ -53,9 +54,13 @@ from utils import argparse_dir_not_parent
 from tools.toolchains import mbedToolchain, TOOLCHAIN_CLASSES, TOOLCHAIN_PATHS
 from tools.settings import CLI_COLOR_MAP
 
+LAYOUT_FILE = "layout.txt"
+
 if __name__ == '__main__':
     # Parse Options
-    parser = get_default_options_parser(add_app_config=True)
+    multi_app_prj = exists(LAYOUT_FILE)
+    parser = get_default_options_parser(add_app_config=True,
+                                        add_entry_point=multi_app_prj)
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument("-p",
                       type=argparse_many(test_known),
@@ -274,8 +279,17 @@ if __name__ == '__main__':
 
         if options.build_dir is not None:
             build_dir = options.build_dir
+            if multi_app_prj:
+                build_dir = join(build_dir, options.entry.upper())
 
         try:
+
+            build_profile = extract_profile(parser, options, toolchain)
+            if multi_app_prj:
+                build_profile = extract_layout(parser, options, toolchain,
+                                               mcu, LAYOUT_FILE,
+                                               build_profile)
+            print("Build profile: %s" % build_profile)
             bin_file = build_project(test.source_dir, build_dir, mcu, toolchain,
                                      test.dependencies,
                                      linker_script=options.linker_script,
@@ -288,9 +302,7 @@ if __name__ == '__main__':
                                      name=options.artifact_name,
                                      app_config=options.app_config,
                                      inc_dirs=[dirname(MBED_LIBRARIES)],
-                                     build_profile=extract_profile(parser,
-                                                                   options,
-                                                                   toolchain))
+                                     build_profile=build_profile)
             print 'Image: %s'% bin_file
 
             if options.disk:

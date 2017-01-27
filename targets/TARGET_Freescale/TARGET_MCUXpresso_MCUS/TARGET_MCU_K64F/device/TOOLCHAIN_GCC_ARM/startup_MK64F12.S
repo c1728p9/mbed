@@ -328,6 +328,8 @@ Reset_Handler:
     ldr     r0, =VTOR
     ldr     r1, =__isr_vector
     str     r1, [r0]
+    ldr   r0,=mbed_application_boot_check
+    blx   r0
 #ifndef __NO_SYSTEM_INIT
     ldr   r0,=SystemInit
     blx   r0
