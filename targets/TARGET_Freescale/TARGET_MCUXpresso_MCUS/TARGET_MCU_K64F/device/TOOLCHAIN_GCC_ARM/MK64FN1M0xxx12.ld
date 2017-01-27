@@ -68,7 +68,8 @@ MEMORY
   m_flash_config        (RX)  : ORIGIN = 0x00000400, LENGTH = 0x00000010
   m_text                (RX)  : ORIGIN = 0x00000410, LENGTH = 0x000FFBF0
   m_data                (RW)  : ORIGIN = 0x1FFF0000, LENGTH = 0x00010000
-  m_data_2              (RW)  : ORIGIN = 0x20000000, LENGTH = 0x00030000
+  m_data_2              (RW)  : ORIGIN = 0x20000000, LENGTH = 0x0002fff0
+  m_no_init             (RW)  : ORIGIN = 0x2002fff0, LENGTH = 0x00000010
 }
 
 /* Define output sections */
@@ -338,6 +339,11 @@ SECTIONS
     __heap_limit = .; /* Add for _sbrk */
     __uvisor_heap_end = .;
   } > m_data_2
+
+  .no_init :
+  {
+    *(no_init)
+  } > m_no_init
 
   m_usb_bdt USB_RAM_START (NOLOAD) :
   {
