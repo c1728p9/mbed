@@ -34,7 +34,7 @@ MBED_SECTION("no_init") volatile ram_options_t ram_options;
 
 static void start_new_application(void *sp, void *pc);
 static uint32_t compute_checksum(volatile ram_options_t *options);
-void mbed_application_boot_check();
+void mbed_application_boot_check(void);
 
 
 void mbed_application_start(uint32_t address)
@@ -88,8 +88,8 @@ static uint32_t compute_checksum(volatile ram_options_t *options)
 
 __asm static void start_new_application(void *sp, void *pc)
 {
-    MOVS SP, R0
-    B R1
+    MOV SP, R0
+    BX R1
 }
 
 #elif defined (__GNUC__)
