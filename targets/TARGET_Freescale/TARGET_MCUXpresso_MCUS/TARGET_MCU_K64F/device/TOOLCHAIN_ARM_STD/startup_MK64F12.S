@@ -469,7 +469,7 @@ __FlashConfig
 
 Reset_Handler   PROC
                 EXPORT  Reset_Handler             [WEAK]
-                IMPROT  mbed_application_boot_check
+                IMPORT  mbed_application_boot_check
                 IMPORT  SystemInit
                 IMPORT  __main
 
