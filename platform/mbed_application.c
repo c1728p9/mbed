@@ -20,16 +20,6 @@
 #include "platform/mbed_assert.h"
 #include "platform/toolchain.h"
 
-//TODOS
-//-Modify linker file for various sizes
-//x-modify add ram region to linker file
-//-get application to start from bootloader app
-//-Hook into system init or something just as early
-//-Add a test for the new attributes
-
-//-Do this for IAR
-//-Do this for ARMCC
-
 
 #define VALID_KEY   0x91385532
 
@@ -46,6 +36,7 @@ static void start_new_application(void *sp, void *pc);
 static uint32_t compute_checksum(volatile ram_options_t *options);
 void mbed_application_boot_check();
 
+
 void mbed_application_start(uint32_t address)
 {
     MBED_ASSERT(address % 4 == 0);
@@ -61,11 +52,12 @@ void mbed_application_boot_check()
     void *sp;
     void *pc;
     if (ram_options.key != VALID_KEY) {
-        // TODO - fill with valid data?
+        memset((void*)&ram_options, 0, sizeof(ram_options));
         return;
     }
 
     if (ram_options.checksum != compute_checksum(&ram_options)) {
+        memset((void*)&ram_options, 0, sizeof(ram_options));
         return;
     }
 
@@ -73,14 +65,22 @@ void mbed_application_boot_check()
     pc = *((void**)ram_options.image_start + 1);
     SCB->VTOR = ram_options.image_start;
     ram_options.key = 0;
-    //TODO - enable interrupts?
     start_new_application(sp, pc);
 }
 
 static uint32_t compute_checksum(volatile ram_options_t *options)
 {
-    //TODO
-    return 0;
+    uint32_t checksum;
+    const uint32_t *data;
+    uint32_t i;
+
+    checksum = 0;
+    data = (const uint32_t*)options;
+    for (i = 0; i < sizeof(ram_options_t) / sizeof(uint32_t) - 1; i++) {
+        checksum += data[i];
+    }
+
+    return ~checksum;
 }
 
 
@@ -99,12 +99,14 @@ __attribute__((naked)) void start_new_application(void *sp, void *pc)
 {
     __asm (
         "mov sp,r0\n"
-        "b    r1\n"
+        "bx   r1\n"
     );
 }
 
 #elif defined (__ICCARM__)
 
-//TODO
+//TODO - armcc support
+
+//TODO - cortex-a support
 
 #endif
