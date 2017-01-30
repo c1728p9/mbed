@@ -94,10 +94,9 @@ __asm static void start_new_application(void *sp, void *pc)
 
 #elif defined (__GNUC__)
 
-
 __attribute__((naked)) void start_new_application(void *sp, void *pc)
 {
-    __asm (
+    __asm volatile (
         "mov sp,r0\n"
         "bx   r1\n"
     );
@@ -105,7 +104,17 @@ __attribute__((naked)) void start_new_application(void *sp, void *pc)
 
 #elif defined (__ICCARM__)
 
-//TODO - armcc support
+static void start_new_application(void *sp, void *pc)
+{
+    __asm volatile (
+        "mov sp,r0\n"
+        "bx   r1\n"
+    );
+}
+
+#else
+
+#error "Unsupported toolchain"
 
 //TODO - cortex-a support
 
