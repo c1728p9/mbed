@@ -21,7 +21,7 @@ import argparse
 import math
 from os import listdir, remove, makedirs
 from shutil import copyfile
-from os.path import isdir, join, exists, split, relpath, splitext, abspath
+from os.path import isdir, join, exists, split, relpath, splitext, abspath, basename
 from os.path import commonprefix, normpath, dirname
 from subprocess import Popen, PIPE, STDOUT, call
 from math import ceil
@@ -514,3 +514,10 @@ def print_large_string(large_string):
         else:
             end_index = ((string_part + 1) * string_limit) - 1
             print large_string[start_index:end_index],
+
+
+def project_name(name, src_paths):
+    if name is None:
+        return basename(normpath(abspath(src_paths[0])))
+    else:
+        return name
