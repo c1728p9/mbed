@@ -268,6 +268,27 @@ class GCC(mbedToolchain):
         self.cc_verbose("FromELF: %s" % ' '.join(cmd))
         self.default_cmd(cmd)
 
+    @staticmethod
+    def name_mangle(name):
+        return "_Z%i%sv" % (len(name), name)
+
+    @staticmethod
+    def make_ld_define(name, value):
+        return "-D%s=0x%x" % (name, value)
+
+    @staticmethod
+    def redirect_symbol(source, sync, build_dir):
+        return "-Wl,--defsym=%s=%s" % (source, sync)
+
+    @staticmethod
+    def redirect_main(dest, build_dir):
+        if dest == 'main':
+            return GCC.redirect_symbol(GCC.name_mangle("entry_point"),
+                                       "__real_main", build_dir)
+        else:
+            return GCC.redirect_symbol(GCC.name_mangle("entry_point"),
+                                       GCC.name_mangle(dest), build_dir)
+
 
 class GCC_ARM(GCC):
     @staticmethod
