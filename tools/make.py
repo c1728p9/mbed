@@ -39,28 +39,27 @@ from tools.paths import USB_HOST_LIBRARIES, USB_LIBRARIES
 from tools.paths import DSP_LIBRARIES
 from tools.paths import FS_LIBRARY
 from tools.paths import UBLOX_LIBRARY
+from tools.paths import LAYOUT_FILE
 from tools.tests import TESTS, Test, TEST_MAP
 from tools.tests import TEST_MBED_LIB
 from tools.tests import test_known, test_name_known
 from tools.targets import TARGET_MAP
 from tools.options import get_default_options_parser
 from tools.options import extract_profile
-from tools.options import extract_layout
+from tools.options import extract_layouts
 from tools.build_api import build_project
 from tools.build_api import mcu_toolchain_matrix
 from utils import argparse_filestring_type
 from utils import argparse_many
 from utils import argparse_dir_not_parent
+from utils import project_name
 from tools.toolchains import mbedToolchain, TOOLCHAIN_CLASSES, TOOLCHAIN_PATHS
 from tools.settings import CLI_COLOR_MAP
 
-LAYOUT_FILE = "layout.txt"
 
 if __name__ == '__main__':
     # Parse Options
-    multi_app_prj = exists(LAYOUT_FILE)
-    parser = get_default_options_parser(add_app_config=True,
-                                        add_entry_point=multi_app_prj)
+    parser = get_default_options_parser(add_app_config=True)
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument("-p",
                       type=argparse_many(test_known),
@@ -279,30 +278,34 @@ if __name__ == '__main__':
 
         if options.build_dir is not None:
             build_dir = options.build_dir
-            if multi_app_prj:
-                build_dir = join(build_dir, options.entry.upper())
 
         try:
 
             build_profile = extract_profile(parser, options, toolchain)
-            if multi_app_prj:
-                build_profile = extract_layout(parser, options, toolchain,
-                                               mcu, LAYOUT_FILE,
+            artifact_name = project_name(options.artifact_name, test.source_dir)
+            if exists(LAYOUT_FILE):
+                build_profiles = extract_layouts(parser, options, toolchain,
+                                               mcu, LAYOUT_FILE, artifact_name,
                                                build_profile)
-            print("Build profile: %s" % build_profile)
-            bin_file = build_project(test.source_dir, build_dir, mcu, toolchain,
-                                     test.dependencies,
-                                     linker_script=options.linker_script,
-                                     clean=options.clean,
-                                     verbose=options.verbose,
-                                     notify=notify,
-                                     silent=options.silent,
-                                     macros=options.macros,
-                                     jobs=options.jobs,
-                                     name=options.artifact_name,
-                                     app_config=options.app_config,
-                                     inc_dirs=[dirname(MBED_LIBRARIES)],
-                                     build_profile=build_profile)
+            else:
+                build_profiles = [(artifact_name, build_profile)]
+            #options.artifact_name
+            #build_profile
+            print("Artifact name: %s" % options.artifact_name)
+            for artifact, profile in build_profiles:
+                bin_file = build_project(test.source_dir, build_dir, mcu, toolchain,
+                                         test.dependencies,
+                                         linker_script=options.linker_script,
+                                         clean=options.clean,
+                                         verbose=options.verbose,
+                                         notify=notify,
+                                         silent=options.silent,
+                                         macros=options.macros,
+                                         jobs=options.jobs,
+                                         name=artifact,
+                                         app_config=options.app_config,
+                                         inc_dirs=[dirname(MBED_LIBRARIES)],
+                                         build_profile=profile)
             print 'Image: %s'% bin_file
 
             if options.disk:

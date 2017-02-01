@@ -58,20 +58,6 @@ def layout_to_regions(layout_data, rom_start, rom_size):
     return _regions_to_abs_regions(region_list, rom_start, rom_size)
 
 
-def regions_to_defines(regions):
-    """Get a list of defines for state and size of all regions
-
-    Positional arguments:
-    regions - a list of regions each of with have a name, addr and size
-    """
-    define_list = []
-    for region in regions:
-        name = region["name"].upper()
-        define_list.append("-D%s_ADDR=0x%x" % (name, region["addr"]))
-        define_list.append("-D%s_SIZE=0x%x" % (name, region["size"]))
-    return define_list
-
-
 def regions_to_common_pairs(regions):
     """Return name, value pairs to be used as defines in the 'common' group
 
@@ -101,6 +87,10 @@ def regions_to_ld_pairs(regions, entry, rom_start):
         ("MBED_APP_OFFSET", region["addr"] - rom_start),
         ("MBED_APP_SIZE", region["size"])
     )
+
+
+def regions_to_entries(regions):
+    return [region["name"] for region in regions if region["name"].startswith("main")]
 
 
 def _get_wildcard_size(regions, rom_size):

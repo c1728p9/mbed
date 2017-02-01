@@ -24,9 +24,13 @@ from tools.utils import argparse_force_uppercase_type, \
     argparse_lowercase_hyphen_type, argparse_many, \
     argparse_filestring_type, args_error, argparse_profile_filestring_type,\
     argparse_deprecate, argparse_lowercase_type
-from tools.app_layout import regions_to_common_pairs, regions_to_ld_pairs, layout_to_regions
+from tools.app_layout import regions_to_common_pairs
+from tools.app_layout import regions_to_ld_pairs
+from tools.app_layout import layout_to_regions
+from tools.app_layout import regions_to_entries
 from tools.arm_pack_manager import Cache
 from tools.targets import TARGET_MAP
+from copy import deepcopy
 
 FLAGS_DEPRECATION_MESSAGE = "Please use the --profile argument instead.\n"\
                             "Documentation may be found in "\
@@ -94,11 +98,6 @@ def get_default_options_parser(add_clean=True, add_options=True,
                             type=argparse_filestring_type,
                             help="Path of an app configuration file (Default is to look for 'mbed_app.json')")
 
-    if add_entry_point:
-        parser.add_argument("--entry", default=None, dest="entry",
-                            #type=argparse_lowercase_type,
-                            help="Entry point of the image")
-
     return parser
 
 def list_profiles():
@@ -130,8 +129,8 @@ def extract_profile(parser, options, toolchain, fallback="default"):
                                                                    filename))
     return profile
 
-def extract_layout(parser, options, toolchain, target, layout, base_profile):
-    """Extract a target layout from parsed options
+def extract_layouts(parser, options, toolchain, target, layout, artifact_name, base_profile):
+    """Extract a target layout from parsed options for each configuration
 
     Positional arguments:
     parser - parser used to parse the command line arguments
@@ -139,13 +138,7 @@ def extract_layout(parser, options, toolchain, target, layout, base_profile):
     toolchain - the toolchain that the profile should be extracted for
     target - target to extract the layout for
     """
-    if not exists(layout):
-        args_error(parser, "argument --entry: present but no layout file")
-
-    if options.entry is None:
-        args_error(parser, "argument --entry: required")
-
-    profile = dict(base_profile)
+    common_profile = deepcopy(base_profile)
     with open(layout, "r") as file_handle:
         layout_data = file_handle.read()
 
@@ -153,28 +146,34 @@ def extract_layout(parser, options, toolchain, target, layout, base_profile):
     regions = layout_to_regions(layout_data, rom_start, rom_size)
 
     for name, val in regions_to_common_pairs(regions):
-        profile["common"].append("-D%s=0x%x" % (name, val))
+        common_profile["common"].append("-D%s=0x%x" % (name, val))
 
-    profile["common"].append("-DCUSTOM_ENTRY_POINT")
+    common_profile["common"].append("-DCUSTOM_ENTRY_POINT")
 
-    for name, val in regions_to_ld_pairs(regions, options.entry, rom_start):
-        profile["ld"].append(TC_NAME_VAL_TO_LD_DEFINE[toolchain](name, val))
+    artifact_profile_list = []
+    for entry in regions_to_entries(regions):
+        profile = deepcopy(common_profile)
 
-    #TODO - need to rethink this
-    if "main" != options.entry:
-        if toolchain == "IAR":
-            profile["ld"].append("--redirect main=%s" %
-                                 _iar_main_name_mangle(options.entry))
-        if toolchain == "GCC_ARM" or toolchain == "GCC_CR":
-            profile["ld"].append("-Wl,--defsym=%s=%s" %
-                                 (_gcc_main_name_mangle("entry_point"),
-                                 _gcc_main_name_mangle(options.entry)))
-    else:
-        if toolchain == "GCC_ARM" or toolchain == "GCC_CR":
-            profile["ld"].append("-Wl,--defsym=%s=__real_main" %
-                                 _gcc_main_name_mangle("entry_point"))
+        for name, val in regions_to_ld_pairs(regions, entry, rom_start):
+            profile["ld"].append(TC_NAME_VAL_TO_LD_DEFINE[toolchain](name, val))
 
-    return profile
+        #TODO - need to rethink this
+        if "main" != entry:
+            if toolchain == "IAR":
+                profile["ld"].append("--redirect main=%s" %
+                                     _iar_main_name_mangle(entry))
+            if toolchain == "GCC_ARM" or toolchain == "GCC_CR":
+                profile["ld"].append("-Wl,--defsym=%s=%s" %
+                                     (_gcc_main_name_mangle("entry_point"),
+                                     _gcc_main_name_mangle(options.entry)))
+        else:
+            if toolchain == "GCC_ARM" or toolchain == "GCC_CR":
+                profile["ld"].append("-Wl,--defsym=%s=__real_main" %
+                                     _gcc_main_name_mangle("entry_point"))
+
+        artifact_profile_list.append((artifact_name + "_" + entry, profile))
+
+    return artifact_profile_list
 
 def _gcc_main_name_mangle(name):
     """Perform GCC's C++ name mangling for the main function"""
