@@ -72,25 +72,21 @@ def regions_to_common_pairs(regions):
     return define_list
 
 
-def regions_to_ld_pairs(regions, entry, rom_start):
+def region_to_ld_pairs(region, rom_start):
     """Return name, value pairs to be used as defines in the 'ld' group
 
     Positional arguments:
-    regions - a list of regions each of with have a name, addr and size
-    entry - name of the application entry point
+    regions - region to use
     rom_start - address of the starting block of rom
     """
-    rgn_list = [rgn for rgn in regions if rgn["name"] == entry]
-    assert len(rgn_list) == 1, "Expected 1 region, found %s" % len(rgn_list)
-    region = rgn_list[0]
     return (
         ("MBED_APP_OFFSET", region["addr"] - rom_start),
         ("MBED_APP_SIZE", region["size"])
     )
 
 
-def regions_to_entries(regions):
-    return [region["name"] for region in regions if region["name"].startswith("main")]
+def regions_with_entry(regions):
+    return [region for region in regions if region["name"].startswith("main")]
 
 
 def _get_wildcard_size(regions, rom_size):

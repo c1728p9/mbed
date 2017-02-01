@@ -53,6 +53,7 @@ from utils import argparse_filestring_type
 from utils import argparse_many
 from utils import argparse_dir_not_parent
 from utils import project_name
+from utils import combine_images
 from tools.toolchains import mbedToolchain, TOOLCHAIN_CLASSES, TOOLCHAIN_PATHS
 from tools.settings import CLI_COLOR_MAP
 
@@ -288,11 +289,12 @@ if __name__ == '__main__':
                                                mcu, LAYOUT_FILE, artifact_name,
                                                build_profile)
             else:
-                build_profiles = [(artifact_name, build_profile)]
+                build_profiles = [(artifact_name, None, build_profile)]
             #options.artifact_name
             #build_profile
             print("Artifact name: %s" % options.artifact_name)
-            for artifact, profile in build_profiles:
+            addr_artifact_list = []
+            for artifact, addr, profile in build_profiles:
                 bin_file = build_project(test.source_dir, build_dir, mcu, toolchain,
                                          test.dependencies,
                                          linker_script=options.linker_script,
@@ -306,7 +308,11 @@ if __name__ == '__main__':
                                          app_config=options.app_config,
                                          inc_dirs=[dirname(MBED_LIBRARIES)],
                                          build_profile=profile)
-            print 'Image: %s'% bin_file
+                addr_artifact_list.append((addr, bin_file))
+            artifact_names = [name for name, _ in addr_artifact_list]
+            if artifact_name not in artifact_names:
+                combine_images(join(build_dir, artifact_name + ".bin"), addr_artifact_list)
+            print 'Image: %s' % artifact_name
 
             if options.disk:
                 # Simple copy to the mbed disk

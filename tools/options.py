@@ -25,9 +25,9 @@ from tools.utils import argparse_force_uppercase_type, \
     argparse_filestring_type, args_error, argparse_profile_filestring_type,\
     argparse_deprecate, argparse_lowercase_type
 from tools.app_layout import regions_to_common_pairs
-from tools.app_layout import regions_to_ld_pairs
+from tools.app_layout import region_to_ld_pairs
 from tools.app_layout import layout_to_regions
-from tools.app_layout import regions_to_entries
+from tools.app_layout import regions_with_entry
 from tools.arm_pack_manager import Cache
 from tools.targets import TARGET_MAP
 from copy import deepcopy
@@ -151,23 +151,23 @@ def extract_layouts(parser, options, toolchain, target, layout, artifact_name, b
     common_profile["common"].append("-DCUSTOM_ENTRY_POINT")
 
     artifact_profile_list = []
-    for entry in regions_to_entries(regions):
+    for region in regions_with_entry(regions):
         profile = deepcopy(common_profile)
 
-        for name, val in regions_to_ld_pairs(regions, options.entry, rom_start):
+        for name, val in region_to_ld_pairs(region, rom_start):
             profile["common"].append("-D%s=0x%x" % (name, val))
             profile["ld"].append(
                 TOOLCHAIN_CLASSES[toolchain].make_ld_define(name, val))
 
         if options.entry == 'main' and toolchain.startswith("GCC"):
-            entry = '__read_main'
+            entry = '__real_main'
         else:
             entry = options.entry
         profile["ld"].append(
             TOOLCHAIN_CLASSES[toolchain].redirect_symbol("main", entry,
                                                         options.build_dir))
 
-        artifact_profile_list.append((artifact_name + "_" + entry, profile))
+        artifact_profile_list.append((artifact_name + "_" + region["name"], region["addr"], profile))
 
     return artifact_profile_list
 
