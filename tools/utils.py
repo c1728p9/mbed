@@ -21,7 +21,7 @@ import argparse
 import math
 from os import listdir, remove, makedirs
 from shutil import copyfile
-from os.path import isdir, join, exists, split, relpath, splitext, abspath
+from os.path import isdir, join, exists, split, relpath, splitext, abspath, basename
 from os.path import commonprefix, normpath, dirname
 from subprocess import Popen, PIPE, STDOUT, call
 from math import ceil
@@ -514,3 +514,49 @@ def print_large_string(large_string):
         else:
             end_index = ((string_part + 1) * string_limit) - 1
             print large_string[start_index:end_index],
+
+
+def project_name(name, src_paths):
+    """Name a project.
+
+    Positional arguments:
+    name -- the name of the project, or None if not provided
+    src_paths -- the source for the project. only used if a name was not
+      provided on the command line
+    """
+    if name is None:
+        return basename(normpath(abspath(src_paths[0])))
+    else:
+        return name
+
+def combine_images(output_path, addr_file_list):
+    addr_file_list.sort(key=lambda val:val[0])
+    data_addr_list = _read_file_data(addr_file_list)
+    all_data = _get_data_and_fill_gaps(data_addr_list)
+    with open(output_path, "wb") as file_handle:
+        file_handle.write(all_data)
+
+
+def _read_file_data(addr_name_list):
+    data_addr_list = []
+    for addr, filename in addr_name_list:
+        with open(filename, "rb") as file_handle:
+            data = file_handle.read()
+        data_addr_list.append((addr, data))
+    return data_addr_list
+
+
+def _get_data_and_fill_gaps(addr_data_list, pad="\xFF"):
+    contig_data_list = []
+    last_addr = None
+    for addr, data in addr_data_list:
+        if last_addr is None:
+            last_addr = addr
+        assert last_addr <= addr, "addr_data_list must be sorted"
+        pad_size = addr - last_addr
+        if pad_size > 0:
+            assert len(pad) == 1
+            contig_data_list.append(pad * pad_size)
+        contig_data_list.append(data)
+        last_addr = addr + len(data)
+    return "".join(contig_data_list)

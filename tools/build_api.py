@@ -24,7 +24,7 @@ from os import linesep, remove
 from time import time
 
 from tools.utils import mkdir, run_cmd, run_cmd_ext, NotSupportedException,\
-    ToolException, InvalidReleaseTargetException
+    ToolException, InvalidReleaseTargetException, project_name
 from tools.paths import MBED_CMSIS_PATH, MBED_TARGETS_PATH, MBED_LIBRARIES,\
     MBED_HEADER, MBED_DRIVERS, MBED_PLATFORM, MBED_HAL, MBED_CONFIG_FILE,\
     MBED_LIBRARIES_DRIVERS, MBED_LIBRARIES_PLATFORM, MBED_LIBRARIES_HAL,\
@@ -420,8 +420,7 @@ def build_project(src_paths, build_path, target, toolchain_name,
         build_profile=build_profile)
 
     # The first path will give the name to the library
-    if name is None:
-        name = basename(normpath(abspath(src_paths[0])))
+    name = project_name(name, src_paths)
     toolchain.info("Building project %s (%s, %s)" %
                    (name, toolchain.target.name, toolchain_name))
 
@@ -566,8 +565,7 @@ def build_library(src_paths, build_path, target, toolchain_name,
         build_profile=build_profile)
 
     # The first path will give the name to the library
-    if name is None:
-        name = basename(normpath(abspath(src_paths[0])))
+    name = project_name(name, src_paths)
     toolchain.info("Building library %s (%s, %s)" %
                    (name, toolchain.target.name, toolchain_name))
 
