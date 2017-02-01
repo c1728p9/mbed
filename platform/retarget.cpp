@@ -524,12 +524,20 @@ extern "C" WEAK void mbed_main(void);
 extern "C" WEAK void mbed_main(void) {
 }
 
+#if defined(CUSTOM_ENTRY_POINT)
+    int entry_point(void);
+#endif
+
 #if defined(TOOLCHAIN_ARM)
 extern "C" int $Super$$main(void);
 
 extern "C" int $Sub$$main(void) {
     mbed_main();
+#if defined(CUSTOM_ENTRY_POINT)
+    return entry_point();
+#else
     return $Super$$main();
+#endif
 }
 
 extern "C" void _platform_post_stackheap_init (void) {
@@ -541,7 +549,11 @@ extern "C" int __real_main(void);
 
 extern "C" int __wrap_main(void) {
     mbed_main();
+#if defined(CUSTOM_ENTRY_POINT)
+    return entry_point();
+#else
     return __real_main();
+#endif
 }
 #elif defined(TOOLCHAIN_IAR)
 // IAR doesn't have the $Super/$Sub mechanism of armcc, nor something equivalent
