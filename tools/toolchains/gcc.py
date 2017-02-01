@@ -93,6 +93,7 @@ class GCC(mbedToolchain):
         self.flags['ld'] += self.cpu
         self.ld = [join(tool_path, "arm-none-eabi-gcc")] + self.flags['ld']
         self.sys_libs = ["stdc++", "supc++", "m", "c", "gcc"]
+        self.preproc = join(tool_path, "arm-none-eabi-cpp")
 
         self.ar = join(tool_path, "arm-none-eabi-ar")
         self.elf2bin = join(tool_path, "arm-none-eabi-objcopy")
@@ -212,6 +213,15 @@ class GCC(mbedToolchain):
             name, _ = splitext(basename(l))
             libs.append("-l%s" % name[3:])
         libs.extend(["-l%s" % l for l in self.sys_libs])
+
+        # Preprocess
+        if mem_map:
+            preproc_output = join(self.build_dir, mem_map + ".tmp")
+            cmd = ([self.preproc, mem_map] + self.ld[1:] +
+                   ["-E", "-P", "-o", preproc_output])
+            self.cc_verbose("Preproc: %s" % ' '.join(cmd))
+            self.default_cmd(cmd)
+            mem_map = preproc_output
 
         # Build linker command
         map_file = splitext(output)[0] + ".map"
