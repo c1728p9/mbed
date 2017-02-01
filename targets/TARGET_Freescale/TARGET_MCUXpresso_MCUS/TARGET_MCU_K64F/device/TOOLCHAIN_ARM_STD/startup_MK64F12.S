@@ -469,6 +469,7 @@ __FlashConfig
 
 Reset_Handler   PROC
                 EXPORT  Reset_Handler             [WEAK]
+                IMPORT  mbed_application_boot_check
                 IMPORT  SystemInit
                 IMPORT  __main
 
@@ -480,6 +481,8 @@ Reset_Handler   PROC
                 LDR     R0, =0xE000ED08
                 LDR     R1, =__Vectors
                 STR     R1, [R0]
+                LDR     R0, =mbed_application_boot_check
+                BLX     R0
                 LDR     R0, =SystemInit
                 BLX     R0
                 CPSIE   i               ; Unmask interrupts
