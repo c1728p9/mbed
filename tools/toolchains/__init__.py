@@ -1293,7 +1293,7 @@ class mbedToolchain:
         objects -- all of the object files to link
         libraries -- all of the required libraries
         lib_dirs -- where the required libraries are located
-        mem_map -- the location where the memory map file should be stored
+        mem_map -- the linker script/scatter file
 
         Return value:
         None
