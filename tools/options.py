@@ -18,7 +18,7 @@ from json import load
 from os.path import join, dirname, exists
 from os import listdir
 from argparse import ArgumentParser
-from tools.toolchains import TOOLCHAINS
+from tools.toolchains import TOOLCHAINS, TOOLCHAIN_CLASSES
 from tools.targets import TARGET_NAMES
 from tools.utils import argparse_force_uppercase_type, \
     argparse_lowercase_hyphen_type, argparse_many, \
@@ -154,34 +154,27 @@ def extract_layouts(parser, options, toolchain, target, layout, artifact_name, b
     for entry in regions_to_entries(regions):
         profile = deepcopy(common_profile)
 
-        for name, val in regions_to_ld_pairs(regions, entry, rom_start):
-            profile["ld"].append(TC_NAME_VAL_TO_LD_DEFINE[toolchain](name, val))
+        for name, val in regions_to_ld_pairs(regions, options.entry, rom_start):
+            profile["common"].append("-D%s=0x%x" % (name, val))
+            profile["ld"].append(
+                TOOLCHAIN_CLASSES[toolchain].make_ld_define(name, val))
 
-        #TODO - need to rethink this
-        if "main" != entry:
-            if toolchain == "IAR":
-                profile["ld"].append("--redirect main=%s" %
-                                     _iar_main_name_mangle(entry))
-            if toolchain == "GCC_ARM" or toolchain == "GCC_CR":
-                profile["ld"].append("-Wl,--defsym=%s=%s" %
-                                     (_gcc_main_name_mangle("entry_point"),
-                                     _gcc_main_name_mangle(options.entry)))
+        if options.entry == 'main' and toolchain.startswith("GCC"):
+            entry = '__read_main'
         else:
-            if toolchain == "GCC_ARM" or toolchain == "GCC_CR":
-                profile["ld"].append("-Wl,--defsym=%s=__real_main" %
-                                     _gcc_main_name_mangle("entry_point"))
+            entry = options.entry
+        profile["ld"].append(
+            TOOLCHAIN_CLASSES[toolchain].redirect_symbol("main", entry,
+                                                        options.build_dir))
 
         artifact_profile_list.append((artifact_name + "_" + entry, profile))
 
     return artifact_profile_list
 
-def _gcc_main_name_mangle(name):
-    """Perform GCC's C++ name mangling for the main function"""
-    return "_Z%i%sv" % (len(name), name)
+    profile["common"].append("-DCUSTOM_ENTRY_POINT")
 
-def _iar_main_name_mangle(name):
-    """Perform IAR's C++ name mangling for the main function"""
-    return "_Z%i%sv" % (len(name), name)
+
+    return profile
 
 def _get_target_rom_start_size(name):
     """Return start and size of first rom region of the target"""
@@ -196,21 +189,3 @@ def _get_target_rom_start_size(name):
 
 def _str_to_int(val_str):
     return int(val_str[2:], 16) if val_str[0:2] == "0x" else int(val_str)
-
-def _arm_ld_define(name, value):
-    return "--predefine=\"-D%s=0x%x\"" % (name, value)
-    
-def _gcc_ld_define(name, value):
-    return "-D%s=0x%x" % (name, value)
-
-def _iar_ld_define(name, value):
-    return "--config_def %s=0x%x" % (name, value)
-
-# Table of fucntions to convert a name value part to a define for a toolchain
-TC_NAME_VAL_TO_LD_DEFINE = {
-    'ARM': _arm_ld_define,
-    'uARM': _arm_ld_define,
-    'GCC_ARM': _gcc_ld_define,
-    'GCC_CR': _gcc_ld_define,
-    'IAR': _iar_ld_define
-}

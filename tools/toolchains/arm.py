@@ -16,6 +16,7 @@ limitations under the License.
 """
 import re
 from os.path import join, dirname, splitext, basename
+from tempfile import mkstemp
 
 from tools.toolchains import mbedToolchain, TOOLCHAIN_PATHS
 from tools.hooks import hook_tool
@@ -222,6 +223,19 @@ class ARM(mbedToolchain):
         self.cc_verbose("FromELF: %s" % ' '.join(cmd))
         self.default_cmd(cmd)
 
+    @staticmethod
+    def name_mangle(name):
+        return name
+
+    @staticmethod
+    def make_ld_define(name, value):
+        return "--predefine=\"-D%s=0x%x\"" % (name, value)
+
+    @staticmethod
+    def redirect_symbol(source, sync, build_dir):
+        handle, filename = mkstemp(prefix=".redirect-symbol", dir=build_dir)
+        handle.write("REDIRECT %s %s\n" % (source, sync))
+        return "--redirect=%s" % filename
 
 class ARM_STD(ARM):
     pass
