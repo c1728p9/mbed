@@ -517,6 +517,13 @@ def print_large_string(large_string):
 
 
 def project_name(name, src_paths):
+    """Name a project.
+
+    Positional arguments:
+    name -- the name of the project, or None if not provided
+    src_paths -- the source for the project. only used if a name was not
+      provided on the command line
+    """
     if name is None:
         return basename(normpath(abspath(src_paths[0])))
     else:
