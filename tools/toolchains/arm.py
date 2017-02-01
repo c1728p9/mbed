@@ -15,7 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import re
-from os.path import join, dirname, splitext, basename
+from os.path import join, dirname, splitext, basename, exists
+from os import makedirs, write
 from tempfile import mkstemp
 
 from tools.toolchains import mbedToolchain, TOOLCHAIN_PATHS
@@ -233,8 +234,10 @@ class ARM(mbedToolchain):
 
     @staticmethod
     def redirect_symbol(source, sync, build_dir):
-        handle, filename = mkstemp(prefix=".redirect-symbol", dir=build_dir)
-        handle.write("RESOLVE %s AS %s\n" % (source, sync))
+        if not exists(build_dir):
+            makedirs(build_dir)
+        handle, filename = mkstemp(prefix=".redirect-symbol.", dir=build_dir)
+        write(handle, "RESOLVE %s AS %s\n" % (source, sync))
         return "--edit=%s" % filename
 
 class ARM_STD(ARM):
