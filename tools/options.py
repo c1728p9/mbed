@@ -159,10 +159,10 @@ def extract_layouts(parser, options, toolchain, target, layout, artifact_name, b
             profile["ld"].append(
                 TOOLCHAIN_CLASSES[toolchain].make_ld_define(name, val))
 
-        if options.entry == 'main' and toolchain.startswith("GCC"):
+        if region["name"] == 'main' and toolchain.startswith("GCC"):
             entry = '__real_main'
         else:
-            entry = options.entry
+            entry = region["name"]
         profile["ld"].append(
             TOOLCHAIN_CLASSES[toolchain].redirect_symbol("main", entry,
                                                         options.build_dir))

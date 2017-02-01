@@ -225,7 +225,7 @@ class ARM(mbedToolchain):
 
     @staticmethod
     def name_mangle(name):
-        return name
+        return "_Z%i%sv" % (len(name), name)
 
     @staticmethod
     def make_ld_define(name, value):
@@ -234,8 +234,8 @@ class ARM(mbedToolchain):
     @staticmethod
     def redirect_symbol(source, sync, build_dir):
         handle, filename = mkstemp(prefix=".redirect-symbol", dir=build_dir)
-        handle.write("REDIRECT %s %s\n" % (source, sync))
-        return "--redirect=%s" % filename
+        handle.write("RESOLVE %s AS %s\n" % (source, sync))
+        return "--edit=%s" % filename
 
 class ARM_STD(ARM):
     pass
