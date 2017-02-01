@@ -242,5 +242,4 @@ class IAR(mbedToolchain):
 
     @staticmethod
     def redirect_symbol(source, sync, build_dir):
-        return "--redirect %s=%s" % (IAR.name_mangle(source),
-                                     IAR.name_mangle(sync))
+        return "--redirect %s=%s" % (source, sync)

@@ -278,8 +278,7 @@ class GCC(mbedToolchain):
 
     @staticmethod
     def redirect_symbol(source, sync, build_dir):
-        return "-Wl,--defsym=%s=%s" % (GCC.name_mangle(source),
-                                       GCC.name_mangle(sync))
+        return "-Wl,--defsym=%s=%s" % (source, sync)
 
 
 class GCC_ARM(GCC):
