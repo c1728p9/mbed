@@ -153,48 +153,15 @@ def extract_layouts(parser, options, toolchain, target, layout, artifact_name, b
     artifact_profile_list = []
     for region in regions_with_entry(regions):
         profile = deepcopy(common_profile)
+        cur_tc = TOOLCHAIN_CLASSES[toolchain]
 
         for name, val in region_to_ld_pairs(region, rom_start):
             profile["common"].append("-D%s=0x%x" % (name, val))
-            profile["ld"].append(
-                TOOLCHAIN_CLASSES[toolchain].make_ld_define(name, val))
+            profile["ld"].append(cur_tc.make_ld_define(name, val))
 
-        cur_tc = TOOLCHAIN_CLASSES[toolchain]
-        if toolchain.startswith("IAR"):
-            if region["name"] != 'main':
-                profile["ld"].append(cur_tc.redirect_symbol("main",
-                                                            cur_tc.name_mangle(region["name"]),
-                                                            options.build_dir))
-            else:
-                #No redirect needed
-                pass
-        elif toolchain.startswith("GCC"):
-            if region["name"] == 'main':
-                profile["ld"].append(cur_tc.redirect_symbol(cur_tc.name_mangle("entry_point"),
-                                       "__real_main", options.build_dir))
-            else:
-                profile["ld"].append(cur_tc.redirect_symbol(cur_tc.name_mangle("entry_point"),
-                                       cur_tc.name_mangle(region["name"]),
-                                       options.build_dir))
-        else:
-            if region["name"] == 'main':
-                profile["ld"].append(cur_tc.redirect_symbol(cur_tc.name_mangle("entry_point"),
-                                       "$Super$$main",
-                                       options.build_dir))
-            else:
-                profile["ld"].append(cur_tc.redirect_symbol(cur_tc.name_mangle("entry_point"),
-                                       cur_tc.name_mangle(region["name"]),
-                                       options.build_dir))
-
-#        else:
-#            entry = region["name"]
-#            if toolchain == "IAR":
-#
-#            else:
-#                profile["ld"].append(
-#                    cur_tc.redirect_symbol(cur_tc.name_mangle("entry_point"),
-#                                           cur_tc.name_mangle(entry),
-#                                                                options.build_dir))
+        redirect_arg = cur_tc.redirect_main(region["main"], options.build_dir)
+        if redirect_arg:
+            profile["ld"].append(redirect_arg)
 
         artifact_profile_list.append((artifact_name + "_" + region["name"], region["addr"], profile))
 

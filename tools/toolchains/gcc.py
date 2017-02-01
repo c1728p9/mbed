@@ -280,6 +280,15 @@ class GCC(mbedToolchain):
     def redirect_symbol(source, sync, build_dir):
         return "-Wl,--defsym=%s=%s" % (source, sync)
 
+    @staticmethod
+    def redirect_main(dest, build_dir):
+        if dest == 'main':
+            return GCC.redirect_symbol(GCC.name_mangle("entry_point"),
+                                       "__real_main", build_dir)
+        else:
+            return GCC.redirect_symbol(GCC.name_mangle("entry_point"),
+                                       GCC.name_mangle(dest), build_dir)
+
 
 class GCC_ARM(GCC):
     @staticmethod
