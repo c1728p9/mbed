@@ -27,6 +27,7 @@
 #include "fsl_uart_edma.h"
 #endif
 #include "dma_api_hal.h"
+#include "fsl_flash.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -88,6 +89,10 @@ struct dac_s {
 
 struct trng_s {
     uint8_t dummy;
+};
+
+struct flash_s {
+    flash_config_t flash;
 };
 
 #include "gpio_object.h"
