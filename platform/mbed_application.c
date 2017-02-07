@@ -36,8 +36,22 @@ static void start_new_application(void *sp, void *pc);
 static uint32_t compute_checksum(volatile ram_options_t *options);
 void mbed_application_boot_check(void);
 
-
 void mbed_application_start(uint32_t address)
+{
+    // -Disable interrupts
+    // -Turn off all interrupt handlers
+    // -ICTR.INTLINESNUM to determine number of interrupts and disable them
+    // -SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk;
+    // -Clear floating point mask
+    // -enable interrupts
+    //
+    // -disable floating point in xpsr
+    // -switch to main stack pointer
+
+    //#if (!defined(TARGET_LIKE_CORTEX_M0) && !defined(TARGET_LIKE_CORTEX_M0PLUS))
+}
+
+void mbed_application_start_with_reset(uint32_t address)
 {
     MBED_ASSERT(address % 4 == 0);
     ram_options.size = sizeof(ram_options_t);
