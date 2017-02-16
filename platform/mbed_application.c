@@ -18,9 +18,6 @@
 #include <stdarg.h>
 #include "device.h"
 #include "platform/mbed_application.h"
-#include "platform/mbed_assert.h"
-#include "platform/toolchain.h"
-#include "platform/critical.h"
 
 #if MBED_APPLICATION_SUPPORT
 
@@ -28,14 +25,14 @@ static void powerdown_nvic(void);
 static void powerdown_scb(uint32_t vtor);
 static void start_new_application(void *sp, void *pc);
 
-void mbed_application_start(uintptr_t address)
+void mbed_start_application(uintptr_t address)
 {
 
     void *sp;
     void *pc;
 
     // Interrupts are re-enabled in start_new_application
-    core_util_critical_section_enter();
+    __disable_irq();
 
     SysTick->CTRL = 0x00000000;
     powerdown_nvic();
@@ -73,7 +70,11 @@ static void powerdown_scb(uint32_t vtor)
     SCB->SCR = 0x00000000;
     // SCB->CCR     - Implementation defined value
     for (i = 0; i < 12; i++) {
+#if defined(__CORTEX_M7)
+        SCB->SHPR[i] = 0x00;
+#else
         SCB->SHP[i] = 0x00;
+#endif
     }
     SCB->SHCSR = 0x00000000;
     SCB->CFSR = 0xFFFFFFFF;
@@ -102,29 +103,19 @@ __asm static void start_new_application(void *sp, void *pc)
     BX R1
 }
 
-#elif defined (__GNUC__)
+#elif defined (__GNUC__) || defined (__ICCARM__)
 
-__attribute__((naked)) void start_new_application(void *sp, void *pc)
+void start_new_application(void *sp, void *pc)
 {
     __asm volatile (
         "mov    r2, #0      \n"
         "msr    control, r2 \n" // Switch to main stack
-        "mov    sp, r0      \n"
+        "mov    sp, %0      \n"
         "msr    primask, r2 \n" // Enable interrupts
-        "bx     r1          \n"
-    );
-}
-
-#elif defined (__ICCARM__)
-
-static void start_new_application(void *sp, void *pc)
-{
-    __asm volatile (
-        "mov    r2, #0      \n"
-        "msr    control, r2 \n" // Switch to main stack
-        "mov    sp,r0       \n"
-        "msr    primask, r2 \n" // Enable interrupts
-        "bx     r1          \n"
+        "bx     %1          \n"
+        :
+        : "l" (sp), "l" (pc)
+        : "r2", "cc", "memory"
     );
 }
 

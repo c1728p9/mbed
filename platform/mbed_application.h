@@ -38,7 +38,7 @@ extern "C" {
  *
  *  @param address    Starting address of next application to run
  */
-void mbed_application_start(uintptr_t address);
+void mbed_start_application(uintptr_t address);
 
 #ifdef __cplusplus
 }
