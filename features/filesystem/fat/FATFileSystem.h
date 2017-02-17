@@ -23,6 +23,7 @@
 #define MBED_FATFILESYSTEM_H
 
 #include "FileSystemLike.h"
+#include "BlockDevice.h"
 #include "FileHandle.h"
 #include "ff.h"
 #include <stdint.h>
@@ -35,13 +36,46 @@ using namespace mbed;
  */
 class FATFileSystem : public FileSystemLike {
 public:
-
-    FATFileSystem(const char* n);
+    FATFileSystem(const char* n, BlockDevice *bd = NULL);
     virtual ~FATFileSystem();
+    
+    /**
+     * @brief   Mounts the filesystem
+     *
+     * @param bd
+     *   This is the block device that will be formated.
+     *
+     * @param force
+     *   Flag to underlying filesystem to force the mounting of the filesystem.
+     */
+    virtual int mount(BlockDevice *bd, bool force = true);
+    
+    /**
+     * Unmounts the filesystem
+     */
+    virtual int unmount();
 
-    static FATFileSystem * _ffs[_VOLUMES];   // FATFileSystem objects, as parallel to FatFs drives array
-    FATFS _fs;                               // Work area (file system object) for logical drive
-    char _fsid[2];
+    /**
+     * Flush any underlying transactions
+     */
+    virtual int sync();
+    
+    /**
+     * @brief   Formats a logical drive, FDISK partitioning rule.
+     *
+     * The block device to format should be mounted when this function is called.
+     *
+     * @param bd
+     *   This is the block device that will be formated.
+     *
+     * @param allocation_unit
+     *   This is the number of bytes per cluster size. The valid value is N
+     *   times the sector size. N is a power of 2 from 1 to 128 for FAT
+     *   volume and upto 16MiB for exFAT volume. If zero is given,
+     *   the default allocation unit size is selected by the underlying
+     *   filesystem, which depends on the volume size.
+     */
+    static int format(BlockDevice *bd, int allocation_unit = 0);
 
     /**
      * Opens a file on the filesystem
@@ -59,11 +93,6 @@ public:
     virtual int rename(const char *oldname, const char *newname);
     
     /**
-     * Formats a logical drive, FDISK artitioning rule, 512 bytes per cluster
-     */
-    virtual int format();
-    
-    /**
      * Opens a directory on the filesystem
      */
     virtual DirHandle *opendir(const char *name);
@@ -72,33 +101,19 @@ public:
      * Creates a directory path
      */
     virtual int mkdir(const char *name, mode_t mode);
-    
-    /**
-     * Mounts the filesystem
-     */
-    virtual int mount();
-    
-    /**
-     * Unmounts the filesystem
-     */
-    virtual int unmount();
 
-    virtual int disk_initialize() { return 0; }
-    virtual int disk_status() { return 0; }
-    virtual int disk_read(uint8_t *buffer, uint32_t sector, uint32_t count) = 0;
-    virtual int disk_write(const uint8_t *buffer, uint32_t sector, uint32_t count) = 0;
-    virtual int disk_sync() { return 0; }
-    virtual uint32_t disk_sectors() = 0;
-
+    /**
+     * Store information about file in stat structure
+     */
+    virtual int stat(const char *name, struct stat *st);
+    
 protected:
+    FATFS _fs; // Work area (file system object) for logical drive
+    char _fsid[2];
+    int _id;
 
     virtual void lock();
     virtual void unlock();
-
-private:
-
-    PlatformMutex *_mutex;
-
 };
 
 #endif
