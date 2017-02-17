@@ -64,6 +64,7 @@ static const flash_target_config_t flash_target_config = {
     .flash_start = 0x8000000,
     .flash_size = 0x200000,
     .sectors = sectors_info,
+    .sector_count = sizeof(sectors_info) / sizeof(sector_info_t)
 };
 
 void flash_set_target_config(flash_t *obj)
