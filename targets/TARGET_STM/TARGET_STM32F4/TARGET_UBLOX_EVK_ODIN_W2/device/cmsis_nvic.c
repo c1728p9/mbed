@@ -30,8 +30,16 @@
  */ 
 #include "cmsis_nvic.h"
 
+#if defined(__ICCARM__)
+#elif defined(__CC_ARM)
+#elif defined(__GNUC__)
+extern char g_pfnVectors;
+#define NVIC_FLASH_VECTOR_ADDRESS   ((uint32_t)&g_pfnVectors)
+#endif
+//
+
 #define NVIC_RAM_VECTOR_ADDRESS   (0x20000000)  // Vectors positioned at start of RAM
-#define NVIC_FLASH_VECTOR_ADDRESS (0x08000000)  // Initial vector position in flash
+//#define NVIC_FLASH_VECTOR_ADDRESS (0x08000000)  // Initial vector position in flash
 
 void NVIC_SetVector(IRQn_Type IRQn, uint32_t vector) {
     uint32_t *vectors = (uint32_t *)SCB->VTOR;
