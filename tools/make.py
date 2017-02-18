@@ -22,7 +22,7 @@ import sys
 import json
 from time import sleep
 from shutil import copy
-from os.path import join, abspath, dirname
+from os.path import join, abspath, dirname, exists, basename, normpath
 from json import load, dump
 
 # Be sure that the tools directory is in the search path
@@ -36,6 +36,7 @@ from tools.paths import MBED_LIBRARIES
 from tools.paths import RPC_LIBRARY
 from tools.paths import USB_LIBRARIES
 from tools.paths import DSP_LIBRARIES
+from tools.paths import LAYOUT_FILE
 from tools.tests import TESTS, Test, TEST_MAP
 from tools.tests import TEST_MBED_LIB
 from tools.tests import test_known, test_name_known
@@ -43,6 +44,7 @@ from tools.targets import TARGET_MAP
 from tools.options import get_default_options_parser
 from tools.options import extract_profile
 from tools.options import extract_mcus
+from tools.options import extract_layouts
 from tools.build_api import build_project
 from tools.build_api import mcu_toolchain_matrix
 from tools.build_api import mcu_toolchain_list
@@ -51,8 +53,10 @@ from tools.build_api import merge_build_data
 from utils import argparse_filestring_type
 from utils import argparse_many
 from utils import argparse_dir_not_parent
+from utils import combine_images
 from tools.toolchains import mbedToolchain, TOOLCHAIN_CLASSES, TOOLCHAIN_PATHS
 from tools.settings import CLI_COLOR_MAP
+
 
 if __name__ == '__main__':
     # Parse Options
@@ -277,24 +281,39 @@ if __name__ == '__main__':
             build_dir = options.build_dir
 
         try:
-            bin_file = build_project(test.source_dir, build_dir, mcu, toolchain,
+            build_profile = extract_profile(parser, options, toolchain)
+            artifact_name = (options.artifact_name if
+                             options.artifact_name is not None
+                             else basename(normpath(abspath(test.source_dir[0]))))
+            if exists(LAYOUT_FILE):
+                build_profiles = extract_layouts(options, toolchain, mcu,
+                                                 LAYOUT_FILE, artifact_name,
+                                                 build_profile)
+            else:
+                build_profiles = [(artifact_name, None, build_profile)]
+            #options.artifact_name
+            #build_profile
+            addr_artifact_list = []
+            for artifact, addr, profile in build_profiles:
+                bin_file = build_project(test.source_dir, build_dir, mcu, toolchain,
                                      set(test.dependencies),
-                                     linker_script=options.linker_script,
-                                     clean=options.clean,
-                                     verbose=options.verbose,
-                                     notify=notify,
+                                         linker_script=options.linker_script,
+                                         clean=options.clean,
+                                         verbose=options.verbose,
+                                         notify=notify,
                                      report=build_data_blob,
-                                     silent=options.silent,
-                                     macros=options.macros,
-                                     jobs=options.jobs,
-                                     name=options.artifact_name,
-                                     app_config=options.app_config,
-                                     inc_dirs=[dirname(MBED_LIBRARIES)],
-                                     build_profile=extract_profile(parser,
-                                                                   options,
-                                                                   toolchain),
-                                     stats_depth=options.stats_depth)
-            print 'Image: %s'% bin_file
+                                         silent=options.silent,
+                                         macros=options.macros,
+                                         jobs=options.jobs,
+                                         name=artifact,
+                                         app_config=options.app_config,
+                                         inc_dirs=[dirname(MBED_LIBRARIES)],
+                                         build_profile=profile)
+                addr_artifact_list.append((addr, bin_file))
+            artifact_names = [name for name, _ in addr_artifact_list]
+            if artifact_name not in artifact_names:
+                combine_images(join(build_dir, artifact_name + ".bin"), addr_artifact_list)
+            print 'Image: %s' % bin_file
 
             if options.disk:
                 # Simple copy to the mbed disk

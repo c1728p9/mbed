@@ -18,12 +18,19 @@ from json import load
 from os.path import join, dirname
 from os import listdir
 from argparse import ArgumentParser, ArgumentTypeError
-from tools.toolchains import TOOLCHAINS
+from copy import deepcopy
 from tools.targets import TARGET_NAMES, Target, update_target_data
+from tools.toolchains import TOOLCHAINS, TOOLCHAIN_CLASSES
 from tools.utils import argparse_force_uppercase_type, \
     argparse_lowercase_hyphen_type, argparse_many, \
     argparse_filestring_type, args_error, argparse_profile_filestring_type,\
     argparse_deprecate
+from tools.app_layout import regions_to_common_pairs
+from tools.app_layout import region_to_ld_pairs
+from tools.app_layout import layout_to_regions
+from tools.app_layout import regions_with_entry
+from tools.arm_pack_manager import Cache
+from tools.targets import TARGET_MAP
 
 FLAGS_DEPRECATION_MESSAGE = "Please use the --profile argument instead.\n"\
                             "Documentation may be found in "\
@@ -143,3 +150,50 @@ def extract_mcus(parser, options):
     except ArgumentTypeError as exc:
         args_error(parser, "argument -m/--mcu: {}".format(str(exc)))
 
+
+def extract_layouts(options, toolchain, target, layout, artifact_name, base_profile):
+    """Extract a target layout from parsed options for each configuration
+
+    Positional arguments:
+    parser - parser used to parse the command line arguments
+    options - The parsed command line arguments
+    toolchain - the toolchain that the profile should be extracted for
+    target - target to extract the layout for
+    """
+    tc_class = TOOLCHAIN_CLASSES[toolchain]
+    common_flags = []
+    rom_start, rom_size = _get_target_rom_start_size(target)
+    regions = list(layout_to_regions(open(layout, "r"), rom_start, rom_size))
+    for name, val in regions_to_common_pairs(regions):
+        common_flags.append("-D%s=0x%x" % (name, val))
+    common_flags.append("-DCUSTOM_ENTRY_POINT")
+
+    for region in regions_with_entry(regions):
+        linker_flags = []
+        for name, val in region_to_ld_pairs(region, rom_start):
+            linker_flags.append(tc_class.make_ld_define(name, val))
+
+        redirect_arg = tc_class.redirect_main(region.name, options.build_dir)
+        if redirect_arg:
+            linker_flags.append(redirect_arg)
+
+        profile_entry = {toolchain: {'c': [], 'cxx': [],
+                                     'common': common_flags,
+                                     'asm': [], 'ld': linker_flags}}
+        new_profile = deepcopy(base_profile)
+        new_profile.append(profile_entry)
+        yield (artifact_name + "_" + region.name, region.addr, new_profile)
+
+def _get_target_rom_start_size(name):
+    """Return start and size of first rom region of the target"""
+    cache = Cache(True, False)
+    device_name = TARGET_MAP[name].device_name #TODO - handle no device name
+    target_info = cache.index[device_name]
+
+    roms = [(_str_to_int(info["start"]), _str_to_int(info["size"]))
+            for mem, info in target_info["memory"].items() if "ROM" in mem]
+    roms.sort(key=lambda entry:entry[0])
+    return roms[0]
+
+def _str_to_int(val_str):
+    return int(val_str[2:], 16) if val_str[0:2] == "0x" else int(val_str)

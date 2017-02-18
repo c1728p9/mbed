@@ -30,6 +30,8 @@ TOOLS = join(ROOT, "tools")
 TOOLS_DATA = join(TOOLS, "data")
 TOOLS_BOOTLOADERS = join(TOOLS, "bootloaders")
 
+LAYOUT_FILE = "layout.txt"
+
 # mbed libraries
 MBED_HEADER = join(ROOT, "mbed.h")
 MBED_DRIVERS = join(ROOT, "drivers")
