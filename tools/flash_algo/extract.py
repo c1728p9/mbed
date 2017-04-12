@@ -22,13 +22,14 @@ import os
 import argparse
 from os.path import join, abspath, dirname
 from flash_algo import PackFlashAlgo
+import subprocess
 
 # Be sure that the tools directory is in the search path
 ROOT = abspath(join(dirname(__file__), "..", ".."))
 sys.path.insert(0, ROOT)
 
 from tools.targets import TARGETS
-from tools.arm_pack_manager import Cache
+from ArmPackManager import Cache
 
 TEMPLATE_PATH = "c_blob_mbed.tmpl"
 
@@ -71,6 +72,21 @@ def main():
 
     for device, filename in device_and_filenames:
         dev = cache.index[device]
+
+        try:
+            svd_file = join("output", filename + ".svd")
+            with open(svd_file, "wb") as file_handle:
+                file_handle.write(cache.get_svd_file(device).read())
+            svd_header_dir = join("output", filename)
+            try:
+                os.mkdir(svd_header_dir)
+            except OSError:
+                pass
+            subprocess.call(["SVDConv.exe", svd_file,
+                             "--generate=header", "-o", svd_header_dir])
+        except KeyError:
+            pass
+
         binaries = cache.get_flash_algorthim_binary(device, all=True)
         algos = [PackFlashAlgo(binary.read()) for binary in binaries]
         filtered_algos = algos if args.all else filter_algos(dev, algos)
