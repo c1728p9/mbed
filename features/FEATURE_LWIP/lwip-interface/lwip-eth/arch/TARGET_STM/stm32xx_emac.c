@@ -4,7 +4,7 @@
 #include "lwip/tcpip.h"
 #include "lwip/ethip6.h"
 #include <string.h>
-#include "cmsis_os.h"
+#include "cmsis_os2.h"
 #include "mbed_interface.h"
 
 // Check for LWIP having Ethernet enabled
