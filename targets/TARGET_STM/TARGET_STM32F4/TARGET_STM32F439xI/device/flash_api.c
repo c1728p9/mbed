@@ -49,6 +49,10 @@ int32_t flash_init(flash_t *obj)
     if (HAL_FLASH_Unlock()) {
         return -1;
     } else {
+        /* Ensure the programming sequence error flag and the programming
+        parallelism flag are cleared. These can be set if code erroneously
+        writes to flash and will cause the first flash operation to fail. */
+        __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_PGSERR | FLASH_FLAG_PGPERR);
         return 0;
     }
 }
