@@ -160,6 +160,8 @@
  *
  */
 
+#if defined(TARGET_CORTEX_M) || defined(TARGET_CORTEX_A)
+
 #include "cmsis.h"
 #include "mbed_rtx.h"
 #include "mbed_rtos_storage.h"
@@ -644,5 +646,7 @@ void __iar_file_Mtxunlock(__iar_Rmtx *mutex) /* Unlock a file lock */
 {
     osMutexRelease(*(osMutexId_t*)*mutex);
 }
+
+#endif
 
 #endif

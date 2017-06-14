@@ -3003,5 +3003,12 @@
         "device_has": ["ANALOGIN", "ERROR_PATTERN", "I2C", "I2C_ASYNCH", "INTERRUPTIN", "LOWPOWERTIMER", "PORTIN", "PORTINOUT", "PORTOUT", "PWMOUT", "RTC", "SERIAL", "SERIAL_ASYNCH", "SERIAL_FC", "SLEEP", "SPI", "SPI_ASYNCH", "SPISLAVE"],
         "release_versions": ["2"],
         "device_name": "nRF51822_xxAC"
+    },
+    "SIM": {
+    	"core": "",
+        "inherits": ["Target"],
+        "supported_toolchains": ["GCC_HOST"],
+        "device_has": ["INTERRUPTIN", "ANALOGIN", "ANALOGOUT", "I2C", "LOWPOWERTIMER", "PORTIN", "PORTINOUT", "PORTOUT", "PWMOUT", "RTC", "SERIAL", "SLEEP", "SPI", "STDIO_MESSAGES", "STORAGE", "TRNG"],
+        "release_versions": ["2", "5"]
     }
 }

@@ -42,6 +42,18 @@ typedef int mode_t;     ///< Mode for opening files
 
 #define NAME_MAX 255    ///< Maximum size of a name in a file path
 
+#elif defined(TARGET_SIM)
+#include <sys/types.h>
+
+#define O_RDONLY 0
+#define O_WRONLY 1
+#define O_RDWR   2
+#define O_CREAT  0x0200
+#define O_TRUNC  0x0400
+#define O_APPEND 0x0008
+
+#define NAME_MAX 255    ///< Maximum size of a name in a file path
+
 #else
 #include <sys/fcntl.h>
 #include <sys/types.h>

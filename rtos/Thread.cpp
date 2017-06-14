@@ -171,68 +171,68 @@ Thread::State Thread::get_state() {
 
     _mutex.lock();
 
-    if (_tid != NULL) {
-        state = _obj_mem.state;
-    }
+//    if (_tid != NULL) {
+//        state = _obj_mem.state;
+//    }
 
     _mutex.unlock();
 
-    State user_state;
+//    State user_state;
+//
+//    switch(state) {
+//        case osThreadInactive:
+//            user_state = Inactive;
+//            break;
+//        case osThreadReady:
+//            user_state = Ready;
+//            break;
+//        case osThreadRunning:
+//            user_state = Running;
+//            break;
+//        case osRtxThreadWaitingDelay:
+//            user_state = WaitingDelay;
+//            break;
+//        case osRtxThreadWaitingJoin:
+//            user_state = WaitingJoin;
+//            break;
+//        case osRtxThreadWaitingThreadFlags:
+//            user_state = WaitingThreadFlag;
+//            break;
+//        case osRtxThreadWaitingEventFlags:
+//            user_state = WaitingEventFlag;
+//            break;
+//        case osRtxThreadWaitingMutex:
+//            user_state = WaitingMutex;
+//            break;
+//        case osRtxThreadWaitingSemaphore:
+//            user_state = WaitingSemaphore;
+//            break;
+//        case osRtxThreadWaitingMemoryPool:
+//            user_state = WaitingMemoryPool;
+//            break;
+//        case osRtxThreadWaitingMessageGet:
+//            user_state = WaitingMessageGet;
+//            break;
+//        case osRtxThreadWaitingMessagePut:
+//            user_state = WaitingMessagePut;
+//            break;
+//        case osThreadTerminated:
+//        default:
+//            user_state = Deleted;
+//            break;
+//    }
 
-    switch(state) {
-        case osThreadInactive:
-            user_state = Inactive;
-            break;
-        case osThreadReady:
-            user_state = Ready;
-            break;
-        case osThreadRunning:
-            user_state = Running;
-            break;
-        case osRtxThreadWaitingDelay:
-            user_state = WaitingDelay;
-            break;
-        case osRtxThreadWaitingJoin:
-            user_state = WaitingJoin;
-            break;
-        case osRtxThreadWaitingThreadFlags:
-            user_state = WaitingThreadFlag;
-            break;
-        case osRtxThreadWaitingEventFlags:
-            user_state = WaitingEventFlag;
-            break;
-        case osRtxThreadWaitingMutex:
-            user_state = WaitingMutex;
-            break;
-        case osRtxThreadWaitingSemaphore:
-            user_state = WaitingSemaphore;
-            break;
-        case osRtxThreadWaitingMemoryPool:
-            user_state = WaitingMemoryPool;
-            break;
-        case osRtxThreadWaitingMessageGet:
-            user_state = WaitingMessageGet;
-            break;
-        case osRtxThreadWaitingMessagePut:
-            user_state = WaitingMessagePut;
-            break;
-        case osThreadTerminated:
-        default:
-            user_state = Deleted;
-            break;
-    }
-
-    return user_state;
+    return state;//user_state;
 }
 
 uint32_t Thread::stack_size() {
     uint32_t size = 0;
     _mutex.lock();
 
-    if (_tid != NULL) {
-        os_thread_t *thread = (os_thread_t *)_tid;
-        size = thread->stack_size;
-    }
+//    if (_tid != NULL) {
+//        os_thread_t *thread = (os_thread_t *)_tid;
+//        size = thread->stack_size;
+//    }
 
     _mutex.unlock();
     return size;
@@ -242,10 +242,10 @@ uint32_t Thread::free_stack() {
     uint32_t size = 0;
     _mutex.lock();
 
-    if (_tid != NULL) {
-        os_thread_t *thread = (os_thread_t *)_tid;
-        size = (uint32_t)thread->stack_mem - thread->sp;
-    }
+//    if (_tid != NULL) {
+//        os_thread_t *thread = (os_thread_t *)_tid;
+//        size = (uint32_t)thread->stack_mem - thread->sp;
+//    }
 
     _mutex.unlock();
     return size;
@@ -254,11 +254,11 @@ uint32_t Thread::free_stack() {
 uint32_t Thread::used_stack() {
     uint32_t size = 0;
     _mutex.lock();
-
-    if (_tid != NULL) {
-        os_thread_t *thread = (os_thread_t *)_tid;
-        size = ((uint32_t)thread->stack_mem + thread->stack_size) - thread->sp;
-    }
+//
+//    if (_tid != NULL) {
+//        os_thread_t *thread = (os_thread_t *)_tid;
+//        size = ((uint32_t)thread->stack_mem + thread->stack_size) - thread->sp;
+//    }
 
     _mutex.unlock();
     return size;
@@ -268,13 +268,13 @@ uint32_t Thread::max_stack() {
     uint32_t size = 0;
     _mutex.lock();
 
-    if (_tid != NULL) {
-        os_thread_t *thread = (os_thread_t *)_tid;
-        uint32_t high_mark = 0;
-        while (((uint32_t *)(thread->stack_mem))[high_mark] == 0xE25A2EA5)
-            high_mark++;
-        size = thread->stack_size - (high_mark * sizeof(uint32_t));
-    }
+//    if (_tid != NULL) {
+//        os_thread_t *thread = (os_thread_t *)_tid;
+//        uint32_t high_mark = 0;
+//        while (((uint32_t *)(thread->stack_mem))[high_mark] == 0xE25A2EA5)
+//            high_mark++;
+//        size = thread->stack_size - (high_mark * sizeof(uint32_t));
+//    }
 
     _mutex.unlock();
     return size;

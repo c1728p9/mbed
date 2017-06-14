@@ -23,7 +23,7 @@
 #include "platform/mbed_assert.h"
 #include "platform/mbed_toolchain.h"
 
-#if !defined (__CORTEX_M0) && !defined (__CORTEX_M0PLUS)
+#if !defined (__CORTEX_M0) && !defined (__CORTEX_M0PLUS) && !defined(TARGET_SIM)
 #define EXCLUSIVE_ACCESS 1
 #else
 #define EXCLUSIVE_ACCESS 0
