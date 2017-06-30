@@ -30,6 +30,7 @@ namespace mbed {
 /** Low Power Ticker
  *
  * @note Synchronization level: Interrupt safe
+ * @note Low power restrictions: None
  * @ingroup drivers
  */
 class LowPowerTicker : public Ticker, private NonCopyable<LowPowerTicker> {

@@ -26,6 +26,7 @@ namespace mbed {
 /** A digital output, used for setting the state of a pin
  *
  * @note Synchronization level: Interrupt safe
+ * @note Low power restrictions: None
  *
  * Example:
  * @code

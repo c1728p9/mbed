@@ -37,6 +37,7 @@ namespace mbed {
 /** An I2C Master, used for communicating with I2C slave devices
  *
  * @note Synchronization level: Thread safe
+ * @note Low power restrictions: None
  *
  * Example:
  * @code

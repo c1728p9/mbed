@@ -33,6 +33,7 @@ namespace mbed {
 /** A digital interrupt input, used to call a function on a rising or falling edge
  *
  * @note Synchronization level: Interrupt safe
+ * @note Low power restrictions: None
  *
  * Example:
  * @code

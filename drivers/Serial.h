@@ -35,6 +35,7 @@ namespace mbed {
  * one pin as NC (Not Connected)
  *
  * @note Synchronization level: Thread safe
+ * @note Low power restrictions: Blocks deep sleep when enabled
  *
  * Example:
  * @code

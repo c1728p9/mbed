@@ -26,6 +26,7 @@ namespace mbed {
 /** A general purpose timer
  *
  * @note Synchronization level: Interrupt safe
+ * @note Low power restrictions: Blocks deep sleep if timer is running
  *
  * Example:
  * @code

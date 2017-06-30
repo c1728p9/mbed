@@ -28,6 +28,7 @@ namespace mbed {
 /** A pulse-width modulation digital output
  *
  * @note Synchronization level: Interrupt safe
+ * @note Low power restrictions: Blocks deep sleep when enabled
  *
  * Example
  * @code

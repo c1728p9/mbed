@@ -36,6 +36,7 @@ namespace mbed {
 /** Flash IAP driver. It invokes flash HAL functions.
  *
  * @note Synchronization level: Thread safe
+ * @note Low power restrictions: None
  * @ingroup drivers
  */
 class FlashIAP : private NonCopyable<FlashIAP> {

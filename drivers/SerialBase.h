@@ -37,6 +37,7 @@ namespace mbed {
  * Can't be instantiated directly (use Serial or RawSerial)
  *
  * @note Synchronization level: Set by subclass
+ * @note Low power restrictions: Blocks deep sleep when enabled
  * @ingroup drivers
  */
 class SerialBase : private NonCopyable<SerialBase> {

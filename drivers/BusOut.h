@@ -50,6 +50,7 @@ public:
      *  @param p15 DigitalOut pin to connect to bus bit
      *
      *  @note Synchronization level: Thread safe
+     * @note Low power restrictions: None
      *
      *  @note
      *  It is only required to specify as many pin variables as is required

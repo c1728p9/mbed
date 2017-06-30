@@ -27,6 +27,7 @@ namespace mbed {
 /** A digital input, used for reading the state of a pin
  *
  * @note Synchronization level: Interrupt safe
+ * @note Low power restrictions: None
  *
  * Example:
  * @code

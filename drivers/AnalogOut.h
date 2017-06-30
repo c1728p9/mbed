@@ -29,6 +29,7 @@ namespace mbed {
 /** An analog output, used for setting the voltage on a pin
  *
  * @note Synchronization level: Thread safe
+ * @note Low power restrictions: None
  *
  * Example:
  * @code

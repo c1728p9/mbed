@@ -31,6 +31,7 @@ namespace mbed {
 /** CANMessage class
  *
  * @note Synchronization level: Thread safe
+ * @note Low power restrictions: Blocks deep sleep when enabled
  * @ingroup drivers
  */
 class CANMessage : public CAN_Message {

@@ -26,6 +26,7 @@ namespace mbed {
 /** A digital input output bus, used for setting the state of a collection of pins
  *
  * @note Synchronization level: Thread safe
+ * @note Low power restrictions: None
  * @ingroup drivers
  */
 class BusInOut : private NonCopyable<BusInOut> {

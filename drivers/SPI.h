@@ -44,6 +44,7 @@ namespace mbed {
  * can be controlled using DigitalOut pins
  *
  * @note Synchronization level: Thread safe
+ * @note Low power restrictions: None
  *
  * Example:
  * @code

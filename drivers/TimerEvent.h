@@ -26,6 +26,7 @@ namespace mbed {
 /** Base abstraction for timer interrupts
  *
  * @note Synchronization level: Interrupt safe
+ * @note Low power restrictions: Set by subclass
  * @ingroup drivers
  */
 class TimerEvent : private NonCopyable<TimerEvent> {

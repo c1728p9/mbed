@@ -28,6 +28,7 @@ namespace mbed {
 /** Use this singleton if you need to chain interrupt handlers.
  *
  * @note Synchronization level: Thread safe
+ * @note Low power restrictions: None
  *
  * Example (for LPC1768):
  * @code

@@ -30,6 +30,7 @@ namespace mbed {
 /** An analog input, used for reading the voltage on a pin
  *
  * @note Synchronization level: Thread safe
+ * @note Low power restrictions: None
  *
  * Example:
  * @code

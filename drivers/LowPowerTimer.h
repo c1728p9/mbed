@@ -30,6 +30,7 @@ namespace mbed {
 /** Low power timer
  *
  * @note Synchronization level: Interrupt safe
+ * @note Low power restrictions: None
  * @ingroup drivers
  */
 class LowPowerTimer : public Timer, private NonCopyable<LowPowerTimer> {

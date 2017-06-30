@@ -27,6 +27,7 @@ namespace mbed {
  * You can use as many seperate Timeout objects as you require.
  *
  * @note Synchronization level: Interrupt safe
+ * @note Low power restrictions: Blocks deep sleep if a callback is attached
  *
  * Example:
  * @code

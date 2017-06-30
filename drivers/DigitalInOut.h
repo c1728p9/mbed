@@ -27,6 +27,7 @@ namespace mbed {
 /** A digital input/output, used for setting or reading a bi-directional pin
  *
  * @note Synchronization level: Interrupt safe
+ * @note Low power restrictions: None
  * @ingroup drivers
  */
 class DigitalInOut {
