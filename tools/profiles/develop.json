@@ -20,13 +20,13 @@
                    "-fmessage-length=0", "-fno-exceptions", "-fno-builtin",
                    "-ffunction-sections", "-fdata-sections", "-funsigned-char",
                    "-MMD", "-fno-delete-null-pointer-checks",
-                   "-fomit-frame-pointer", "-Os", "-fpermissive", "-g3", "-D__CRT__NO_INLINE"],
+                   "-fomit-frame-pointer", "-O0", "-fpermissive", "-g3", "-D__CRT__NO_INLINE","--coverage"],
         "asm": ["-x", "assembler-with-cpp", "-m32"],
         "c": ["-std=gnu99", "-m32"],
         "cxx": ["-std=gnu++98", "-fno-rtti", "-Wvla", "-m32"],
         "ld": ["-Wl,--gc-sections", "-Wl,--wrap,main", "-Wl,--wrap,_malloc_r",
                "-Wl,--wrap,_free_r", "-Wl,--wrap,_realloc_r", "-Wl,--wrap,_memalign_r",
-               "-Wl,--wrap,_calloc_r", "-Wl,--wrap,exit", "-Wl,--wrap,atexit", "-m32", "-pthread"]
+               "-Wl,--wrap,_calloc_r", "-Wl,--wrap,exit", "-Wl,--wrap,atexit", "-m32", "-pthread", "--coverage"]
     },
     "ARM": {
         "common": ["-c", "--gnu", "-Otime", "--split_sections",

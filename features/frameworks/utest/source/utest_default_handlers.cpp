@@ -53,6 +53,8 @@ utest::v1::status_t utest::v1::verbose_test_setup_handler(const size_t number_of
     utest_printf(">>> Running %u test cases...\n", number_of_cases);
     return STATUS_CONTINUE;
 }
+extern "C"
+void __gcov_flush(void);
 
 void utest::v1::verbose_test_teardown_handler(const size_t passed, const size_t failed, const failure_t failure)
 {
@@ -64,6 +66,8 @@ void utest::v1::verbose_test_teardown_handler(const size_t passed, const size_t 
         utest_printf(" with reason '%s'\n", stringify(failure.reason));
     }
     if (failed) utest_printf(">>> TESTS FAILED!\n");
+
+    __gcov_flush();
 }
 
 void utest::v1::verbose_test_failure_handler(const failure_t failure)
