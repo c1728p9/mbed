@@ -33,7 +33,7 @@
     (__ARM_ARCH_8M_MAIN__ == 1U)) || \
     (__ARM_ARCH_7A__ == 1U)
 #define MBED_EXCLUSIVE_ACCESS      1U
-#elif (__ARM_ARCH_6M__ == 1U)
+#elif (__ARM_ARCH_6M__ == 1U) || defined(TOOLCHAIN_GCC_HOST)
 #define MBED_EXCLUSIVE_ACCESS      0U
 #else
 #error "Unknown architecture for exclusive access"

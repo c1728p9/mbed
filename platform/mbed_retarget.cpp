@@ -65,6 +65,9 @@ static SingletonPtr<PlatformMutex> _mutex;
 #   define STDOUT_FILENO    1
 #   define STDERR_FILENO    2
 
+#elif defined(TARGET_SIM)
+#   define OPEN_MAX         16
+
 #else
 #   include <sys/syslimits.h>
 #   define PREFIX(x)    x
@@ -211,6 +214,8 @@ MBED_WEAK FileHandle* mbed::mbed_override_console(int fd)
     return NULL;
 }
 
+#if !defined(TARGET_SIM)
+
 static FileHandle* default_console()
 {
 #if DEVICE_SERIAL
@@ -299,6 +304,8 @@ static inline int openflags_to_posix(int openflags) {
     return posix;
 }
 
+#endif /* !defined(TARGET_SIM) */
+
 static int reserve_filehandle() {
     // find the first empty slot in filehandles, after the slots reserved for stdin/stdout/stderr
     filehandle_mutex->lock();
@@ -380,6 +387,8 @@ std::FILE *fdopen(FileHandle *fh, const char *mode)
     return stream;
 }
 }
+
+#if !defined(TARGET_SIM)
 
 /* @brief 	standard c library fopen() retargeting function.
  *
@@ -1124,6 +1133,8 @@ extern "C" void exit(int return_code) {
 } //namespace std
 #endif
 
+#endif /* #if !defined(TARGET_SIM) */
+
 #if defined(TOOLCHAIN_ARM) || defined(TOOLCHAIN_GCC)
 
 // This series of function disable the registration of global destructors
@@ -1275,7 +1286,7 @@ extern "C" void __env_unlock( struct _reent *_r )
 
 #endif
 
-#if defined (__GNUC__) || defined(__CC_ARM) || (defined (__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050))
+#if (defined (__GNUC__) || defined(__CC_ARM) || (defined (__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050))) && !defined(TARGET_SIM)
 
 #define CXA_GUARD_INIT_DONE             (1 << 0)
 #define CXA_GUARD_INIT_IN_PROGRESS      (1 << 1)
