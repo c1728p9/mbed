@@ -310,6 +310,7 @@ LEGACY_TOOLCHAIN_NAMES = {
     'GCC_ARM': 'GCC_ARM', 'GCC_CR': 'GCC_CR',
     'IAR': 'IAR',
     'ARMC6': 'ARMC6',
+    'GCC_HOST': 'GCC_HOST',
 }
 
 
@@ -1597,17 +1598,20 @@ class mbedToolchain:
         return to_ret
 
 from tools.settings import ARM_PATH, ARMC6_PATH, GCC_ARM_PATH, IAR_PATH
+from tools.settings import GCC_HOST_PATH
 
 TOOLCHAIN_PATHS = {
     'ARM': ARM_PATH,
     'uARM': ARM_PATH,
     'ARMC6': ARMC6_PATH,
     'GCC_ARM': GCC_ARM_PATH,
+    'GCC_HOST': GCC_HOST_PATH,
     'IAR': IAR_PATH
 }
 
 from tools.toolchains.arm import ARM_STD, ARM_MICRO, ARMC6
 from tools.toolchains.gcc import GCC_ARM
+from tools.toolchains.gcc_host import GCC_HOST
 from tools.toolchains.iar import IAR
 
 TOOLCHAIN_CLASSES = {
@@ -1615,6 +1619,7 @@ TOOLCHAIN_CLASSES = {
     u'uARM': ARM_MICRO,
     u'ARMC6': ARMC6,
     u'GCC_ARM': GCC_ARM,
+    u'GCC_HOST': GCC_HOST,
     u'IAR': IAR
 }
 
