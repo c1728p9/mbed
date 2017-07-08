@@ -30,11 +30,12 @@
 /* We can get the following standard types from sys/types for gcc, but we
  * need to define the types ourselves for the other compilers that normally
  * target embedded systems */
+typedef unsigned int  nfds_t;   ///< Number of file descriptors
+#if !defined(__linux__)
 typedef signed   int  ssize_t;  ///< Signed size type, usually encodes negative errors
 typedef signed   long off_t;    ///< Offset in a data stream
-typedef unsigned int  nfds_t;   ///< Number of file descriptors
 typedef unsigned long long fsblkcnt_t;  ///< Count of file system blocks
-#if defined(__ARMCC_VERSION) || !defined(__GNUC__)
+#if defined(__ARMCC_VERSION) || defined(TARGET_SIM) || !defined(__GNUC__)
 typedef unsigned int  mode_t;   ///< Mode for opening files
 typedef unsigned int  dev_t;    ///< Device ID type
 typedef unsigned long ino_t;    ///< File serial number
@@ -42,6 +43,7 @@ typedef unsigned int  nlink_t;  ///< Number of links to a file
 typedef unsigned int  uid_t;    ///< User ID
 typedef unsigned int  gid_t;    ///< Group ID
 #endif
+#endif /* !defined(linux) */
 
 #define O_RDONLY 0      ///< Open for reading
 #define O_WRONLY 1      ///< Open for writing
