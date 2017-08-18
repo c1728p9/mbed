@@ -892,12 +892,12 @@ extern "C" WEAK void __rtos_env_unlock( struct _reent *_r ) {}
 
 extern "C" void __malloc_lock( struct _reent *_r )
 {
-    __rtos_malloc_lock(_r);
+//    __rtos_malloc_lock(_r);
 }
 
 extern "C" void __malloc_unlock( struct _reent *_r )
 {
-    __rtos_malloc_unlock(_r);
+//    __rtos_malloc_unlock(_r);
 }
 
 extern "C" void __env_lock( struct _reent *_r )
