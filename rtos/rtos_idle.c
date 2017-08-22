@@ -31,9 +31,51 @@
 
 static ticker_event_t idle_loop_event;
 
+
+static uint32_t start_time;
+
+/// Setup System Timer.
+int32_t osRtxSysTimerSetup (void) {
+    const ticker_data_t *lp_ticker_data = get_lp_ticker_data();
+
+    start_time = lp_ticker_read();
+    ticker_set_handler(lp_ticker_data, &idle_loop_handler);
+    ticker_insert_event_us(lp_ticker_data, &idle_loop_event, start_time + 1000, (uint32_t)&idle_loop_event);
+    return 0;                  // Return IRQ number of SysTick
+}
+
+/// Enable System Timer.
+void osRtxSysTimerEnable (void) {
+    // TODO - fire interrupt on next tick
+}
+
+/// Disable System Timer.
+void osRtxSysTimerDisable (void) {
+    ticker_remove_event(get_lp_ticker_data(), &idle_loop_event);
+}
+
+/// Acknowledge System Timer IRQ.
+void osRtxSysTimerAckIRQ (void) {
+    // No special handling needed
+}
+
+/// Get System Timer count.
+uint32_t osRtxSysTimerGetCount (void) {
+    //TODO
+    return 0;
+}
+
+/// Get System Timer frequency.
+uint32_t osRtxSysTimerGetFreq (void) {
+  return osRtxInfo.kernel.sys_freq;
+}
+
+
+
 void idle_loop_handler(uint32_t id)
 {
     (void)id;
+    //TODO - send Systick to pending
 }
 
 static void default_idle_hook(void)
