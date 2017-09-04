@@ -24,6 +24,7 @@
  */
 
 #include "rtx_lib.h"
+#include "serial_api.h"
 
 
 //  ==== Helper functions ====
@@ -116,12 +117,16 @@ static void *isr_queue_get (void) {
 
 //  ==== Library Functions ====
 
+extern serial_t serial_out;
+
+
 /// Tick Handler.
 void osRtxTick_Handler (void) {
   os_thread_t *thread;
 
   osRtxSysTimerAckIRQ();
   osRtxInfo.kernel.tick++;
+  serial_putc(&serial_out, osRtxInfo.kernel.tick & 0xFF);
 
   // Process Timers
   if (osRtxInfo.timer.tick != NULL) {

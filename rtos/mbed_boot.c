@@ -168,6 +168,7 @@
 #include "cmsis_os2.h"
 #include "mbed_toolchain.h"
 #include "mbed_error.h"
+#include "serial_api.h"
 
 /* Heap limits - only used if set */
 extern unsigned char *mbed_heap_start;
@@ -310,8 +311,11 @@ void mbed_sdk_init(void);
 WEAK void mbed_sdk_init(void) {
 }
 
+serial_t serial_out;
 void mbed_start_main(void)
 {
+    serial_init(&serial_out, PTC17, NC);
+    serial_baud(&serial_out, 115200);
     _main_thread_attr.stack_mem = _main_stack;
     _main_thread_attr.stack_size = sizeof(_main_stack);
     _main_thread_attr.cb_size = sizeof(_main_obj);
