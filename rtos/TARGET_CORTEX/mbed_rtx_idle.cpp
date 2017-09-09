@@ -32,8 +32,13 @@
 extern "C" {
 #include "rtx_lib.h"
 }
+#include "DigitalOut.h"
 
 using namespace mbed;
+
+#define US_IN_TICK      (1000000 / OS_TICK_FREQ)
+MBED_STATIC_ASSERT(1000000 == US_IN_TICK * OS_TICK_FREQ, "OS_TICK_FREQ must "\
+    " be a divisor of 1000000 for correct tick calculations");
 
 #ifdef MBED_TICKLESS
 
@@ -48,8 +53,8 @@ extern "C" IRQn_Type mbed_get_m0_tick_irqn(void);
 
 class RtosTimer : private TimerEvent {
 public:
-    RtosTimer(): TimerEvent(get_lp_ticker_data()), _start_time(0), _tick(0) {
-        _start_time = ticker_read_us(_ticker_data);
+    RtosTimer(): TimerEvent(get_lp_ticker_data()), _time(0), _tick(0) {
+        _time = ticker_read_us(_ticker_data);
 #if (defined(NO_SYSTICK))
         NVIC_SetVector(mbed_get_m0_tick_irqn(), (uint32_t)SysTick_Handler);
         NVIC_SetPriority(mbed_get_m0_tick_irqn(), 0xFF); /* RTOS requires lowest priority */
@@ -68,7 +73,13 @@ public:
      * @param delta Tick to fire at relative to current tick
      */
     void schedule_tick(uint32_t delta=1) {
-        insert_absolute(_start_time + (_tick + delta) * 1000000 /  OS_TICK_FREQ);
+        if (out1 != NULL) {
+            *out1 = 1;
+        }
+        insert_absolute(_time + delta * US_IN_TICK);
+        if (out1 != NULL) {
+            *out1 = 0;
+        }
     }
 
 
@@ -85,7 +96,7 @@ public:
      * @return The number of ticks since boot. This should match RTX's tick count
      */
     uint32_t get_tick() {
-        return _tick & 0xFFFFFFFF;
+        return _tick;
     }
 
     /**
@@ -94,16 +105,35 @@ public:
      * @return The number of ticks incremented
      */
     uint32_t update_tick() {
-        uint64_t new_tick = ticker_read_us(_ticker_data) * OS_TICK_FREQ / 1000000;
-        if (new_tick > _tick) {
+        uint32_t elapsed_ticks = 0;
+        us_timestamp_t new_time = ticker_read_us(_ticker_data);
+        timestamp_t elpased_time = new_time - _time;
+
+        if (elpased_time >= US_IN_TICK) {
+            elpased_time -= US_IN_TICK;
+            elapsed_ticks += 1;
+
+            if (elpased_time >= US_IN_TICK) {
+                const uint32_t new_ticks = elpased_time / US_IN_TICK;
+                elapsed_ticks += new_ticks;
+                _remainder += elpased_time - new_ticks * US_IN_TICK;
+            }
+        }
+
+        if (_remainder >= US_IN_TICK) {
+            _remainder -= US_IN_TICK;
+            elapsed_ticks += 1;
+        }
+
+        if (elapsed_ticks > 0) {
             // Don't update to the current tick. Instead, update to the
             // previous tick and let the SysTick handler increment it
             // to the current value. This allows scheduling restart
             // successfully after the OS is resumed.
-            new_tick--;
+            elapsed_ticks--;
         }
-        uint32_t elapsed_ticks = new_tick - _tick;
-        _tick = new_tick;
+        _time += elapsed_ticks * US_IN_TICK;
+        _tick += elapsed_ticks;
         return elapsed_ticks;
     }
 
@@ -129,10 +159,12 @@ protected:
         SCB->ICSR = SCB_ICSR_PENDSTSET_Msk;
 #endif
         _tick++;
+        _time += US_IN_TICK;
     }
 
-    us_timestamp_t _start_time;
-    uint64_t _tick;
+    timestamp_t _remainder;
+    us_timestamp_t _time;
+    uint32_t _tick;
 };
 
 static RtosTimer *os_timer;
