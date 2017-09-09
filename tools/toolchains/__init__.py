@@ -34,7 +34,6 @@ from multiprocessing import Pool, cpu_count
 from tools.utils import run_cmd, mkdir, rel_path, ToolException, NotSupportedException, split_path, compile_worker
 from tools.settings import MBED_ORG_USER
 import tools.hooks as hooks
-from tools.memap import MemapParser
 from hashlib import md5
 import fnmatch
 
@@ -1128,7 +1127,7 @@ class mbedToolchain:
             self.binary(r, elf, bin)
 
         # Initialize memap and process map file. This doesn't generate output.
-        self.mem_stats(map)
+#        self.mem_stats(map)
 
         self.var("compile_succeded", True)
         self.var("binary", filename)
@@ -1197,16 +1196,16 @@ class mbedToolchain:
         """
         toolchain = self.__class__.__name__
 
-        # Create memap object
-        memap = MemapParser()
-
-        # Parse and decode a map file
-        if memap.parse(abspath(map), toolchain) is False:
-            self.info("Unknown toolchain for memory statistics %s" % toolchain)
-            return None
-
-        # Store the memap instance for later use
-        self.memap_instance = memap
+#        # Create memap object
+#        memap = MemapParser()
+#
+#        # Parse and decode a map file
+#        if memap.parse(abspath(map), toolchain) is False:
+#            self.info("Unknown toolchain for memory statistics %s" % toolchain)
+#            return None
+#
+#        # Store the memap instance for later use
+#        self.memap_instance = memap
 
         # Note: memory statistics are not returned.
         # Need call to generate_output later (depends on depth & output format)
