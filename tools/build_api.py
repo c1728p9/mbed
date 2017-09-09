@@ -550,31 +550,31 @@ def build_project(src_paths, build_path, target, toolchain_name,
         else:
             res, _ = toolchain.link_program(resources, build_path, name)
 
-        memap_instance = getattr(toolchain, 'memap_instance', None)
-        memap_table = ''
-        if memap_instance:
-            # Write output to stdout in text (pretty table) format
-            memap_table = memap_instance.generate_output('table', stats_depth)
-
-            if not silent:
-                print memap_table
-
-            # Write output to file in JSON format
-            map_out = join(build_path, name + "_map.json")
-            memap_instance.generate_output('json', stats_depth, map_out)
-
-            # Write output to file in CSV format for the CI
-            map_csv = join(build_path, name + "_map.csv")
-            memap_instance.generate_output('csv-ci', stats_depth, map_csv)
+#        memap_instance = getattr(toolchain, 'memap_instance', None)
+#        memap_table = ''
+#        if memap_instance:
+#            # Write output to stdout in text (pretty table) format
+#            memap_table = memap_instance.generate_output('table', stats_depth)
+#
+#            if not silent:
+#                print memap_table
+#
+#            # Write output to file in JSON format
+#            map_out = join(build_path, name + "_map.json")
+#            memap_instance.generate_output('json', stats_depth, map_out)
+#
+#            # Write output to file in CSV format for the CI
+#            map_csv = join(build_path, name + "_map.csv")
+#            memap_instance.generate_output('csv-ci', stats_depth, map_csv)
 
         resources.detect_duplicates(toolchain)
 
         if report != None:
             end = time()
             cur_result["elapsed_time"] = end - start
-            cur_result["output"] = toolchain.get_output() + memap_table
+            cur_result["output"] = toolchain.get_output()# + memap_table
             cur_result["result"] = "OK"
-            cur_result["memory_usage"] = memap_instance.mem_report
+            cur_result["memory_usage"] = "No Report"#memap_instance.mem_report
             cur_result["bin"] = res
             cur_result["elf"] = splitext(res)[0] + ".elf"
             cur_result.update(toolchain.report)
@@ -1322,43 +1322,44 @@ def print_build_memory_usage(report):
     Positional arguments:
     report - Report generated during build procedure.
     """
-    from prettytable import PrettyTable
-    columns_text = ['name', 'target', 'toolchain']
-    columns_int = ['static_ram', 'total_flash']
-    table = PrettyTable(columns_text + columns_int)
-
-    for col in columns_text:
-        table.align[col] = 'l'
-
-    for col in columns_int:
-        table.align[col] = 'r'
-
-    for target in report:
-        for toolchain in report[target]:
-            for name in report[target][toolchain]:
-                for dlist in report[target][toolchain][name]:
-                    for dlistelem in dlist:
-                        # Get 'memory_usage' record and build table with
-                        # statistics
-                        record = dlist[dlistelem]
-                        if 'memory_usage' in record and record['memory_usage']:
-                            # Note that summary should be in the last record of
-                            # 'memory_usage' section. This is why we are
-                            # grabbing last "[-1]" record.
-                            row = [
-                                record['description'],
-                                record['target_name'],
-                                record['toolchain_name'],
-                                record['memory_usage'][-1]['summary'][
-                                    'static_ram'],
-                                record['memory_usage'][-1]['summary'][
-                                    'total_flash'],
-                            ]
-                            table.add_row(row)
-
-    result = "Memory map breakdown for built projects (values in Bytes):\n"
-    result += table.get_string(sortby='name')
-    return result
+#    from prettytable import PrettyTable
+#    columns_text = ['name', 'target', 'toolchain']
+#    columns_int = ['static_ram', 'total_flash']
+#    table = PrettyTable(columns_text + columns_int)
+#
+#    for col in columns_text:
+#        table.align[col] = 'l'
+#
+#    for col in columns_int:
+#        table.align[col] = 'r'
+#
+#    for target in report:
+#        for toolchain in report[target]:
+#            for name in report[target][toolchain]:
+#                for dlist in report[target][toolchain][name]:
+#                    for dlistelem in dlist:
+#                        # Get 'memory_usage' record and build table with
+#                        # statistics
+#                        record = dlist[dlistelem]
+#                        if 'memory_usage' in record and record['memory_usage']:
+#                            # Note that summary should be in the last record of
+#                            # 'memory_usage' section. This is why we are
+#                            # grabbing last "[-1]" record.
+#                            row = [
+#                                record['description'],
+#                                record['target_name'],
+#                                record['toolchain_name'],
+#                                record['memory_usage'][-1]['summary'][
+#                                    'static_ram'],
+#                                record['memory_usage'][-1]['summary'][
+#                                    'total_flash'],
+#                            ]
+#                            table.add_row(row)
+#
+#    result = "Memory map breakdown for built projects (values in Bytes):\n"
+#    result += table.get_string(sortby='name')
+#    return result
+    return "Missing"
 
 def write_build_report(build_report, template_filename, filename):
     """Write a build report to disk using a template file

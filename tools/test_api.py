@@ -48,7 +48,6 @@ from tools.paths import HOST_TESTS
 from tools.utils import ToolException
 from tools.utils import NotSupportedException
 from tools.utils import construct_enum
-from tools.memap import MemapParser
 from tools.targets import TARGET_MAP
 from tools.test_db import BaseDBAccess
 from tools.build_api import build_project, build_mbed_libs, build_lib
