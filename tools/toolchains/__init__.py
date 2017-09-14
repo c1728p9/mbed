@@ -1219,9 +1219,9 @@ class mbedToolchain:
         memap = MemapParser()
 
         # Parse and decode a map file
-        if memap.parse(abspath(map), toolchain) is False:
-            self.info("Unknown toolchain for memory statistics %s" % toolchain)
-            return None
+#        if memap.parse(abspath(map), toolchain) is False:
+#            self.info("Unknown toolchain for memory statistics %s" % toolchain)
+#            return None
 
         # Store the memap instance for later use
         self.memap_instance = memap
