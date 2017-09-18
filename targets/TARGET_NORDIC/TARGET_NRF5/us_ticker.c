@@ -141,8 +141,13 @@ void common_rtc_init(void)
 
 uint32_t common_rtc_24bit_ticks_get(void)
 {
-    // TODO - potentially account for glitches
-    return  nrf_rtc_counter_get(COMMON_RTC_INSTANCE);
+    uint32_t val = nrf_rtc_counter_get(COMMON_RTC_INSTANCE);
+    uint32_t val_prev = nrf_rtc_counter_get(COMMON_RTC_INSTANCE);
+    while (val != val_prev) {
+        val_prev = val;
+        val = nrf_rtc_counter_get(COMMON_RTC_INSTANCE);
+    }
+    return  val;
 }
 
 void common_rtc_set_interrupt(uint32_t timestamp, uint32_t cc_channel,
