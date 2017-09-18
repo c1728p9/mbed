@@ -129,7 +129,7 @@ static void update_present_time(const ticker_data_t *const ticker)
     queue->tick_last_read = ticker_time;
 
     uint64_t us_x_ticks = new_ticks * 1000000;
-    uint64_t new_us = us_x_ticks / queue->frequency;
+    uint64_t new_us = us_x_ticks >> 15;
 
     // Update remainder
     queue->tick_remainder += us_x_ticks - new_us * queue->frequency;
@@ -153,12 +153,13 @@ static timestamp_t compute_tick(const ticker_data_t *const ticker, us_timestamp_
     timestamp_t delta = ticker->queue->max_delta;
     if (delta_us <=  ticker->queue->max_delta_us) {
         // Checking max_delta_us ensures the operation will not overflow
-        delta = delta_us * queue->frequency / 1000000;
+        delta = ((delta_us * queue->frequency) * 1125899907) >> 50;
         if (delta > ticker->queue->max_delta) {
             delta = ticker->queue->max_delta;
         }
     }
-    return (queue->tick_last_read + delta) & queue->bitmask;
+    uint32_t val = (queue->tick_last_read + delta) & queue->bitmask;
+    return val;
 }
 
 /**
