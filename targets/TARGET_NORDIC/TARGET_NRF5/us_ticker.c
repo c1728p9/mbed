@@ -53,27 +53,9 @@
 #include "app_util_platform.h"
 
 bool              m_common_rtc_enabled = false;
-uint32_t volatile m_common_rtc_overflows = 0;
 
-__STATIC_INLINE void rtc_ovf_event_check(void)
-{
-    if (nrf_rtc_event_pending(COMMON_RTC_INSTANCE, NRF_RTC_EVENT_OVERFLOW)) {
-        nrf_rtc_event_clear(COMMON_RTC_INSTANCE, NRF_RTC_EVENT_OVERFLOW);
-        // Don't disable this event. It shall occur periodically.
-
-        ++m_common_rtc_overflows;
-    }
-}
-
-#if defined(TARGET_MCU_NRF51822)
-void common_rtc_irq_handler(void)
-#else
 void COMMON_RTC_IRQ_HANDLER(void)
-#endif
 {
-
-    rtc_ovf_event_check();
-
     if (nrf_rtc_event_pending(COMMON_RTC_INSTANCE, US_TICKER_EVENT)) {
         us_ticker_irq_handler();
     }
@@ -123,9 +105,6 @@ void common_rtc_init(void)
     nrf_rtc_prescaler_set(COMMON_RTC_INSTANCE, 0);
 
     nrf_rtc_event_clear(COMMON_RTC_INSTANCE, US_TICKER_EVENT);
-#if defined(TARGET_MCU_NRF51822)
-    nrf_rtc_event_clear(COMMON_RTC_INSTANCE, OS_TICK_EVENT);
-#endif
 #if DEVICE_LOWPOWERTIMER
     nrf_rtc_event_clear(COMMON_RTC_INSTANCE, LP_TICKER_EVENT);
 #endif
@@ -138,17 +117,10 @@ void common_rtc_init(void)
 #if DEVICE_LOWPOWERTIMER
         LP_TICKER_INT_MASK |
 #endif
-        US_TICKER_INT_MASK |
-        NRF_RTC_INT_OVERFLOW_MASK);
+        US_TICKER_INT_MASK);
 
-    // This event is enabled permanently, since overflow indications are needed
-    // continuously.
-    nrf_rtc_event_enable(COMMON_RTC_INSTANCE, NRF_RTC_INT_OVERFLOW_MASK);
     // All other relevant events are initially disabled.
     nrf_rtc_event_disable(COMMON_RTC_INSTANCE,
-#if defined(TARGET_MCU_NRF51822)
-        OS_TICK_INT_MASK |
-#endif
 #if DEVICE_LOWPOWERTIMER
         LP_TICKER_INT_MASK |
 #endif
@@ -167,82 +139,24 @@ void common_rtc_init(void)
     m_common_rtc_enabled = true;
 }
 
-__STATIC_INLINE void rtc_ovf_event_safe_check(void)
+uint32_t common_rtc_24bit_ticks_get(void)
 {
-    core_util_critical_section_enter();
-
-    rtc_ovf_event_check();
-
-    core_util_critical_section_exit();
+    // TODO - potentially account for glitches
+    return  nrf_rtc_counter_get(COMMON_RTC_INSTANCE);
 }
 
-
-uint32_t common_rtc_32bit_ticks_get(void)
-{
-    uint32_t ticks;
-    uint32_t prev_overflows;
-
-    do {
-        prev_overflows = m_common_rtc_overflows;
-
-        ticks = nrf_rtc_counter_get(COMMON_RTC_INSTANCE);
-        // The counter used for time measurements is less than 32 bit wide,
-        // so its value is complemented with the number of registered overflows
-        // of the counter.
-        ticks += (m_common_rtc_overflows << RTC_COUNTER_BITS);
-
-        // Check in case that OVF occurred during execution of a RTC handler (apply if call was from RTC handler)
-        // m_common_rtc_overflows might been updated in this call.
-        rtc_ovf_event_safe_check();
-
-        // If call was made from a low priority level m_common_rtc_overflows might have been updated in RTC handler.
-    } while (m_common_rtc_overflows != prev_overflows);
-
-    return ticks;
-}
-
-uint64_t common_rtc_64bit_us_get(void)
-{
-    uint32_t ticks = common_rtc_32bit_ticks_get();
-    // [ticks -> microseconds]
-    return ROUNDED_DIV(((uint64_t)ticks) * 1000000, RTC_INPUT_FREQ);
-}
-
-void common_rtc_set_interrupt(uint32_t us_timestamp, uint32_t cc_channel,
+void common_rtc_set_interrupt(uint32_t timestamp, uint32_t cc_channel,
                               uint32_t int_mask)
 {
-    // The internal counter is clocked with a frequency that cannot be easily
-    // multiplied to 1 MHz, therefore besides the translation of values
-    // (microsecond <-> ticks) a special care of overflows handling must be
-    // taken. Here the 32-bit timestamp value is complemented with information
-    // about current the system up time of (ticks + number of overflows of tick
-    // counter on upper bits, converted to microseconds), and such 64-bit value
-    // is then translated to counter ticks. Finally, the lower 24 bits of thus
-    // calculated value is written to the counter compare register to prepare
-    // the interrupt generation.
-    uint64_t current_time64 = common_rtc_64bit_us_get();
-    // [add upper 32 bits from the current time to the timestamp value]
-    uint64_t timestamp64 = us_timestamp +
-        (current_time64 & ~(uint64_t)0xFFFFFFFF);
-    // [if the original timestamp value happens to be after the 32 bit counter
-    //  of microsends overflows, correct the upper 32 bits accordingly]
-    if (us_timestamp < (uint32_t)(current_time64 & 0xFFFFFFFF)) {
-        timestamp64 += ((uint64_t)1 << 32);
-    }
-    // [microseconds -> ticks, always round the result up to avoid too early
-    //  interrupt generation]
-    uint32_t compare_value =
-        (uint32_t)CEIL_DIV((timestamp64) * RTC_INPUT_FREQ, 1000000);
-
-
     core_util_critical_section_enter();
     // The COMPARE event occurs when the value in compare register is N and
     // the counter value changes from N-1 to N. Therefore, the minimal safe
     // difference between the compare value to be set and the current counter
     // value is 2 ticks. This guarantees that the compare trigger is properly
     // setup before the compare condition occurs.
-    uint32_t closest_safe_compare = common_rtc_32bit_ticks_get() + 2;
-    if ((int)(compare_value - closest_safe_compare) <= 0) {
+    uint32_t closest_safe_compare = RTC_WRAP((common_rtc_24bit_ticks_get() + 2));
+    uint32_t compare_value = timestamp;
+    if ((int)(timestamp - closest_safe_compare) <= 0) {
         compare_value = closest_safe_compare;
     }
 
@@ -262,7 +176,7 @@ void us_ticker_init(void)
 uint32_t us_ticker_read()
 {
     us_ticker_init();
-    return (uint32_t)common_rtc_64bit_us_get();
+    return common_rtc_24bit_ticks_get();
 }
 
 void us_ticker_set_interrupt(timestamp_t timestamp)
@@ -273,7 +187,7 @@ void us_ticker_set_interrupt(timestamp_t timestamp)
 
 void us_ticker_fire_interrupt(void)
 {
-    uint32_t closest_safe_compare = common_rtc_32bit_ticks_get() + 2;
+    uint32_t closest_safe_compare = common_rtc_24bit_ticks_get() + 2;
 
     nrf_rtc_cc_set(COMMON_RTC_INSTANCE, US_TICKER_CC_CHANNEL, RTC_WRAP(closest_safe_compare));
     nrf_rtc_event_enable(COMMON_RTC_INSTANCE, US_TICKER_INT_MASK);
@@ -289,6 +203,15 @@ void us_ticker_clear_interrupt(void)
     nrf_rtc_event_clear(COMMON_RTC_INSTANCE, US_TICKER_EVENT);
 }
 
+const ticker_info_t* us_ticker_get_info(void)
+{
+    static const ticker_info_t info = {
+        32768,
+        RTC_COUNTER_BITS
+    };
+    return &info;
+}
+
 
 // Since there is no SysTick on NRF51, the RTC1 channel 1 is used as an
 // alternative source of RTOS ticks.
@@ -296,26 +219,9 @@ void us_ticker_clear_interrupt(void)
 
 #include "mbed_toolchain.h"
 
-
-#define MAX_RTC_COUNTER_VAL     ((1uL << RTC_COUNTER_BITS) - 1)
-
-#ifndef RTC1_CONFIG_FREQUENCY
-    #define RTC1_CONFIG_FREQUENCY    32678 // [Hz]
-#endif
-
-
-
-void COMMON_RTC_IRQ_HANDLER(void)
-{
-    if(!nrf_rtc_event_pending(COMMON_RTC_INSTANCE, OS_TICK_EVENT)) {
-        common_rtc_irq_handler();
-    }
-}
-
 IRQn_Type mbed_get_m0_tick_irqn()
 {
     return SWI3_IRQn;
 }
-
 
 #endif // defined(TARGET_MCU_NRF51822)
