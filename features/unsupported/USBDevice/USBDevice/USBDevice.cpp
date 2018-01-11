@@ -231,17 +231,17 @@ bool USBDevice::controlIn(void)
     /* Control transfer data IN stage */
     uint32_t packetSize;
 
+
+    /* Check we should be transferring data IN */
+    if (transfer.direction != DEVICE_TO_HOST)
+    {
+        return false;
+    }
+
     /* Check if transfer has completed (status stage transactions */
     /* also have transfer.remaining == 0) */
-    if (transfer.remaining == 0)
+    if ((transfer.remaining == 0) && !transfer.zlp)
     {
-        if (transfer.zlp)
-        {
-            /* Send zero length packet */
-            EP0write(NULL, 0);
-            transfer.zlp = false;
-        }
-
         /* Transfer completed */
         if (transfer.notify)
         {
@@ -249,7 +249,7 @@ bool USBDevice::controlIn(void)
             USBCallback_requestCompleted(NULL, 0);
             transfer.notify = false;
         }
-
+        /* Status stage */
         EP0read();
         EP0readStage();
 
@@ -257,10 +257,9 @@ bool USBDevice::controlIn(void)
         return true;
     }
 
-    /* Check we should be transferring data IN */
-    if (transfer.direction != DEVICE_TO_HOST)
-    {
-        return false;
+    if (transfer.remaining == 0) {
+        /* ZLP will be sent below */
+        transfer.zlp = false;
     }
 
     packetSize = transfer.remaining;
