@@ -63,6 +63,8 @@ typedef struct {
     uint16_t wLength;
 } SETUP_PACKET;
 
+typedef enum {CTRL_STAGE_SETUP, CTRL_STAGE_DATA, CTRL_STAGE_STATUS} CTRL_STAGE;
+
 typedef struct {
     SETUP_PACKET setup;
     uint8_t *ptr;
@@ -70,6 +72,7 @@ typedef struct {
     uint8_t direction;
     bool zlp;
     bool notify;
+    CTRL_STAGE stage;
 } CONTROL_TRANSFER;
 
 typedef enum {ATTACHED, POWERED, DEFAULT, ADDRESS, CONFIGURED} DEVICE_STATE;

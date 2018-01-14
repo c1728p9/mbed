@@ -216,6 +216,7 @@ bool USBDevice::controlOut(void)
             transfer.notify = false;
         }
         /* Status stage */
+        transfer.stage = CTRL_STAGE_STATUS;
         EP0write(NULL, 0);
     }
     else
@@ -250,6 +251,7 @@ bool USBDevice::controlIn(void)
             transfer.notify = false;
         }
         /* Status stage */
+        transfer.stage = CTRL_STAGE_STATUS;
         EP0read();
         EP0readStage();
 
@@ -546,6 +548,7 @@ bool USBDevice::controlSetup(void)
     transfer.direction = 0;
     transfer.zlp = false;
     transfer.notify = false;
+    transfer.stage = CTRL_STAGE_SETUP;
 
 #ifdef DEBUG
     printf("dataTransferDirection: %d\r\nType: %d\r\nRecipient: %d\r\nbRequest: %d\r\nwValue: %d\r\nwIndex: %d\r\nwLength: %d\r\n",transfer.setup.bmRequestType.dataTransferDirection,
@@ -635,17 +638,20 @@ bool USBDevice::controlSetup(void)
             }
 
             /* IN stage */
+            transfer.stage = CTRL_STAGE_DATA;
             controlIn();
         }
         else
         {
             /* OUT stage */
+            transfer.stage = CTRL_STAGE_DATA;
             EP0read();
         }
     }
     else
     {
         /* Status stage */
+        transfer.stage = CTRL_STAGE_STATUS;
         EP0write(NULL, 0);
     }
 
@@ -676,6 +682,11 @@ void USBDevice::EP0setupCallback(void)
 
 void USBDevice::EP0out(void)
 {
+    if (transfer.stage == CTRL_STAGE_STATUS) {
+        // No action needed on status stage
+        return;
+    }
+
     /* Endpoint 0 OUT data event */
     if (!controlOut())
     {
@@ -689,6 +700,11 @@ void USBDevice::EP0in(void)
 #ifdef DEBUG
     printf("EP0IN\r\n");
 #endif
+    if (transfer.stage == CTRL_STAGE_STATUS) {
+        // No action needed on status stage
+        return;
+    }
+
     /* Endpoint 0 IN data event */
     if (!controlIn())
     {
