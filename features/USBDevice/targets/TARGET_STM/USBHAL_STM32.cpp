@@ -328,4 +328,19 @@ void USBHAL::usbisr(void) {
     HAL_PCD_IRQHandler(&instance->hpcd);
 }
 
+void USBHAL::enableIrq(void)
+{
+    NVIC_EnableIRQ(USBHAL_IRQn);
+}
+
+void USBHAL::clearIrq(void)
+{
+    NVIC_ClearPendingIRQ(USBHAL_IRQn);
+}
+
+void USBHAL::disableIrq(void)
+{
+    NVIC_DisableIRQ(USBHAL_IRQn);
+}
+
 #endif

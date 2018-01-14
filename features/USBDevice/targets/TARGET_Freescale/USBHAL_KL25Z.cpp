@@ -565,5 +565,19 @@ void USBHAL::usbisr(void) {
     }
 }
 
+void USBHAL::enableIrq(void)
+{
+    NVIC_EnableIRQ(USB0_IRQn);
+}
+
+void USBHAL::clearIrq(void)
+{
+    NVIC_ClearPendingIRQ(USB0_IRQn);
+}
+
+void USBHAL::disableIrq(void)
+{
+    NVIC_DisableIRQ(USB0_IRQn);
+}
 
 #endif

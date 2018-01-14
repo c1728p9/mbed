@@ -138,7 +138,7 @@ USBHAL::USBHAL(void)
 
     // attach IRQ handler and enable interrupts
     instance = this;
-    NVIC_SetVector(USB_IRQn, &_usbisr);
+    NVIC_SetVector(USB_IRQn, (uint32_t)&_usbisr);
     NVIC_EnableIRQ(USB_IRQn);
 }
 
@@ -484,6 +484,21 @@ void USBHAL::usbisr(void)
             }
         }
     }
+}
+
+void USBHAL::enableIrq(void)
+{
+    NVIC_EnableIRQ(USB_IRQn);
+}
+
+void USBHAL::clearIrq(void)
+{
+    NVIC_ClearPendingIRQ(USB_IRQn);
+}
+
+void USBHAL::disableIrq(void)
+{
+    NVIC_DisableIRQ(USB_IRQn);
 }
 
 #endif

@@ -121,8 +121,11 @@ protected:
 #endif
 #endif
 
+    virtual void usbisr(void);
+    void enableIrq(void);
+    void clearIrq(void);
+    void disableIrq(void);
 private:
-    void usbisr(void);
     static void _usbisr(void);
     static USBHAL * instance;
 
