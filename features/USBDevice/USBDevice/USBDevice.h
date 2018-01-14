@@ -22,6 +22,7 @@
 #include "mbed.h"
 #include "USBDevice_Types.h"
 #include "USBHAL.h"
+#include "EventQueue.h"
 
 class USBDevice: public USBHAL
 {
@@ -245,6 +246,8 @@ protected:
     uint8_t deviceDescriptor[18];
 
 private:
+    virtual void usbisr(void);
+    void usbisr_thread(void);
     bool addRateFeedbackEndpoint(uint8_t endpoint, uint32_t maxPacket);
     bool requestGetDescriptor(void);
     bool controlOut(void);
@@ -266,6 +269,7 @@ private:
 
     uint16_t currentInterface;
     uint8_t currentAlternate;
+    events::EventQueue *queue;
 };
 
 

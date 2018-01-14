@@ -21,6 +21,7 @@
 #include "USBEndpoints.h"
 #include "USBDevice.h"
 #include "USBDescriptor.h"
+#include "mbed_shared_queues.h"
 
 //#define DEBUG
 
@@ -821,7 +822,7 @@ void USBDevice::suspendStateChanged(unsigned int suspended)
 }
 
 
-USBDevice::USBDevice(uint16_t vendor_id, uint16_t product_id, uint16_t product_release){
+USBDevice::USBDevice(uint16_t vendor_id, uint16_t product_id, uint16_t product_release): queue(mbed_highprio_event_queue()) {
     VENDOR_ID = vendor_id;
     PRODUCT_ID = product_id;
     PRODUCT_RELEASE = product_release;
@@ -1008,4 +1009,16 @@ const uint8_t * USBDevice::stringIproductDesc() {
         'U',0,'S',0,'B',0,' ',0,'D',0,'E',0,'V',0,'I',0,'C',0,'E',0 /*bString iProduct - USB DEVICE*/
     };
     return stringIproductDescriptor;
+}
+
+void USBDevice::usbisr() {
+    disableIrq();
+    queue->call(this, &USBDevice::usbisr_thread);
+
+}
+
+void USBDevice::usbisr_thread() {
+    USBHAL::usbisr();
+    clearIrq();
+    enableIrq();
 }
