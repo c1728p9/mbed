@@ -239,8 +239,34 @@ bool USBDevice::controlIn(void)
         return false;
     }
 
-    /* Check if transfer has completed (status stage transactions */
-    /* also have transfer.remaining == 0) */
+    if ((transfer.remaining == 0) && transfer.zlp) {
+        /* ZLP will be sent below */
+        transfer.zlp = false;
+    }
+
+    packetSize = transfer.remaining;
+
+    if (packetSize > MAX_PACKET_SIZE_EP0)
+    {
+        packetSize = MAX_PACKET_SIZE_EP0;
+    }
+
+    /* Write to endpoint */
+    EP0write(transfer.ptr, packetSize);
+
+    /* Update transfer */
+    transfer.ptr += packetSize;
+    transfer.remaining -= packetSize;
+
+    /* Send status if all the data has been sent
+     * NOTE - Start the status stage immediately
+     * after writing the last packet. Do not wait
+     * for the next IN event, as this can be dropped
+     * if the ACK by the host is corrupted.
+     *
+     * For more info on this see section
+     * 8.5.3.2 of the USB2.0 specification.
+     */
     if ((transfer.remaining == 0) && !transfer.zlp)
     {
         /* Transfer completed */
@@ -259,24 +285,6 @@ bool USBDevice::controlIn(void)
         return true;
     }
 
-    if (transfer.remaining == 0) {
-        /* ZLP will be sent below */
-        transfer.zlp = false;
-    }
-
-    packetSize = transfer.remaining;
-
-    if (packetSize > MAX_PACKET_SIZE_EP0)
-    {
-        packetSize = MAX_PACKET_SIZE_EP0;
-    }
-
-    /* Write to endpoint */
-    EP0write(transfer.ptr, packetSize);
-
-    /* Update transfer */
-    transfer.ptr += packetSize;
-    transfer.remaining -= packetSize;
 
     return true;
 }
