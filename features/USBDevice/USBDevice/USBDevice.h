@@ -57,6 +57,8 @@ public:
     */
     bool addEndpoint(uint8_t endpoint, uint32_t maxPacket);
 
+    bool removeEndpoint(uint8_t endpoint);
+
     /*
     * Start a reading on a certain endpoint.
     * You can access the result of the reading by USBDevice_read

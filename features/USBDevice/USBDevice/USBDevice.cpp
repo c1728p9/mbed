@@ -760,6 +760,11 @@ bool USBDevice::addEndpoint(uint8_t endpoint, uint32_t maxPacket)
     return realiseEndpoint(endpoint, maxPacket, 0);
 }
 
+bool USBDevice::removeEndpoint(uint8_t endpoint)
+{
+    return unrealiseEndpoint(endpoint);
+}
+
 bool USBDevice::addRateFeedbackEndpoint(uint8_t endpoint, uint32_t maxPacket)
 {
     /* For interrupt endpoints only */

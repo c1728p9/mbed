@@ -509,6 +509,20 @@ bool USBHAL::realiseEndpoint(uint8_t endpoint, uint32_t maxPacket, uint32_t flag
     return true;
 }
 
+bool USBHAL::unrealiseEndpoint(uint8_t endpoint) {
+    // Unrealise an endpoint
+
+    disableEndpointEvent(endpoint);
+
+    LPC_USB->USBDevIntClr = EP_RLZED;
+    LPC_USB->USBReEp &= ~EP(endpoint);
+
+    while (!(LPC_USB->USBDevIntSt & EP_RLZED));
+    LPC_USB->USBDevIntClr = EP_RLZED;
+
+    return true;
+}
+
 void USBHAL::stallEndpoint(uint8_t endpoint) {
     // Stall an endpoint
     if ( (endpoint==EP0IN) || (endpoint==EP0OUT) ) {

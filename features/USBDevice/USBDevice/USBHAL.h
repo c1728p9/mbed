@@ -56,6 +56,7 @@ public:
     void stallEndpoint(uint8_t endpoint);
     void unstallEndpoint(uint8_t endpoint);
     bool realiseEndpoint(uint8_t endpoint, uint32_t maxPacket, uint32_t options);
+    bool unrealiseEndpoint(uint8_t endpoint);
     bool getEndpointStallState(unsigned char endpoint);
     uint32_t endpointReadcore(uint8_t endpoint, uint8_t *buffer);
 
