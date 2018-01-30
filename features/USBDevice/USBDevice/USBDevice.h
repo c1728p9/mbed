@@ -21,13 +21,18 @@
 
 #include "mbed.h"
 #include "USBDevice_Types.h"
-#include "USBHAL.h"
+#include "USBPhy.h"
 #include "EventQueue.h"
 
-class USBDevice: public USBHAL
+
+
+class USBDevice: public  USBPhyEvents
 {
 public:
+    typedef bool (USBDevice::*ep_cb_t)(void);
+
     USBDevice(uint16_t vendor_id, uint16_t product_id, uint16_t product_release);
+    USBDevice(USBPhy *phy, uint16_t vendor_id, uint16_t product_id, uint16_t product_release);
 
     /*
     * Check if the device is configured
@@ -55,9 +60,19 @@ public:
     * @param maxPacket Maximum size of a packet which can be sent for this endpoint
     * @returns true if successful, false otherwise
     */
-    bool addEndpoint(uint8_t endpoint, uint32_t maxPacket);
+    bool addEndpoint(uint8_t endpoint, uint32_t maxPacket, uint8_t type=0, ep_cb_t callback=NULL);
+
+
+    template<typename T>
+    bool addEndpoint(uint8_t endpoint, uint32_t maxPacket, uint8_t type, bool (T::*method)()) {
+        return addEndpoint(endpoint, maxPacket, type, static_cast<ep_cb_t>(method));
+    }
 
     bool removeEndpoint(uint8_t endpoint);
+
+    void stallEndpoint(uint8_t endpoint);
+
+    void unstallEndpoint(uint8_t endpoint);
 
     /*
     * Start a reading on a certain endpoint.
@@ -233,12 +248,19 @@ public:
 
 
 protected:
-    virtual void busReset(void);
-    virtual void EP0setupCallback(void);
-    virtual void EP0out(void);
-    virtual void EP0in(void);
+
+    // USBPhyEvents
     virtual void connectStateChanged(unsigned int connected);
     virtual void suspendStateChanged(unsigned int suspended);
+    virtual void SOF(int frameNumber) {};
+
+    virtual void busReset(void);
+    virtual void EP0setup(void);
+    virtual void EP0out(void);
+    virtual void EP0in(void);
+    virtual bool OUT_callback(uint8_t endpoint);
+    virtual bool IN_callback(uint8_t endpoint);
+
     uint8_t * findDescriptor(uint8_t descriptorType);
     CONTROL_TRANSFER * getTransferPtr(void);
 
@@ -247,9 +269,12 @@ protected:
     uint16_t PRODUCT_RELEASE;
     uint8_t deviceDescriptor[18];
 
+    ep_cb_t epCallback[32 - 2];
+
 private:
-    virtual void usbisr(void);
+    virtual void startProcess(void);
     void usbisr_thread(void);
+
     bool addRateFeedbackEndpoint(uint8_t endpoint, uint32_t maxPacket);
     bool requestGetDescriptor(void);
     bool controlOut(void);
@@ -266,6 +291,7 @@ private:
     bool requestGetInterface(void);
     bool requestSetInterface(void);
 
+    USBPhy *phy;
     CONTROL_TRANSFER transfer;
     USB_DEVICE device;
 

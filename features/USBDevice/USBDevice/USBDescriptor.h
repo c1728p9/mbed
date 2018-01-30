@@ -47,7 +47,7 @@
 #define MSB(n)  (((n)&0xff00)>>8)
 
 /* Convert physical endpoint number to descriptor endpoint number */
-#define PHY_TO_DESC(endpoint) (((endpoint)>>1) | (((endpoint) & 1) ? 0x80:0))
+#define PHY_TO_DESC(endpoint) (endpoint)
 
 /* bmAttributes in configuration descriptor */
 /* C_RESERVED must always be set */

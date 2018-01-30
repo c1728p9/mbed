@@ -200,8 +200,8 @@ bool USBAudio::USBCallback_setConfiguration(uint8_t configuration) {
     }
 
     // Configure isochronous endpoint
-    realiseEndpoint(EPISO_OUT, PACKET_SIZE_ISO_IN, ISOCHRONOUS);
-    realiseEndpoint(EPISO_IN, PACKET_SIZE_ISO_OUT+this->channel_nb_out*2, ISOCHRONOUS);
+    addEndpoint(EPISO_OUT, PACKET_SIZE_ISO_IN, ISOCHRONOUS);
+    addEndpoint(EPISO_IN, PACKET_SIZE_ISO_OUT+this->channel_nb_out*2, ISOCHRONOUS);
 
     // activate readings on this endpoint
     readStart(EPISO_OUT, PACKET_SIZE_ISO_IN);

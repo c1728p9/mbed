@@ -98,9 +98,9 @@ bool USBTester::USBCallback_setConfiguration(uint8_t configuration) {
 
     // Configure endpoints > 0
     addEndpoint(EPINT_IN, MAX_PACKET_SIZE_EPINT);
-    addEndpoint(EPINT_OUT, MAX_PACKET_SIZE_EPINT);
+    addEndpoint(EPINT_OUT, MAX_PACKET_SIZE_EPINT, 0, &USBTester::EPINT_OUT_callback);
     addEndpoint(EPBULK_IN, MAX_PACKET_SIZE_EPBULK);
-    addEndpoint(EPBULK_OUT, MAX_PACKET_SIZE_EPBULK);
+    addEndpoint(EPBULK_OUT, MAX_PACKET_SIZE_EPBULK, 0, &USBTester::EPBULK_OUT_callback);
 
     readStart(EPBULK_OUT, MAX_PACKET_SIZE_EPBULK);
     readStart(EPINT_OUT, MAX_PACKET_SIZE_EPINT);
@@ -115,9 +115,9 @@ bool USBTester::USBCallback_setInterface(uint16_t interface, uint8_t alternate) 
         removeEndpoint(int_in);
         removeEndpoint(int_out);
         addEndpoint(EPINT_IN, MAX_PACKET_SIZE_EPINT);
-        addEndpoint(EPINT_OUT, MAX_PACKET_SIZE_EPINT);
+        addEndpoint(EPINT_OUT, MAX_PACKET_SIZE_EPINT, 0, &USBTester::EPINT_OUT_callback);
         addEndpoint(EPBULK_IN, MAX_PACKET_SIZE_EPBULK);
-        addEndpoint(EPBULK_OUT, MAX_PACKET_SIZE_EPBULK);
+        addEndpoint(EPBULK_OUT, MAX_PACKET_SIZE_EPBULK, 0, &USBTester::EPBULK_OUT_callback);
 
         readStart(EPBULK_OUT, MAX_PACKET_SIZE_EPBULK);
         readStart(EPINT_OUT, MAX_PACKET_SIZE_EPINT);
@@ -129,9 +129,9 @@ bool USBTester::USBCallback_setInterface(uint16_t interface, uint8_t alternate) 
         removeEndpoint(int_in);
         removeEndpoint(int_out);
         addEndpoint(EPINT_IN, 8);
-        addEndpoint(EPINT_OUT, 8);
+        addEndpoint(EPINT_OUT, 8, 0, &USBTester::EPINT_OUT_callback);
         addEndpoint(EPBULK_IN, 8);
-        addEndpoint(EPBULK_OUT, 8);
+        addEndpoint(EPBULK_OUT, 8, 0, &USBTester::EPBULK_OUT_callback);
 
         readStart(EPBULK_OUT, 8);
         readStart(EPINT_OUT, 8);

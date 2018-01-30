@@ -22,6 +22,7 @@
 #include "USBDevice.h"
 #include "USBDescriptor.h"
 #include "mbed_shared_queues.h"
+#include "USBPhyHw.h"
 
 //#define DEBUG
 
@@ -37,8 +38,8 @@
 #define ENDPOINT_HALT               (0)
 
 /* Macro to convert wIndex endpoint number to physical endpoint number */
-#define WINDEX_TO_PHYSICAL(endpoint) (((endpoint & 0x0f) << 1) + \
-    ((endpoint & 0x80) ? 1 : 0))
+#define WINDEX_TO_PHYSICAL(endpoint) (endpoint)
+#define EP_TO_INDEX(endpoint)   ((((endpoint & 0xf) << 1) | (endpoint & 0x80 ? 1 : 0)) - 2)
 
 
 bool USBDevice::requestGetDescriptor(void)
@@ -193,7 +194,7 @@ bool USBDevice::controlOut(void)
     }
 
     /* Read from endpoint */
-    packetSize = EP0getReadResult(buffer);
+    packetSize = phy->EP0ReadResult(buffer);
 
     /* Check if transfer size is valid */
     if (packetSize > transfer.remaining)
@@ -218,11 +219,11 @@ bool USBDevice::controlOut(void)
         }
         /* Status stage */
         transfer.stage = CTRL_STAGE_STATUS;
-        EP0write(NULL, 0);
+        phy->EP0write(NULL, 0);
     }
     else
     {
-        EP0read();
+        phy->EP0read();
     }
 
     return true;
@@ -253,7 +254,7 @@ bool USBDevice::controlIn(void)
     }
 
     /* Write to endpoint */
-    EP0write(transfer.ptr, packetSize);
+    phy->EP0write(transfer.ptr, packetSize);
 
     /* Update transfer */
     transfer.ptr += packetSize;
@@ -279,8 +280,7 @@ bool USBDevice::controlIn(void)
         }
         /* Status stage */
         transfer.stage = CTRL_STAGE_STATUS;
-        EP0read();
-        EP0readStage();
+        phy->EP0read();
 
         /* Completed */
         return true;
@@ -293,7 +293,7 @@ bool USBDevice::controlIn(void)
 bool USBDevice::requestSetAddress(void)
 {
     /* Set the device address */
-    setAddress(transfer.setup.wValue);
+    phy->setAddress(transfer.setup.wValue);
 
     if (transfer.setup.wValue == 0)
     {
@@ -315,7 +315,7 @@ bool USBDevice::requestSetConfiguration(void)
     if (device.configuration == 0)
     {
         /* Not configured */
-        unconfigureDevice();
+        phy->unconfigureDevice();
         device.state = ADDRESS;
     }
     else
@@ -323,7 +323,7 @@ bool USBDevice::requestSetConfiguration(void)
         if (USBCallback_setConfiguration(device.configuration))
         {
             /* Valid configuration */
-            configureDevice();
+            phy->configureDevice();
             device.state = CONFIGURED;
         }
         else
@@ -395,7 +395,7 @@ bool USBDevice::requestSetFeature()
             if (transfer.setup.wValue == ENDPOINT_HALT)
             {
                 /* TODO: We should check that the endpoint number is valid */
-                stallEndpoint(
+                phy->stallEndpoint(
                     WINDEX_TO_PHYSICAL(transfer.setup.wIndex));
                 success = true;
             }
@@ -429,7 +429,7 @@ bool USBDevice::requestClearFeature()
             /* TODO: We should check that the endpoint number is valid */
             if (transfer.setup.wValue == ENDPOINT_HALT)
             {
-                unstallEndpoint( WINDEX_TO_PHYSICAL(transfer.setup.wIndex));
+                phy->unstallEndpoint( WINDEX_TO_PHYSICAL(transfer.setup.wIndex));
                 success = true;
             }
             break;
@@ -466,16 +466,17 @@ bool USBDevice::requestGetStatus(void)
             success = true;
             break;
         case ENDPOINT_RECIPIENT:
-            /* TODO: We should check that the endpoint number is valid */
-            if (getEndpointStallState(
-                WINDEX_TO_PHYSICAL(transfer.setup.wIndex)))
-            {
-                status = ENDPOINT_STATUS_HALT;
-            }
-            else
-            {
+            //TODO - need to handle this
+//            /* TODO: We should check that the endpoint number is valid */
+//            if (getEndpointStallState(
+//                WINDEX_TO_PHYSICAL(transfer.setup.wIndex)))
+//            {
+//                status = ENDPOINT_STATUS_HALT;
+//            }
+//            else
+//            {
                 status = 0;
-            }
+//            }
             success = true;
             break;
         default:
@@ -548,7 +549,7 @@ bool USBDevice::controlSetup(void)
     /* Control transfer setup stage */
     uint8_t buffer[MAX_PACKET_SIZE_EP0];
 
-    EP0setup(buffer);
+    phy->EP0setupReadResult(buffer);
 
     /* Initialise control transfer state */
     decodeSetupPacket(buffer, &transfer.setup);
@@ -654,14 +655,14 @@ bool USBDevice::controlSetup(void)
         {
             /* OUT stage */
             transfer.stage = CTRL_STAGE_DATA;
-            EP0read();
+            phy->EP0read();
         }
     }
     else
     {
         /* Status stage */
         transfer.stage = CTRL_STAGE_STATUS;
-        EP0write(NULL, 0);
+        phy->EP0write(NULL, 0);
     }
 
     return true;
@@ -677,13 +678,13 @@ void USBDevice::busReset(void)
     USBCallback_busReset();
 }
 
-void USBDevice::EP0setupCallback(void)
+void USBDevice::EP0setup(void)
 {
     /* Endpoint 0 setup event */
     if (!controlSetup())
     {
         /* Protocol stall */
-        EP0stall();
+        phy->EP0stall();
     }
 
     /* Return true if an OUT data stage is expected */
@@ -700,7 +701,7 @@ void USBDevice::EP0out(void)
     if (!controlOut())
     {
         /* Protocol stall; this will stall both endpoints */
-        EP0stall();
+        phy->EP0stall();
     }
 }
 
@@ -718,8 +719,18 @@ void USBDevice::EP0in(void)
     if (!controlIn())
     {
         /* Protocol stall; this will stall both endpoints */
-        EP0stall();
+        phy->EP0stall();
     }
+}
+
+bool USBDevice::OUT_callback(uint8_t endpoint)
+{
+    return (this->*(epCallback[EP_TO_INDEX(endpoint)]))();
+}
+
+bool USBDevice::IN_callback(uint8_t endpoint)
+{
+    return (this->*(epCallback[EP_TO_INDEX(endpoint)]))();
 }
 
 bool USBDevice::configured(void)
@@ -731,7 +742,7 @@ bool USBDevice::configured(void)
 void USBDevice::connect(bool blocking)
 {
     /* Connect device */
-    USBHAL::connect();
+    phy->connect();
 
     if (blocking) {
         /* Block if not configured */
@@ -742,7 +753,7 @@ void USBDevice::connect(bool blocking)
 void USBDevice::disconnect(void)
 {
     /* Disconnect device */
-    USBHAL::disconnect();
+    phy->disconnect();
     
     /* Set initial device state */
     device.state = POWERED;
@@ -755,20 +766,35 @@ CONTROL_TRANSFER * USBDevice::getTransferPtr(void)
     return &transfer;
 }
 
-bool USBDevice::addEndpoint(uint8_t endpoint, uint32_t maxPacket)
+bool USBDevice::addEndpoint(uint8_t endpoint, uint32_t maxPacket, uint8_t type, ep_cb_t callback)
 {
-    return realiseEndpoint(endpoint, maxPacket, 0);
+    if (phy->addEndpoint(endpoint, maxPacket, type)) {
+        epCallback[EP_TO_INDEX(endpoint)] = callback;
+        return true;
+    }
+    return false;
 }
 
 bool USBDevice::removeEndpoint(uint8_t endpoint)
 {
-    return unrealiseEndpoint(endpoint);
+    epCallback[EP_TO_INDEX(endpoint)] = NULL;
+    return phy->removeEndpoint(endpoint);
+}
+
+void USBDevice::stallEndpoint(uint8_t endpoint)
+{
+    return phy->stallEndpoint(endpoint);
+}
+
+void USBDevice::unstallEndpoint(uint8_t endpoint)
+{
+    return phy->unstallEndpoint(endpoint);
 }
 
 bool USBDevice::addRateFeedbackEndpoint(uint8_t endpoint, uint32_t maxPacket)
 {
     /* For interrupt endpoints only */
-    return realiseEndpoint(endpoint, maxPacket, RATE_FEEDBACK_MODE);
+    return phy->addEndpoint(endpoint, maxPacket, 0);
 }
 
 uint8_t * USBDevice::findDescriptor(uint8_t descriptorType)
@@ -827,21 +853,47 @@ void USBDevice::suspendStateChanged(unsigned int suspended)
 }
 
 
-USBDevice::USBDevice(uint16_t vendor_id, uint16_t product_id, uint16_t product_release): queue(mbed_highprio_event_queue()) {
+USBDevice::USBDevice(USBPhy *phy, uint16_t vendor_id, uint16_t product_id, uint16_t product_release) {
     VENDOR_ID = vendor_id;
     PRODUCT_ID = product_id;
     PRODUCT_RELEASE = product_release;
+
+    this->phy = phy;
+    currentInterface = 0;
+    currentAlternate = 0;
+    queue = mbed_highprio_event_queue();
 
     /* Set initial device state */
     device.state = POWERED;
     device.configuration = 0;
     device.suspended = false;
+
+    this->phy->init(this);
+};
+
+USBDevice::USBDevice(uint16_t vendor_id, uint16_t product_id, uint16_t product_release) {
+    static USBPhyHw hw_phy;
+    VENDOR_ID = vendor_id;
+    PRODUCT_ID = product_id;
+    PRODUCT_RELEASE = product_release;
+
+    this->phy = &hw_phy;
+    currentInterface = 0;
+    currentAlternate = 0;
+    queue = mbed_highprio_event_queue();
+
+    /* Set initial device state */
+    device.state = POWERED;
+    device.configuration = 0;
+    device.suspended = false;
+
+    this->phy->init(this);
 };
 
 
 bool USBDevice::readStart(uint8_t endpoint, uint32_t maxSize)
 {
-    return endpointRead(endpoint, maxSize) == EP_PENDING;
+    return phy->endpointRead(endpoint, maxSize) == EP_PENDING;
 }
 
 
@@ -860,7 +912,7 @@ bool USBDevice::write(uint8_t endpoint, uint8_t * buffer, uint32_t size, uint32_
     }
 
     /* Send report */
-    result = endpointWrite(endpoint, buffer, size);
+    result = phy->endpointWrite(endpoint, buffer, size);
 
     if (result != EP_PENDING)
     {
@@ -869,7 +921,7 @@ bool USBDevice::write(uint8_t endpoint, uint8_t * buffer, uint32_t size, uint32_
 
     /* Wait for completion */
     do {
-        result = endpointWriteResult(endpoint);
+        result = phy->endpointWriteResult(endpoint);
     } while ((result == EP_PENDING) && configured());
 
     return (result == EP_COMPLETED);
@@ -890,14 +942,14 @@ bool USBDevice::writeNB(uint8_t endpoint, uint8_t * buffer, uint32_t size, uint3
     }
 
     /* Send report */
-    result = endpointWrite(endpoint, buffer, size);
+    result = phy->endpointWrite(endpoint, buffer, size);
 
     if (result != EP_PENDING)
     {
         return false;
     }
 
-    result = endpointWriteResult(endpoint);
+    result = phy->endpointWriteResult(endpoint);
 
     return (result == EP_COMPLETED);
 }
@@ -914,7 +966,7 @@ bool USBDevice::readEP(uint8_t endpoint, uint8_t * buffer, uint32_t * size, uint
 
     /* Wait for completion */
     do {
-        result = endpointReadResult(endpoint, buffer, size);
+        result = phy->endpointReadResult(endpoint, buffer, size);
     } while ((result == EP_PENDING) && configured());
 
     return (result == EP_COMPLETED);
@@ -929,7 +981,7 @@ bool USBDevice::readEP_NB(uint8_t endpoint, uint8_t * buffer, uint32_t * size, u
         return false;
     }
 
-    result = endpointReadResult(endpoint, buffer, size);
+    result = phy->endpointReadResult(endpoint, buffer, size);
 
     return (result == EP_COMPLETED);
 }
@@ -1016,14 +1068,10 @@ const uint8_t * USBDevice::stringIproductDesc() {
     return stringIproductDescriptor;
 }
 
-void USBDevice::usbisr() {
-    disableIrq();
+void USBDevice::startProcess() {
     queue->call(this, &USBDevice::usbisr_thread);
-
 }
 
 void USBDevice::usbisr_thread() {
-    USBHAL::usbisr();
-    clearIrq();
-    enableIrq();
+    phy->process();
 }

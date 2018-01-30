@@ -245,6 +245,6 @@ extern "C" void rtos_idle_loop(void)
 {
     //Continuously call the idle hook function pointer
     while (1) {
-        idle_hook_fptr();
+        //idle_hook_fptr();
     }
 }
