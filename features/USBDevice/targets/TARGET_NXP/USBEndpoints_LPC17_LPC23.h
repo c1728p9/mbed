@@ -23,38 +23,38 @@
 
 /*      Endpoint    No.     Type(s)       MaxPacket   DoubleBuffer  */
 /*      ----------------    ------------  ----------  ---           */
-#define EP0OUT      (0)  /* Control       64          No            */
-#define EP0IN       (1)  /* Control       64          No            */
-#define EP1OUT      (2)  /* Interrupt     64          No            */
-#define EP1IN       (3)  /* Interrupt     64          No            */
-#define EP2OUT      (4)  /* Bulk          64          Yes           */
-#define EP2IN       (5)  /* Bulk          64          Yes           */
-#define EP3OUT      (6)  /* Isochronous   1023        Yes           */
-#define EP3IN       (7)  /* Isochronous   1023        Yes           */
-#define EP4OUT      (8)  /* Interrupt     64          No            */
-#define EP4IN       (9)  /* Interrupt     64          No            */
-#define EP5OUT      (10) /* Bulk          64          Yes           */
-#define EP5IN       (11) /* Bulk          64          Yes           */
-#define EP6OUT      (12) /* Isochronous   1023        Yes           */
-#define EP6IN       (13) /* Isochronous   1023        Yes           */
-#define EP7OUT      (14) /* Interrupt     64          No            */
-#define EP7IN       (15) /* Interrupt     64          No            */
-#define EP8OUT      (16) /* Bulk          64          Yes           */
-#define EP8IN       (17) /* Bulk          64          Yes           */
-#define EP9OUT      (18) /* Isochronous   1023        Yes           */
-#define EP9IN       (19) /* Isochronous   1023        Yes           */
-#define EP10OUT     (20) /* Interrupt     64          No            */
-#define EP10IN      (21) /* Interrupt     64          No            */
-#define EP11OUT     (22) /* Bulk          64          Yes           */
-#define EP11IN      (23) /* Bulk          64          Yes           */
-#define EP12OUT     (24) /* Isochronous   1023        Yes           */
-#define EP12IN      (25) /* Isochronous   1023        Yes           */
-#define EP13OUT     (26) /* Interrupt     64          No            */
-#define EP13IN      (27) /* Interrupt     64          No            */
-#define EP14OUT     (28) /* Bulk          64          Yes           */
-#define EP14IN      (29) /* Bulk          64          Yes           */
-#define EP15OUT     (30) /* Bulk          64          Yes           */
-#define EP15IN      (31) /* Bulk          64          Yes           */
+#define EP0OUT      (0x00)  /* Control       64          No            */
+#define EP0IN       (0x80)  /* Control       64          No            */
+#define EP1OUT      (0x01)  /* Interrupt     64          No            */
+#define EP1IN       (0x81)  /* Interrupt     64          No            */
+#define EP2OUT      (0x02)  /* Bulk          64          Yes           */
+#define EP2IN       (0x82)  /* Bulk          64          Yes           */
+#define EP3OUT      (0x03)  /* Isochronous   1023        Yes           */
+#define EP3IN       (0x83)  /* Isochronous   1023        Yes           */
+#define EP4OUT      (0x04)  /* Interrupt     64          No            */
+#define EP4IN       (0x84)  /* Interrupt     64          No            */
+#define EP5OUT      (0x05)  /* Bulk          64          Yes           */
+#define EP5IN       (0x85)  /* Bulk          64          Yes           */
+#define EP6OUT      (0x06)  /* Isochronous   1023        Yes           */
+#define EP6IN       (0x86)  /* Isochronous   1023        Yes           */
+#define EP7OUT      (0x07)  /* Interrupt     64          No            */
+#define EP7IN       (0x87)  /* Interrupt     64          No            */
+#define EP8OUT      (0x08)  /* Bulk          64          Yes           */
+#define EP8IN       (0x88)  /* Bulk          64          Yes           */
+#define EP9OUT      (0x09)  /* Isochronous   1023        Yes           */
+#define EP9IN       (0x89)  /* Isochronous   1023        Yes           */
+#define EP10OUT     (0x0A)  /* Interrupt     64          No            */
+#define EP10IN      (0x8A)  /* Interrupt     64          No            */
+#define EP11OUT     (0x0B)  /* Bulk          64          Yes           */
+#define EP11IN      (0x8B)  /* Bulk          64          Yes           */
+#define EP12OUT     (0x0C)  /* Isochronous   1023        Yes           */
+#define EP12IN      (0x8C)  /* Isochronous   1023        Yes           */
+#define EP13OUT     (0x0D)  /* Interrupt     64          No            */
+#define EP13IN      (0x8D)  /* Interrupt     64          No            */
+#define EP14OUT     (0x0E)  /* Bulk          64          Yes           */
+#define EP14IN      (0x8E)  /* Bulk          64          Yes           */
+#define EP15OUT     (0x0F)  /* Bulk          64          Yes           */
+#define EP15IN      (0x8F)  /* Bulk          64          Yes           */
 
 /* Maximum Packet sizes */
 

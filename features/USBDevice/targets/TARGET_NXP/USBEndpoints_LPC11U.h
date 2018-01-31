@@ -23,16 +23,16 @@
 
 /*      Endpoint    No.     Type(s)       MaxPacket   DoubleBuffer  */
 /*      ----------------    ------------  ----------  ---           */
-#define EP0OUT      (0)  /* Control       64          No            */
-#define EP0IN       (1)  /* Control       64          No            */
-#define EP1OUT      (2)  /* Int/Bulk/Iso  64/64/1023  Yes           */
-#define EP1IN       (3)  /* Int/Bulk/Iso  64/64/1023  Yes           */
-#define EP2OUT      (4)  /* Int/Bulk/Iso  64/64/1023  Yes           */
-#define EP2IN       (5)  /* Int/Bulk/Iso  64/64/1023  Yes           */
-#define EP3OUT      (6)  /* Int/Bulk/Iso  64/64/1023  Yes           */
-#define EP3IN       (7)  /* Int/Bulk/Iso  64/64/1023  Yes           */
-#define EP4OUT      (8)  /* Int/Bulk/Iso  64/64/1023  Yes           */
-#define EP4IN       (9)  /* Int/Bulk/Iso  64/64/1023  Yes           */
+#define EP0OUT      (0x00)  /* Control       64          No            */
+#define EP0IN       (0x80)  /* Control       64          No            */
+#define EP1OUT      (0x01)  /* Int/Bulk/Iso  64/64/1023  Yes           */
+#define EP1IN       (0x81)  /* Int/Bulk/Iso  64/64/1023  Yes           */
+#define EP2OUT      (0x02)  /* Int/Bulk/Iso  64/64/1023  Yes           */
+#define EP2IN       (0x82)  /* Int/Bulk/Iso  64/64/1023  Yes           */
+#define EP3OUT      (0x03)  /* Int/Bulk/Iso  64/64/1023  Yes           */
+#define EP3IN       (0x83)  /* Int/Bulk/Iso  64/64/1023  Yes           */
+#define EP4OUT      (0x04)  /* Int/Bulk/Iso  64/64/1023  Yes           */
+#define EP4IN       (0x84)  /* Int/Bulk/Iso  64/64/1023  Yes           */
 
 /* Maximum Packet sizes */
 
