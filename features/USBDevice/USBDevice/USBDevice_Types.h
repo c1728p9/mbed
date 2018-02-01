@@ -61,26 +61,26 @@ typedef struct {
     uint16_t wValue;
     uint16_t wIndex;
     uint16_t wLength;
-} SETUP_PACKET;
+} setup_packet_t;
 
-typedef enum {CTRL_STAGE_SETUP, CTRL_STAGE_DATA, CTRL_STAGE_STATUS} CTRL_STAGE;
+typedef enum {CTRL_STAGE_SETUP, CTRL_STAGE_DATA, CTRL_STAGE_STATUS} ctrl_state_t;
 
 typedef struct {
-    SETUP_PACKET setup;
+    setup_packet_t setup;
     uint8_t *ptr;
     uint32_t remaining;
     uint8_t direction;
     bool zlp;
     bool notify;
-    CTRL_STAGE stage;
-} CONTROL_TRANSFER;
+    ctrl_state_t stage;
+} control_transfer_t;
 
-typedef enum {ATTACHED, POWERED, DEFAULT, ADDRESS, CONFIGURED} DEVICE_STATE;
+typedef enum {ATTACHED, POWERED, DEFAULT, ADDRESS, CONFIGURED} device_state_t;
 
 typedef struct {
-    volatile DEVICE_STATE state;
+    volatile device_state_t state;
     uint8_t configuration;
     bool suspended;
-} USB_DEVICE;
+} usb_device_t;
 
 #endif

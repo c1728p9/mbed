@@ -60,19 +60,19 @@ public:
     * @param maxPacket Maximum size of a packet which can be sent for this endpoint
     * @returns true if successful, false otherwise
     */
-    bool addEndpoint(uint8_t endpoint, uint32_t maxPacket, uint8_t type=0, ep_cb_t callback=NULL);
+    bool endpoint_add(uint8_t endpoint, uint32_t maxPacket, uint8_t type=0, ep_cb_t callback=NULL);
 
 
     template<typename T>
-    bool addEndpoint(uint8_t endpoint, uint32_t maxPacket, uint8_t type, void (T::*method)()) {
-        return addEndpoint(endpoint, maxPacket, type, static_cast<ep_cb_t>(method));
+    bool endpoint_add(uint8_t endpoint, uint32_t maxPacket, uint8_t type, void (T::*method)()) {
+        return endpoint_add(endpoint, maxPacket, type, static_cast<ep_cb_t>(method));
     }
 
-    bool removeEndpoint(uint8_t endpoint);
+    bool endpoint_remove(uint8_t endpoint);
 
-    void stallEndpoint(uint8_t endpoint);
+    void endpoint_stall(uint8_t endpoint);
 
-    void unstallEndpoint(uint8_t endpoint);
+    void endpoint_unstall(uint8_t endpoint);
 
     /*
     * Start a reading on a certain endpoint.
@@ -187,116 +187,115 @@ public:
     *
     * @returns pointer to the device descriptor
     */
-    virtual const uint8_t * deviceDesc();
+    virtual const uint8_t * device_desc();
 
     /*
     * Get configuration descriptor
     *
     * @returns pointer to the configuration descriptor
     */
-    virtual const uint8_t * configurationDesc(){return NULL;};
+    virtual const uint8_t * configuration_desc(){return NULL;};
 
     /*
     * Get string lang id descriptor
     *
     * @return pointer to the string lang id descriptor
     */
-    virtual const uint8_t * stringLangidDesc();
+    virtual const uint8_t * string_langid_desc();
 
     /*
     * Get string manufacturer descriptor
     *
     * @returns pointer to the string manufacturer descriptor
     */
-    virtual const uint8_t * stringImanufacturerDesc();
+    virtual const uint8_t * string_imanufacturer_desc();
 
     /*
     * Get string product descriptor
     *
     * @returns pointer to the string product descriptor
     */
-    virtual const uint8_t * stringIproductDesc();
+    virtual const uint8_t * string_iproduct_desc();
 
     /*
     * Get string serial descriptor
     *
     * @returns pointer to the string serial descriptor
     */
-    virtual const uint8_t * stringIserialDesc();
+    virtual const uint8_t * string_iserial_desc();
 
     /*
     * Get string configuration descriptor
     *
     * @returns pointer to the string configuration descriptor
     */
-    virtual const uint8_t * stringIConfigurationDesc();
+    virtual const uint8_t * string_iconfiguration_desc();
 
     /*
     * Get string interface descriptor
     *
     * @returns pointer to the string interface descriptor
     */
-    virtual const uint8_t * stringIinterfaceDesc();
+    virtual const uint8_t * string_iinterface_desc();
 
     /*
     * Get the length of the report descriptor
     *
     * @returns length of the report descriptor
     */
-    virtual uint16_t reportDescLength() { return 0; };
+    virtual uint16_t report_desc_dength() { return 0; };
 
 
 
 protected:
 
     // USBPhyEvents
-    virtual void connectStateChanged(unsigned int connected);
-    virtual void suspendStateChanged(unsigned int suspended);
-    virtual void SOF(int frameNumber) {};
+    virtual void connect_changed(unsigned int connected);
+    virtual void suspend_changed(unsigned int suspended);
+    virtual void sof(int frameNumber) {};
 
-    virtual void busReset(void);
-    virtual void EP0setup(void);
-    virtual void EP0out(void);
-    virtual void EP0in(void);
-    virtual void OUT_callback(uint8_t endpoint);
-    virtual void IN_callback(uint8_t endpoint);
+    virtual void reset(void);
+    virtual void ep0_setup(void);
+    virtual void ep0_out(void);
+    virtual void ep0_in(void);
+    virtual void out_callback(uint8_t endpoint);
+    virtual void in_callback(uint8_t endpoint);
 
-    uint8_t * findDescriptor(uint8_t descriptorType);
-    CONTROL_TRANSFER * getTransferPtr(void);
+    uint8_t * find_descriptor(uint8_t descriptorType);
+    control_transfer_t * get_transfer_ptr(void);
 
-    uint16_t VENDOR_ID;
-    uint16_t PRODUCT_ID;
-    uint16_t PRODUCT_RELEASE;
-    uint8_t deviceDescriptor[18];
+    uint16_t vendor_id;
+    uint16_t product_id;
+    uint16_t product_release;
+    uint8_t device_descriptor[18];
 
-    ep_cb_t epCallback[32 - 2];
+    ep_cb_t ep_callback[32 - 2];
 
 private:
-    virtual void startProcess(void);
+    virtual void start_process(void);
     void usbisr_thread(void);
 
-    bool addRateFeedbackEndpoint(uint8_t endpoint, uint32_t maxPacket);
-    bool requestGetDescriptor(void);
-    bool controlOut(void);
-    bool controlIn(void);
-    bool requestSetAddress(void);
-    bool requestSetConfiguration(void);
-    bool requestSetFeature(void);
-    bool requestClearFeature(void);
-    bool requestGetStatus(void);
-    bool requestSetup(void);
-    bool controlSetup(void);
-    void decodeSetupPacket(uint8_t *data, SETUP_PACKET *packet);
-    bool requestGetConfiguration(void);
-    bool requestGetInterface(void);
-    bool requestSetInterface(void);
+    bool request_get_descriptor(void);
+    bool control_out(void);
+    bool control_in(void);
+    bool request_set_address(void);
+    bool request_set_configuration(void);
+    bool request_set_feature(void);
+    bool request_clear_feature(void);
+    bool request_get_status(void);
+    bool request_setup(void);
+    bool control_setup(void);
+    void decode_setup_packet(uint8_t *data, setup_packet_t *packet);
+    bool request_get_configuration(void);
+    bool request_get_interface(void);
+    bool request_set_interface(void);
 
     USBPhy *phy;
-    CONTROL_TRANSFER transfer;
-    USB_DEVICE device;
+    control_transfer_t transfer;
+    usb_device_t device;
 
-    uint16_t currentInterface;
-    uint8_t currentAlternate;
+    uint16_t current_interface;
+    uint8_t current_alternate;
     events::EventQueue *queue;
 };
 

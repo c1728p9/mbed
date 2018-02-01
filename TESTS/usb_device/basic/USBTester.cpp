@@ -51,7 +51,7 @@ bool USBTester::USBCallback_request(void) {
     /* Called in ISR context */
 
     bool success = false;
-    CONTROL_TRANSFER * transfer = getTransferPtr();
+    control_transfer_t *transfer = get_transfer_ptr();
 
     /* Process vendor-specific requests */
 
@@ -85,7 +85,7 @@ void USBTester::USBCallback_requestCompleted(uint8_t *buf, uint32_t length) {
         return;
     }
 
-    CONTROL_TRANSFER * transfer = getTransferPtr();
+    control_transfer_t *transfer = get_transfer_ptr();
 }
 
 // Called in ISR context
@@ -97,10 +97,10 @@ bool USBTester::USBCallback_setConfiguration(uint8_t configuration) {
     }
 
     // Configure endpoints > 0
-    addEndpoint(EPINT_IN, MAX_PACKET_SIZE_EPINT);
-    addEndpoint(EPINT_OUT, MAX_PACKET_SIZE_EPINT, 0, &USBTester::EPINT_OUT_callback);
-    addEndpoint(EPBULK_IN, MAX_PACKET_SIZE_EPBULK);
-    addEndpoint(EPBULK_OUT, MAX_PACKET_SIZE_EPBULK, 0, &USBTester::EPBULK_OUT_callback);
+    endpoint_add(EPINT_IN, MAX_PACKET_SIZE_EPINT);
+    endpoint_add(EPINT_OUT, MAX_PACKET_SIZE_EPINT, 0, &USBTester::epint_out_callback);
+    endpoint_add(EPBULK_IN, MAX_PACKET_SIZE_EPBULK);
+    endpoint_add(EPBULK_OUT, MAX_PACKET_SIZE_EPBULK, 0, &USBTester::epbulk_out_callback);
 
     readStart(EPBULK_OUT, MAX_PACKET_SIZE_EPBULK);
     readStart(EPINT_OUT, MAX_PACKET_SIZE_EPINT);
@@ -110,28 +110,28 @@ bool USBTester::USBCallback_setConfiguration(uint8_t configuration) {
 
 bool USBTester::USBCallback_setInterface(uint16_t interface, uint8_t alternate) {
     if (interface == 0 && alternate == 0) {
-        removeEndpoint(bulk_in);
-        removeEndpoint(bulk_out);
-        removeEndpoint(int_in);
-        removeEndpoint(int_out);
-        addEndpoint(EPINT_IN, MAX_PACKET_SIZE_EPINT);
-        addEndpoint(EPINT_OUT, MAX_PACKET_SIZE_EPINT, 0, &USBTester::EPINT_OUT_callback);
-        addEndpoint(EPBULK_IN, MAX_PACKET_SIZE_EPBULK);
-        addEndpoint(EPBULK_OUT, MAX_PACKET_SIZE_EPBULK, 0, &USBTester::EPBULK_OUT_callback);
+        endpoint_remove(bulk_in);
+        endpoint_remove(bulk_out);
+        endpoint_remove(int_in);
+        endpoint_remove(int_out);
+        endpoint_add(EPINT_IN, MAX_PACKET_SIZE_EPINT);
+        endpoint_add(EPINT_OUT, MAX_PACKET_SIZE_EPINT, 0, &USBTester::epint_out_callback);
+        endpoint_add(EPBULK_IN, MAX_PACKET_SIZE_EPBULK);
+        endpoint_add(EPBULK_OUT, MAX_PACKET_SIZE_EPBULK, 0, &USBTester::epbulk_out_callback);
 
         readStart(EPBULK_OUT, MAX_PACKET_SIZE_EPBULK);
         readStart(EPINT_OUT, MAX_PACKET_SIZE_EPINT);
         return true;
     }
     if (interface == 0 && alternate == 1) {
-        removeEndpoint(bulk_in);
-        removeEndpoint(bulk_out);
-        removeEndpoint(int_in);
-        removeEndpoint(int_out);
-        addEndpoint(EPINT_IN, 8);
-        addEndpoint(EPINT_OUT, 8, 0, &USBTester::EPINT_OUT_callback);
-        addEndpoint(EPBULK_IN, 8);
-        addEndpoint(EPBULK_OUT, 8, 0, &USBTester::EPBULK_OUT_callback);
+        endpoint_remove(bulk_in);
+        endpoint_remove(bulk_out);
+        endpoint_remove(int_in);
+        endpoint_remove(int_out);
+        endpoint_add(EPINT_IN, 8);
+        endpoint_add(EPINT_OUT, 8, 0, &USBTester::epint_out_callback);
+        endpoint_add(EPBULK_IN, 8);
+        endpoint_add(EPBULK_OUT, 8, 0, &USBTester::epbulk_out_callback);
 
         readStart(EPBULK_OUT, 8);
         readStart(EPINT_OUT, 8);
@@ -140,8 +140,8 @@ bool USBTester::USBCallback_setInterface(uint16_t interface, uint8_t alternate) 
     return false;
 }
 
-const uint8_t * USBTester::deviceDesc() {
-    uint8_t deviceDescriptorTemp[] = {
+const uint8_t * USBTester::device_desc() {
+    uint8_t device_descriptor_temp[] = {
         18,                   // bLength
         1,                    // bDescriptorType
         0x10, 0x01,           // bcdUSB
@@ -149,42 +149,42 @@ const uint8_t * USBTester::deviceDesc() {
         0,                    // bDeviceSubClass
         0,                    // bDeviceProtocol
         MAX_PACKET_SIZE_EP0,  // bMaxPacketSize0
-        (uint8_t)(LSB(VENDOR_ID)), (uint8_t)(MSB(VENDOR_ID)),  // idVendor
-        (uint8_t)(LSB(PRODUCT_ID)), (uint8_t)(MSB(PRODUCT_ID)),// idProduct
+        (uint8_t)(LSB(vendor_id)), (uint8_t)(MSB(vendor_id)),  // idVendor
+        (uint8_t)(LSB(product_id)), (uint8_t)(MSB(product_id)),// idProduct
         0x00, 0x01,           // bcdDevice
         1,                    // iManufacturer
         2,                    // iProduct
         3,                    // iSerialNumber
         1                     // bNumConfigurations
     };
-    MBED_ASSERT(sizeof(deviceDescriptorTemp) == sizeof(deviceDescriptor));
-    memcpy(deviceDescriptor, deviceDescriptorTemp, sizeof(deviceDescriptor));
-    return deviceDescriptor;
+    MBED_ASSERT(sizeof(device_descriptor_temp) == sizeof(device_descriptor));
+    memcpy(device_descriptor, device_descriptor_temp, sizeof(device_descriptor));
+    return device_descriptor;
 }
 
-const uint8_t * USBTester::stringIinterfaceDesc() {
-    static const uint8_t stringIinterfaceDescriptor[] = {
+const uint8_t * USBTester::string_iinterface_desc() {
+    static const uint8_t string_iinterface_descriptor[] = {
         0x08,
         STRING_DESCRIPTOR,
         'C',0,'D',0,'C',0,
     };
-    return stringIinterfaceDescriptor;
+    return string_iinterface_descriptor;
 }
 
-const uint8_t * USBTester::stringIproductDesc() {
-    static const uint8_t stringIproductDescriptor[] = {
+const uint8_t * USBTester::string_iproduct_desc() {
+    static const uint8_t string_iproduct_descriptor[] = {
         0x16,
         STRING_DESCRIPTOR,
         'C',0,'D',0,'C',0,' ',0,'D',0,'E',0,'V',0,'I',0,'C',0,'E',0
     };
-    return stringIproductDescriptor;
+    return string_iproduct_descriptor;
 }
 
 
 #define CONFIG1_DESC_SIZE (9+9+7+7+7+7 + 9+7+7+7+7)
 
-const uint8_t * USBTester::configurationDesc() {
-    static const uint8_t configDescriptor[] = {
+const uint8_t * USBTester::configuration_desc() {
+    static const uint8_t config_descriptor[] = {
         // configuration descriptor
         9,                      // bLength
         2,                      // bDescriptorType
@@ -299,11 +299,11 @@ const uint8_t * USBTester::configurationDesc() {
         1                           // bInterval
 
     };
-    return configDescriptor;
+    return config_descriptor;
 }
 
 
-void USBTester::EPINT_OUT_callback() {
+void USBTester::epint_out_callback() {
     uint8_t buffer[65];
     uint32_t size = 0;
 
@@ -312,7 +312,7 @@ void USBTester::EPINT_OUT_callback() {
     if (!readStart(EPINT_OUT, 64))
         return;
 }
-void USBTester::EPBULK_OUT_callback() {
+void USBTester::epbulk_out_callback() {
     uint8_t buffer[65];
     uint32_t size = 0;
 

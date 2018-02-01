@@ -45,28 +45,28 @@ protected:
     *
     * @returns pointer to the device descriptor
     */
-    virtual const uint8_t * deviceDesc();
+    virtual const uint8_t * device_desc();
 
     /*
     * Get string product descriptor
     *
     * @returns pointer to the string product descriptor
     */
-    virtual const uint8_t * stringIproductDesc();
+    virtual const uint8_t * string_iproduct_desc();
 
     /*
     * Get string interface descriptor
     *
     * @returns pointer to the string interface descriptor
     */
-    virtual const uint8_t * stringIinterfaceDesc();
+    virtual const uint8_t * string_iinterface_desc();
 
     /*
     * Get configuration descriptor
     *
     * @returns pointer to the configuration descriptor
     */
-    virtual const uint8_t * configurationDesc();
+    virtual const uint8_t * configuration_desc();
 
 protected:
     uint8_t bulk_in;
@@ -79,8 +79,8 @@ protected:
     virtual bool USBCallback_setConfiguration(uint8_t configuration);
     virtual bool USBCallback_setInterface(uint16_t interface, uint8_t alternate);
     virtual void USBCallback_busReset(void);
-    virtual void EPBULK_OUT_callback();
-    virtual void EPINT_OUT_callback();
+    virtual void epbulk_out_callback();
+    virtual void epint_out_callback();
     uint8_t ctrl_buf[2048];
 
 };

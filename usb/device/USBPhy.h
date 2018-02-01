@@ -74,17 +74,17 @@ class USBPhyEvents {
 public:
     USBPhyEvents() {};
     virtual ~USBPhyEvents() {};
-    virtual void busReset(void) = 0;
-    virtual void EP0setup(void) = 0;
-    virtual void EP0out(void) = 0;
-    virtual void EP0in(void) = 0;
-    virtual void connectStateChanged(unsigned int connected) = 0;
-    virtual void suspendStateChanged(unsigned int suspended) = 0;
-    virtual void SOF(int frameNumber) = 0;
-    virtual void OUT_callback(uint8_t endpoint) = 0;
-    virtual void IN_callback(uint8_t endpoint) = 0;
+    virtual void reset(void) = 0;
+    virtual void ep0_setup(void) = 0;
+    virtual void ep0_out(void) = 0;
+    virtual void ep0_in(void) = 0;
+    virtual void connect_changed(unsigned int connected) = 0;
+    virtual void suspend_changed(unsigned int suspended) = 0;
+    virtual void sof(int frameNumber) = 0;
+    virtual void out_callback(uint8_t endpoint) = 0;
+    virtual void in_callback(uint8_t endpoint) = 0;
 
-    virtual void startProcess() = 0;
+    virtual void start_process() = 0;
 };
 
 class USBPhy {
@@ -95,29 +95,28 @@ public:
     virtual void deinit() = 0;
     virtual void connect(void) = 0;
     virtual void disconnect(void) = 0;
-    virtual void configureDevice(void) = 0;
-    virtual void unconfigureDevice(void) = 0;
-    virtual void setAddress(uint8_t address) = 0;
-    virtual void remoteWakeup(void) = 0;
-    virtual const endpoint_table_t* endpointTable() = 0;
+    virtual void configure(void) = 0;
+    virtual void unconfigure(void) = 0;
+    virtual void set_address(uint8_t address) = 0;
+    virtual void remote_wakeup(void) = 0;
+    virtual const endpoint_table_t* endpoint_table() = 0;
 
-    virtual void EP0setupReadResult(uint8_t *buffer) = 0;
-    virtual void EP0read(void) = 0;
-    virtual uint32_t EP0ReadResult(uint8_t *buffer) = 0;
-    virtual void EP0write(uint8_t *buffer, uint32_t size) = 0;
-    virtual void EP0WriteResult(void) = 0;
-    virtual void EP0stall(void) = 0;
+    virtual void ep0_setup_read_result(uint8_t *buffer) = 0;
+    virtual void ep0_read(void) = 0;
+    virtual uint32_t ep0_read_result(uint8_t *buffer) = 0;
+    virtual void ep0_write(uint8_t *buffer, uint32_t size) = 0;
+    virtual void ep0_write_result(void) = 0;
+    virtual void ep0_stall(void) = 0;
 
-    virtual EP_STATUS endpointRead(uint8_t endpoint, uint32_t maximumSize) = 0;
-    virtual EP_STATUS endpointReadResult(uint8_t endpoint, uint8_t *data, uint32_t *bytesRead) = 0;
-    virtual EP_STATUS endpointWrite(uint8_t endpoint, uint8_t *data, uint32_t size) = 0;
-    virtual EP_STATUS endpointWriteResult(uint8_t endpoint) = 0;
-    virtual EP_STATUS endpointWriteAbort(uint8_t endpoint) = 0;
-
-    virtual void stallEndpoint(uint8_t endpoint) = 0;
-    virtual void unstallEndpoint(uint8_t endpoint) = 0;
-    virtual bool addEndpoint(uint8_t endpoint, uint32_t maxPacket, uint8_t type) = 0;
-    virtual bool removeEndpoint(uint8_t endpoint) = 0;
+    virtual bool endpoint_add(uint8_t endpoint, uint32_t maxPacket, uint8_t type) = 0;
+    virtual bool endpoint_remove(uint8_t endpoint) = 0;
+    virtual void endpoint_stall(uint8_t endpoint) = 0;
+    virtual void endpoint_unstall(uint8_t endpoint) = 0;
+    virtual EP_STATUS endpoint_read(uint8_t endpoint, uint32_t maximumSize) = 0;
+    virtual EP_STATUS endpoint_read_result(uint8_t endpoint, uint8_t *data, uint32_t *bytesRead) = 0;
+    virtual EP_STATUS endpoint_write(uint8_t endpoint, uint8_t *data, uint32_t size) = 0;
+    virtual EP_STATUS endpoint_write_result(uint8_t endpoint) = 0;
+    virtual EP_STATUS endpoint_write_abort(uint8_t endpoint) = 0;
 
     virtual void process() = 0;
 };

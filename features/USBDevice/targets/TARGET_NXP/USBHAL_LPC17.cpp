@@ -120,7 +120,6 @@
 static USBPhyHw *instance;
 
 static volatile int epComplete;
-static uint32_t endpointStallState;
 
 static void SIECommand(uint32_t command) {
     // The command phase of a SIE transaction
@@ -362,8 +361,8 @@ void USBPhyHw::init(USBPhyEvents *events)
     wait(0.3);
 
     // Set the maximum packet size for the control endpoints
-    addEndpoint(EP0IN, MAX_PACKET_SIZE_EP0, 0);
-    addEndpoint(EP0OUT, MAX_PACKET_SIZE_EP0, 0);
+    endpoint_add(EP0IN, MAX_PACKET_SIZE_EP0, 0);
+    endpoint_add(EP0OUT, MAX_PACKET_SIZE_EP0, 0);
 
     // Attach IRQ
     instance = this;
@@ -393,44 +392,44 @@ void USBPhyHw::disconnect(void) {
     SIEdisconnect();
 }
 
-void USBPhyHw::configureDevice(void) {
+void USBPhyHw::configure(void) {
     SIEconfigureDevice();
 }
 
-void USBPhyHw::unconfigureDevice(void) {
+void USBPhyHw::unconfigure(void) {
     SIEunconfigureDevice();
 }
 
-void USBPhyHw::setAddress(uint8_t address) {
+void USBPhyHw::set_address(uint8_t address) {
     SIEsetAddress(address);
 }
 
-void USBPhyHw::EP0setupReadResult(uint8_t *buffer) {
+void USBPhyHw::ep0_setup_read_result(uint8_t *buffer) {
     endpointReadcore(EP0OUT, buffer);
 }
 
-void USBPhyHw::EP0read(void) {
-    endpointRead(EP0OUT, MAX_PACKET_SIZE_EP0);
+void USBPhyHw::ep0_read(void) {
+    endpoint_read(EP0OUT, MAX_PACKET_SIZE_EP0);
 }
 
-uint32_t USBPhyHw::EP0ReadResult(uint8_t *buffer) {
+uint32_t USBPhyHw::ep0_read_result(uint8_t *buffer) {
     return endpointReadcore(EP0OUT, buffer);
 }
 
-void USBPhyHw::EP0write(uint8_t *buffer, uint32_t size) {
+void USBPhyHw::ep0_write(uint8_t *buffer, uint32_t size) {
     endpointWritecore(EP0IN, buffer, size);
 }
 
-void USBPhyHw::EP0WriteResult(void) {
+void USBPhyHw::ep0_write_result(void) {
     // Not required
 }
 
-void USBPhyHw::EP0stall(void) {
+void USBPhyHw::ep0_stall(void) {
     // This will stall both control endpoints
-    stallEndpoint(EP0OUT);
+    endpoint_stall(EP0OUT);
 }
 
-EP_STATUS USBPhyHw::endpointRead(uint8_t endpoint, uint32_t maximumSize) {
+EP_STATUS USBPhyHw::endpoint_read(uint8_t endpoint, uint32_t maximumSize) {
     // Don't clear isochronous endpoints
     if ((DESC_TO_PHY(endpoint) >> 1) % 3 || (DESC_TO_PHY(endpoint) >> 1) == 0) {
         SIEselectEndpoint(endpoint);
@@ -439,7 +438,7 @@ EP_STATUS USBPhyHw::endpointRead(uint8_t endpoint, uint32_t maximumSize) {
     return EP_PENDING;
 }
 
-EP_STATUS USBPhyHw::endpointReadResult(uint8_t endpoint, uint8_t * buffer, uint32_t *bytesRead) {
+EP_STATUS USBPhyHw::endpoint_read_result(uint8_t endpoint, uint8_t * buffer, uint32_t *bytesRead) {
 
     //for isochronous endpoint, we don't wait an interrupt
     if ((DESC_TO_PHY(endpoint) >> 1) % 3 || (DESC_TO_PHY(endpoint) >> 1) == 0) {
@@ -452,14 +451,14 @@ EP_STATUS USBPhyHw::endpointReadResult(uint8_t endpoint, uint8_t * buffer, uint3
     return EP_COMPLETED;
 }
 
-EP_STATUS USBPhyHw::endpointWrite(uint8_t endpoint, uint8_t *data, uint32_t size) {
+EP_STATUS USBPhyHw::endpoint_write(uint8_t endpoint, uint8_t *data, uint32_t size) {
     epComplete &= ~EP(endpoint);
 
     endpointWritecore(endpoint, data, size);
     return EP_PENDING;
 }
 
-EP_STATUS USBPhyHw::endpointWriteResult(uint8_t endpoint) {
+EP_STATUS USBPhyHw::endpoint_write_result(uint8_t endpoint) {
     if (epComplete & EP(endpoint)) {
         epComplete &= ~EP(endpoint);
         return EP_COMPLETED;
@@ -468,13 +467,13 @@ EP_STATUS USBPhyHw::endpointWriteResult(uint8_t endpoint) {
     return EP_PENDING;
 }
 
-EP_STATUS USBPhyHw::endpointWriteAbort(uint8_t endpoint)
+EP_STATUS USBPhyHw::endpoint_write_abort(uint8_t endpoint)
 {
     //TODO - needs to be implemented
     return EP_INVALID;
 }
 
-bool USBPhyHw::addEndpoint(uint8_t endpoint, uint32_t maxPacket, uint8_t type) {
+bool USBPhyHw::endpoint_add(uint8_t endpoint, uint32_t maxPacket, uint8_t type) {
     // Realise an endpoint
     LPC_USB->USBDevIntClr = EP_RLZED;
     LPC_USB->USBReEp |= EP(endpoint);
@@ -484,14 +483,11 @@ bool USBPhyHw::addEndpoint(uint8_t endpoint, uint32_t maxPacket, uint8_t type) {
     while (!(LPC_USB->USBDevIntSt & EP_RLZED));
     LPC_USB->USBDevIntClr = EP_RLZED;
 
-    // Clear stall state
-    endpointStallState &= ~EP(endpoint);
-
     enableEndpointEvent(endpoint);
     return true;
 }
 
-bool USBPhyHw::removeEndpoint(uint8_t endpoint) {
+bool USBPhyHw::endpoint_remove(uint8_t endpoint) {
     // Unrealise an endpoint
 
     disableEndpointEvent(endpoint);
@@ -505,28 +501,22 @@ bool USBPhyHw::removeEndpoint(uint8_t endpoint) {
     return true;
 }
 
-void USBPhyHw::stallEndpoint(uint8_t endpoint) {
+void USBPhyHw::endpoint_stall(uint8_t endpoint) {
     // Stall an endpoint
     if ( (endpoint==EP0IN) || (endpoint==EP0OUT) ) {
         // Conditionally stall both control endpoints
         SIEsetEndpointStatus(EP0OUT, SIE_SES_CND_ST);
     } else {
         SIEsetEndpointStatus(endpoint, SIE_SES_ST);
-
-        // Update stall state
-        endpointStallState |= EP(endpoint);
     }
 }
 
-void USBPhyHw::unstallEndpoint(uint8_t endpoint) {
+void USBPhyHw::endpoint_unstall(uint8_t endpoint) {
     // Unstall an endpoint. The endpoint will also be reinitialised
     SIEsetEndpointStatus(endpoint, 0);
-
-    // Update stall state
-    endpointStallState &= ~EP(endpoint);
 }
 
-void USBPhyHw::remoteWakeup(void) {
+void USBPhyHw::remote_wakeup(void) {
     // Remote wakeup
     uint8_t status;
 
@@ -538,7 +528,7 @@ void USBPhyHw::remoteWakeup(void) {
     SIEsetDeviceStatus(status & ~SIE_DS_SUS);
 }
 
-const endpoint_table_t* USBPhyHw::endpointTable()
+const endpoint_table_t* USBPhyHw::endpoint_table()
 {
     static const endpoint_table_t lpc_table = {
         4096 - 32 * 4, // 32 words for endpoint buffers
@@ -568,7 +558,7 @@ const endpoint_table_t* USBPhyHw::endpointTable()
 
 void USBPhyHw::_usbisr(void) {
     NVIC_DisableIRQ(USB_IRQn);
-    instance->events->startProcess();
+    instance->events->start_process();
 }
 
 void USBPhyHw::process(void) {
@@ -576,7 +566,7 @@ void USBPhyHw::process(void) {
 
     if (LPC_USB->USBDevIntSt & FRAME) {
         // Start of frame event
-        SOF(SIEgetFrameNumber());
+        events->sof(SIEgetFrameNumber());
         // Clear interrupt status flag
         LPC_USB->USBDevIntClr = FRAME;
     }
@@ -593,16 +583,16 @@ void USBPhyHw::process(void) {
         if (devStat & SIE_DS_SUS_CH) {
             // Suspend status changed
             if((devStat & SIE_DS_SUS) != 0) {
-                suspendStateChanged(0);
+                events->suspend_changed(0);
             }
         }
 
         if (devStat & SIE_DS_RST) {
             // Bus reset
             if((devStat & SIE_DS_SUS) == 0) {
-                suspendStateChanged(1);
+                events->suspend_changed(1);
             }
-            busReset();
+            events->reset();
         }
     }
 
@@ -625,16 +615,16 @@ void USBPhyHw::process(void) {
         if (LPC_USB->USBEpIntSt & EP(EP0IN)) {
             selectEndpointClearInterrupt(EP0IN);
             LPC_USB->USBDevIntClr = EP_SLOW;
-            EP0in();
+            events->ep0_in();
         }
 
         // Process each endpoint interrupt
         if (LPC_USB->USBEpIntSt & EP(EP0OUT)) {
             if (selectEndpointClearInterrupt(EP0OUT) & SIE_SE_STP) {
                 // this is a setup packet
-                EP0setupCallback();
+                events->ep0_setup();
             } else {
-                EP0out();
+                events->ep0_out();
             }
             LPC_USB->USBDevIntClr = EP_SLOW;
         }
@@ -647,9 +637,9 @@ void USBPhyHw::process(void) {
                 epComplete |= EP(endpoint);
                 LPC_USB->USBDevIntClr = EP_SLOW;
                 if (endpoint & 0x80) {//TODO - use macro
-                    events->IN_callback(endpoint);
+                    events->in_callback(endpoint);
                 } else {
-                    events->OUT_callback(endpoint);
+                    events->out_callback(endpoint);
                 }
             }
         }

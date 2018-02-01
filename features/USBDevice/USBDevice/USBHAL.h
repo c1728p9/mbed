@@ -34,8 +34,8 @@ public:
     ~USBHAL();
     void connect(void);
     void disconnect(void);
-    void configureDevice(void);
-    void unconfigureDevice(void);
+    void configure(void);
+    void unconfigure(void);
     void setAddress(uint8_t address);
     void remoteWakeup(void);
 
