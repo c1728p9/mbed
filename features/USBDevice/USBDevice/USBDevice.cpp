@@ -723,14 +723,14 @@ void USBDevice::EP0in(void)
     }
 }
 
-bool USBDevice::OUT_callback(uint8_t endpoint)
+void USBDevice::OUT_callback(uint8_t endpoint)
 {
-    return (this->*(epCallback[EP_TO_INDEX(endpoint)]))();
+    (this->*(epCallback[EP_TO_INDEX(endpoint)]))();
 }
 
-bool USBDevice::IN_callback(uint8_t endpoint)
+void USBDevice::IN_callback(uint8_t endpoint)
 {
-    return (this->*(epCallback[EP_TO_INDEX(endpoint)]))();
+    (this->*(epCallback[EP_TO_INDEX(endpoint)]))();
 }
 
 bool USBDevice::configured(void)

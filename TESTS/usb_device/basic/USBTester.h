@@ -79,8 +79,8 @@ protected:
     virtual bool USBCallback_setConfiguration(uint8_t configuration);
     virtual bool USBCallback_setInterface(uint16_t interface, uint8_t alternate);
     virtual void USBCallback_busReset(void);
-    virtual bool EPBULK_OUT_callback();
-    virtual bool EPINT_OUT_callback();
+    virtual void EPBULK_OUT_callback();
+    virtual void EPINT_OUT_callback();
     uint8_t ctrl_buf[2048];
 
 };

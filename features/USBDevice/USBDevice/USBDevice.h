@@ -29,7 +29,7 @@
 class USBDevice: public  USBPhyEvents
 {
 public:
-    typedef bool (USBDevice::*ep_cb_t)(void);
+    typedef void (USBDevice::*ep_cb_t)(void);
 
     USBDevice(uint16_t vendor_id, uint16_t product_id, uint16_t product_release);
     USBDevice(USBPhy *phy, uint16_t vendor_id, uint16_t product_id, uint16_t product_release);
@@ -64,7 +64,7 @@ public:
 
 
     template<typename T>
-    bool addEndpoint(uint8_t endpoint, uint32_t maxPacket, uint8_t type, bool (T::*method)()) {
+    bool addEndpoint(uint8_t endpoint, uint32_t maxPacket, uint8_t type, void (T::*method)()) {
         return addEndpoint(endpoint, maxPacket, type, static_cast<ep_cb_t>(method));
     }
 
@@ -258,8 +258,8 @@ protected:
     virtual void EP0setup(void);
     virtual void EP0out(void);
     virtual void EP0in(void);
-    virtual bool OUT_callback(uint8_t endpoint);
-    virtual bool IN_callback(uint8_t endpoint);
+    virtual void OUT_callback(uint8_t endpoint);
+    virtual void IN_callback(uint8_t endpoint);
 
     uint8_t * findDescriptor(uint8_t descriptorType);
     CONTROL_TRANSFER * getTransferPtr(void);

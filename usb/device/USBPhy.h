@@ -81,8 +81,8 @@ public:
     virtual void connectStateChanged(unsigned int connected) = 0;
     virtual void suspendStateChanged(unsigned int suspended) = 0;
     virtual void SOF(int frameNumber) = 0;
-    virtual bool OUT_callback(uint8_t endpoint) = 0;
-    virtual bool IN_callback(uint8_t endpoint) = 0;
+    virtual void OUT_callback(uint8_t endpoint) = 0;
+    virtual void IN_callback(uint8_t endpoint) = 0;
 
     virtual void startProcess() = 0;
 };

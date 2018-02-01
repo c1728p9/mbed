@@ -303,26 +303,22 @@ const uint8_t * USBTester::configurationDesc() {
 }
 
 
-bool USBTester::EPINT_OUT_callback() {
+void USBTester::EPINT_OUT_callback() {
     uint8_t buffer[65];
     uint32_t size = 0;
 
     if (!readEP_NB(EPINT_OUT, buffer, &size, 64))
-        return false;
+        return;
     if (!readStart(EPINT_OUT, 64))
-        return false;
-
-    return true;
+        return;
 }
-bool USBTester::EPBULK_OUT_callback() {
+void USBTester::EPBULK_OUT_callback() {
     uint8_t buffer[65];
     uint32_t size = 0;
 
     if (!readEP_NB(EPBULK_OUT, buffer, &size, 64))
-        return false;
+        return;
     if (!readStart(EPBULK_OUT, 64))
-        return false;
-
-    return true;
+        return;
 }
 
