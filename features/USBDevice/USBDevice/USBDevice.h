@@ -205,8 +205,6 @@ public:
     */
     virtual uint16_t report_desc_dength() { return 0; };
 
-
-
 protected:
 
     /**
@@ -226,21 +224,26 @@ protected:
     * This is used to handle extensions to standard requests
     * and class specific requests.
     *
-    * complete_request must be called to either
-    * reject or accept this request
+    * If this request is handled outside of USBDevice
+    * then complete_request must be called to either
+    * reject or continue this request.
+    *
+    * @return true if this request is handled outside
+    * of USBDevice, false if handled by USBDevice.
     *
     * Warning: Called in ISR context
     */
-    virtual void callback_request() = 0;
-    bool complete_request(bool success);
+    virtual bool callback_request() = 0;
+    void complete_request(bool success);
+    //void complete_request(uint8_t *data, uint32_t size, bool tx_n_rx);
 
     /**
     * Called by USBDevice on data stage completion
     *
     * Warning: Called in ISR context
     */
-    virtual bool callback_request_data() = 0;
-    bool complete_request_data(bool success);
+    virtual void callback_request_data() = 0;
+    void complete_request_data(bool success);
 
     /*
     * Called by USBDevice layer in response to set_configuration.
@@ -305,10 +308,13 @@ private:
     bool request_get_status(void);
     bool request_setup(void);
     bool control_setup(void);
+    void control_setup_continue();
     void decode_setup_packet(uint8_t *data, setup_packet_t *packet);
     bool request_get_configuration(void);
     bool request_get_interface(void);
     bool request_set_interface(void);
+
+
 
     USBPhy *phy;
     control_transfer_t transfer;

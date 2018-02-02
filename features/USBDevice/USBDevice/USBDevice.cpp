@@ -183,7 +183,7 @@ void USBDevice::decode_setup_packet(uint8_t *data, setup_packet_t *packet)
 bool USBDevice::control_out(void)
 {
     /* Control transfer data OUT stage */
-    uint8_t buffer[MAX_PACKET_SIZE_EP0];
+    uint8_t buffer[MAX_PACKET_SIZE_EP0];//TODO - remove and write to buffer instead
     uint32_t packetSize;
 
     /* Check we should be transferring data OUT */
@@ -214,12 +214,13 @@ bool USBDevice::control_out(void)
         if (transfer.notify)
         {
             /* Notify class layer. */
-            USBCallback_requestCompleted(buffer, packetSize);
             transfer.notify = false;
+            callback_request_data();
         }
-        /* Status stage */
-        transfer.stage = CTRL_STAGE_STATUS;
-        phy->ep0_write(NULL, 0);
+        else
+        {
+            complete_request_data(true);
+        }
     }
     else
     {
@@ -275,12 +276,14 @@ bool USBDevice::control_in(void)
         if (transfer.notify)
         {
             /* Notify class layer. */
-            USBCallback_requestCompleted(NULL, 0);
             transfer.notify = false;
+            callback_request_data();
         }
-        /* Status stage */
-        transfer.stage = CTRL_STAGE_STATUS;
-        phy->ep0_read();
+        else
+        {
+            complete_request_data(true);
+        }
+
 
         /* Completed */
         return true;
@@ -288,6 +291,23 @@ bool USBDevice::control_in(void)
 
 
     return true;
+}
+
+void USBDevice::complete_request_data(bool success)
+{
+    if (!success) {
+        phy->ep0_stall();
+        return;
+    }
+
+    /* Status stage */
+    if (transfer.stage == CTRL_STAGE_DATA_OUT) {
+        transfer.stage = CTRL_STAGE_STATUS;
+        phy->ep0_write(NULL, 0);
+    }  else if (transfer.stage == CTRL_STAGE_DATA_IN) {
+        transfer.stage = CTRL_STAGE_STATUS;
+        phy->ep0_read();
+    }
 }
 
 bool USBDevice::request_set_address(void)
@@ -320,19 +340,21 @@ bool USBDevice::request_set_configuration(void)
     }
     else
     {
-        if (USBCallback_setConfiguration(device.configuration))
-        {
-            /* Valid configuration */
-            phy->configure();
-            device.state = CONFIGURED;
-        }
-        else
-        {
-            return false;
-        }
+        transfer.user_callback = true;
+        callback_set_configuration(device.configuration);
     }
 
     return true;
+}
+
+void USBDevice::complete_set_configuration(bool success)
+{
+    if (success) {
+        /* Valid configuration */
+        phy->configure();
+        device.state = CONFIGURED;
+    }
+    complete_request(success);
 }
 
 bool USBDevice::request_get_configuration(void)
@@ -363,14 +385,18 @@ bool USBDevice::request_get_interface(void)
 
 bool USBDevice::request_set_interface(void)
 {
-    bool success = false;
-    if(USBCallback_setInterface(transfer.setup.wIndex, transfer.setup.wValue))
-    {
-        success = true;
+    transfer.user_callback = true;
+    callback_set_interface(transfer.setup.wIndex, transfer.setup.wValue);
+    return true;
+}
+
+void USBDevice::complete_set_interface(bool success)
+{
+    if (success) {
         current_interface = transfer.setup.wIndex;
         current_alternate = transfer.setup.wValue;
     }
-    return success;
+    complete_request(success);
 }
 
 bool USBDevice::request_set_feature()
@@ -544,7 +570,6 @@ bool USBDevice::request_setup(void)
 
 bool USBDevice::control_setup(void)
 {
-    bool success = false;
 
     /* Control transfer setup stage */
     uint8_t buffer[MAX_PACKET_SIZE_EP0];
@@ -571,9 +596,9 @@ bool USBDevice::control_setup(void)
 #endif
 
     /* Class / vendor specific */
-    success = USBCallback_request();
+    transfer.user_callback = callback_request();
 
-    if (!success)
+    if (!transfer.user_callback)
     {
         /* Standard requests */
         if (!request_setup())
@@ -585,6 +610,31 @@ bool USBDevice::control_setup(void)
         }
     }
 
+    if (!transfer.user_callback) {
+        control_setup_continue();
+    }
+    return true;
+}
+void USBDevice::complete_request(bool success)
+{
+    if (success) {
+        control_setup_continue();
+    } else {
+        phy->ep0_stall();
+    }
+}
+
+//void USBDevice::complete_request(uint8_t *data, uint32_t size, bool tx_n_rx)
+//{
+//    transfer.remaining = size;
+//    transfer.ptr = data;
+//    transfer.direction = tx_n_rx ? DEVICE_TO_HOST : HOST_TO_DEVICE;
+//    control_setup_continue();
+//}
+
+void USBDevice::control_setup_continue()
+{
+
     /* Check transfer size and direction */
     if (transfer.setup.wLength>0)
     {
@@ -594,7 +644,8 @@ bool USBDevice::control_setup(void)
             /* IN data stage is required */
             if (transfer.direction != DEVICE_TO_HOST)
             {
-                return false;
+                phy->ep0_stall();
+                return;
             }
 
             /* Transfer must be less than or equal to the size */
@@ -610,13 +661,15 @@ bool USBDevice::control_setup(void)
             /* OUT data stage is required */
             if (transfer.direction != HOST_TO_DEVICE)
             {
-                return false;
+                phy->ep0_stall();
+                return;
             }
 
             /* Transfer must be equal to the size requested by the host */
             if (transfer.remaining != transfer.setup.wLength)
             {
-                return false;
+                phy->ep0_stall();
+                return;
             }
         }
     }
@@ -625,7 +678,8 @@ bool USBDevice::control_setup(void)
         /* No data stage; transfer size must be zero */
         if (transfer.remaining != 0)
         {
-            return false;
+            phy->ep0_stall();
+            return;
         }
     }
 
@@ -648,13 +702,13 @@ bool USBDevice::control_setup(void)
             }
 
             /* IN stage */
-            transfer.stage = CTRL_STAGE_DATA;
+            transfer.stage = CTRL_STAGE_DATA_IN;
             control_in();
         }
         else
         {
             /* OUT stage */
-            transfer.stage = CTRL_STAGE_DATA;
+            transfer.stage = CTRL_STAGE_DATA_OUT;
             phy->ep0_read();
         }
     }
@@ -664,8 +718,6 @@ bool USBDevice::control_setup(void)
         transfer.stage = CTRL_STAGE_STATUS;
         phy->ep0_write(NULL, 0);
     }
-
-    return true;
 }
 
 void USBDevice::reset(void)
@@ -676,6 +728,11 @@ void USBDevice::reset(void)
 
     /* Call class / vendor specific busReset function */
     callback_reset();
+}
+
+void USBDevice::complete_reset()
+{
+
 }
 
 void USBDevice::ep0_setup(void)

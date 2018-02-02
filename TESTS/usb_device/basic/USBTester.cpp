@@ -44,10 +44,11 @@ USBTester::USBTester(uint16_t vendor_id, uint16_t product_id, uint16_t product_r
 
 }
 
-void USBTester::USBCallback_busReset(void) {
+void USBTester::callback_reset(void) {
+    complete_reset();
 };
 
-bool USBTester::USBCallback_request(void) {
+bool USBTester::callback_request(void) {
     /* Called in ISR context */
 
     bool success = false;
@@ -61,14 +62,17 @@ bool USBTester::USBCallback_request(void) {
                 transfer->remaining = transfer->setup.wValue < sizeof(ctrl_buf) ? transfer->setup.wValue  : sizeof(ctrl_buf);
                 transfer->ptr = ctrl_buf;
                 transfer->direction = DEVICE_TO_HOST;
+                complete_request(true);
                 success = true;
                 break;
             case VENDOR_TEST_CTRL_OUT:
                 transfer->remaining = transfer->setup.wValue < 8 ? transfer->setup.wValue  : 8;
                 transfer->notify = true;
+                complete_request(true);
                 success = true;
                 break;
             case VENDOR_TEST_CTRL_NONE:
+                complete_request(true);
                 success = true;
                 break;
             default:
@@ -79,21 +83,24 @@ bool USBTester::USBCallback_request(void) {
     return success;
 }
 
-void USBTester::USBCallback_requestCompleted(uint8_t *buf, uint32_t length) {
-    // Request of setting line coding has 7 bytes
-    if (length != 7) {
-        return;
-    }
-
-    control_transfer_t *transfer = get_transfer_ptr();
+void USBTester::callback_request_data() {
+//    // Request of setting line coding has 7 bytes
+//    if (length != 7) {
+//        complete_request_data(false);
+//        return;
+//    }
+//
+//    control_transfer_t *transfer = get_transfer_ptr();
+    complete_request_data(true);
 }
 
 // Called in ISR context
 // Set configuration. Return false if the
 // configuration is not supported.
-bool USBTester::USBCallback_setConfiguration(uint8_t configuration) {
+void USBTester::callback_set_configuration(uint8_t configuration) {
     if (configuration != DEFAULT_CONFIGURATION) {
-        return false;
+        complete_set_configuration(false);
+        return;
     }
 
     // Configure endpoints > 0
@@ -105,10 +112,10 @@ bool USBTester::USBCallback_setConfiguration(uint8_t configuration) {
     readStart(EPBULK_OUT, MAX_PACKET_SIZE_EPBULK);
     readStart(EPINT_OUT, MAX_PACKET_SIZE_EPINT);
 
-    return true;
+    complete_set_configuration(true);
 }
 
-bool USBTester::USBCallback_setInterface(uint16_t interface, uint8_t alternate) {
+void USBTester::callback_set_interface(uint16_t interface, uint8_t alternate) {
     if (interface == 0 && alternate == 0) {
         endpoint_remove(bulk_in);
         endpoint_remove(bulk_out);
@@ -121,7 +128,8 @@ bool USBTester::USBCallback_setInterface(uint16_t interface, uint8_t alternate) 
 
         readStart(EPBULK_OUT, MAX_PACKET_SIZE_EPBULK);
         readStart(EPINT_OUT, MAX_PACKET_SIZE_EPINT);
-        return true;
+        complete_set_interface(true);
+        return;
     }
     if (interface == 0 && alternate == 1) {
         endpoint_remove(bulk_in);
@@ -135,9 +143,10 @@ bool USBTester::USBCallback_setInterface(uint16_t interface, uint8_t alternate) 
 
         readStart(EPBULK_OUT, 8);
         readStart(EPINT_OUT, 8);
-        return true;
+        complete_set_interface(true);
+        return;
     }
-    return false;
+    complete_set_interface(false);
 }
 
 const uint8_t * USBTester::device_desc() {

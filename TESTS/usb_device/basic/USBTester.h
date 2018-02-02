@@ -74,11 +74,11 @@ protected:
     uint8_t int_in;
     uint8_t int_out;
 
-    virtual bool USBCallback_request();
-    virtual void USBCallback_requestCompleted(uint8_t *buf, uint32_t length);
-    virtual bool USBCallback_setConfiguration(uint8_t configuration);
-    virtual bool USBCallback_setInterface(uint16_t interface, uint8_t alternate);
-    virtual void USBCallback_busReset(void);
+    virtual bool callback_request();
+    virtual void callback_request_data();
+    virtual void callback_set_configuration(uint8_t configuration);
+    virtual void callback_set_interface(uint16_t interface, uint8_t alternate);
+    virtual void callback_reset(void);
     virtual void epbulk_out_callback();
     virtual void epint_out_callback();
     uint8_t ctrl_buf[2048];
