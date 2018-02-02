@@ -38,8 +38,9 @@ USBCDC::USBCDC(uint16_t vendor_id, uint16_t product_id, uint16_t product_release
     USBDevice::connect(connect_blocking);
 }
 
-void USBCDC::USBCallback_busReset(void) {
+void USBCDC::callback_reset(void) {
     terminal_connected = false;
+    complete_reset();
 };
 
 bool USBCDC::USBCallback_request(void) {

@@ -116,7 +116,7 @@ protected:
     virtual bool USBCallback_request();
     virtual void USBCallback_requestCompleted(uint8_t *buf, uint32_t length);
     virtual bool USBCallback_setConfiguration(uint8_t configuration);
-    virtual void USBCallback_busReset(void);
+    virtual void callback_reset(void);
     volatile bool terminal_connected;
 
 };

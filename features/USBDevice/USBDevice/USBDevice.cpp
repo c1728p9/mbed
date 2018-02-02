@@ -675,7 +675,7 @@ void USBDevice::reset(void)
     device.suspended = false;
 
     /* Call class / vendor specific busReset function */
-    USBCallback_busReset();
+    callback_reset();
 }
 
 void USBDevice::ep0_setup(void)

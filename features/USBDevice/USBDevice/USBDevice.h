@@ -62,7 +62,13 @@ public:
     */
     bool endpoint_add(uint8_t endpoint, uint32_t maxPacket, uint8_t type=0, ep_cb_t callback=NULL);
 
-
+    /*
+    * Add an endpoint
+    *
+    * @param endpoint endpoint which will be added
+    * @param maxPacket Maximum size of a packet which can be sent for this endpoint
+    * @returns true if successful, false otherwise
+    */
     template<typename T>
     bool endpoint_add(uint8_t endpoint, uint32_t maxPacket, uint8_t type, void (T::*method)()) {
         return endpoint_add(endpoint, maxPacket, type, static_cast<ep_cb_t>(method));
@@ -136,52 +142,6 @@ public:
     */
     bool writeNB(uint8_t endpoint, uint8_t * buffer, uint32_t size, uint32_t maxSize);
 
-
-    /*
-    * Called by USBDevice layer on bus reset. Warning: Called in ISR context
-    *
-    * May be used to reset state
-    */
-    virtual void USBCallback_busReset(void) {};
-
-    /*
-    * Called by USBDevice on Endpoint0 request. Warning: Called in ISR context
-    * This is used to handle extensions to standard requests
-    * and class specific requests
-    *
-    * @returns true if class handles this request
-    */
-    virtual bool USBCallback_request() { return false; };
-
-    /*
-    * Called by USBDevice on Endpoint0 request completion
-    * if the 'notify' flag has been set to true. Warning: Called in ISR context
-    *
-    * In this case it is used to indicate that a HID report has
-    * been received from the host on endpoint 0
-    *
-    * @param buf buffer received on endpoint 0
-    * @param length length of this buffer
-    */
-    virtual void USBCallback_requestCompleted(uint8_t * buf, uint32_t length) {};
-
-    /*
-    * Called by USBDevice layer. Set configuration of the device.
-    * For instance, you can add all endpoints that you need on this function.
-    *
-    * @param configuration Number of the configuration
-    */
-    virtual bool USBCallback_setConfiguration(uint8_t configuration) { return false; };
-
-    /*
-     * Called by USBDevice layer. Set interface/alternate of the device.
-     *
-     * @param interface Number of the interface to be configured
-     * @param alternate Number of the alternate to be configured
-     * @returns true if class handles this request
-     */
-    virtual bool USBCallback_setInterface(uint16_t interface, uint8_t alternate) { return false; };
-
     /*
     * Get device descriptor.
     *
@@ -249,17 +209,66 @@ public:
 
 protected:
 
-    // USBPhyEvents
-    virtual void connect_changed(unsigned int connected);
-    virtual void suspend_changed(unsigned int suspended);
-    virtual void sof(int frameNumber) {};
+    /**
+    * Called by USBDevice layer on bus reset.
+    *
+    * complete_reset must be called after
+    * the device is fully reset.
+    *
+    * Warning: Called in ISR context
+    */
+    virtual void callback_reset() = 0;
+    void complete_reset();
 
-    virtual void reset(void);
-    virtual void ep0_setup(void);
-    virtual void ep0_out(void);
-    virtual void ep0_in(void);
-    virtual void out_callback(uint8_t endpoint);
-    virtual void in_callback(uint8_t endpoint);
+    /**
+    * Called by USBDevice on Endpoint0 request.
+    *
+    * This is used to handle extensions to standard requests
+    * and class specific requests.
+    *
+    * complete_request must be called to either
+    * reject or accept this request
+    *
+    * Warning: Called in ISR context
+    */
+    virtual void callback_request() = 0;
+    bool complete_request(bool success);
+
+    /**
+    * Called by USBDevice on data stage completion
+    *
+    * Warning: Called in ISR context
+    */
+    virtual bool callback_request_data() = 0;
+    bool complete_request_data(bool success);
+
+    /*
+    * Called by USBDevice layer in response to set_configuration.
+    *
+    * Upon reception of this command endpoints of the previous configuration
+    * if any must be removed with endpoint_remove and new endpoint added with
+    * endpoint_add.
+    *
+    * @param configuration Number of the configuration
+    *
+    * Warning: Called in ISR context
+    */
+    virtual void callback_set_configuration(uint8_t configuration) = 0;
+    void complete_set_configuration(bool success);
+
+    /*
+    * Called by USBDevice layer in response to set_interface.
+    *
+    * Upon reception of this command endpoints of any previous interface
+    * if any must be removed with endpoint_remove and new endpoint added with
+    * endpoint_add.
+    *
+    * @param configuration Number of the configuration
+    *
+    * Warning: Called in ISR context
+    */
+    virtual void callback_set_interface(uint16_t interface, uint8_t alternate) = 0;
+    void complete_set_interface(bool success);
 
     uint8_t * find_descriptor(uint8_t descriptorType);
     control_transfer_t * get_transfer_ptr(void);
@@ -274,6 +283,17 @@ protected:
 private:
     virtual void start_process(void);
     void usbisr_thread(void);
+
+    // USBPhyEvents
+    virtual void connect_changed(unsigned int connected);
+    virtual void suspend_changed(unsigned int suspended);
+    virtual void sof(int frameNumber) {};
+    virtual void reset(void);
+    virtual void ep0_setup(void);
+    virtual void ep0_out(void);
+    virtual void ep0_in(void);
+    virtual void out_callback(uint8_t endpoint);
+    virtual void in_callback(uint8_t endpoint);
 
     bool request_get_descriptor(void);
     bool control_out(void);
