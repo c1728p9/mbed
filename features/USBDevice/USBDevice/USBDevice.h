@@ -242,8 +242,8 @@ protected:
     *
     * Warning: Called in ISR context
     */
-    virtual void callback_request_data() = 0;
-    void complete_request_data(bool success);
+    virtual void callback_request_xfer_done() = 0;
+    void complete_request_xfer_done(bool success);
 
     /*
     * Called by USBDevice layer in response to set_configuration.

@@ -67,6 +67,8 @@ bool USBTester::callback_request(void) {
                 break;
             case VENDOR_TEST_CTRL_OUT:
                 transfer->remaining = transfer->setup.wValue < 8 ? transfer->setup.wValue  : 8;
+                transfer->ptr = ctrl_buf;
+                transfer->direction = HOST_TO_DEVICE;
                 transfer->notify = true;
                 complete_request(true);
                 success = true;
@@ -83,7 +85,7 @@ bool USBTester::callback_request(void) {
     return success;
 }
 
-void USBTester::callback_request_data() {
+void USBTester::callback_request_xfer_done() {
 //    // Request of setting line coding has 7 bytes
 //    if (length != 7) {
 //        complete_request_data(false);
@@ -91,7 +93,7 @@ void USBTester::callback_request_data() {
 //    }
 //
 //    control_transfer_t *transfer = get_transfer_ptr();
-    complete_request_data(true);
+    complete_request_xfer_done(true);
 }
 
 // Called in ISR context

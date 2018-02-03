@@ -75,7 +75,7 @@ protected:
     uint8_t int_out;
 
     virtual bool callback_request();
-    virtual void callback_request_data();
+    virtual void callback_request_xfer_done();
     virtual void callback_set_configuration(uint8_t configuration);
     virtual void callback_set_interface(uint16_t interface, uint8_t alternate);
     virtual void callback_reset(void);

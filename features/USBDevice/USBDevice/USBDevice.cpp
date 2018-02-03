@@ -215,11 +215,11 @@ bool USBDevice::control_out(void)
         {
             /* Notify class layer. */
             transfer.notify = false;
-            callback_request_data();
+            callback_request_xfer_done();
         }
         else
         {
-            complete_request_data(true);
+            complete_request_xfer_done(true);
         }
     }
     else
@@ -277,11 +277,11 @@ bool USBDevice::control_in(void)
         {
             /* Notify class layer. */
             transfer.notify = false;
-            callback_request_data();
+            callback_request_xfer_done();
         }
         else
         {
-            complete_request_data(true);
+            complete_request_xfer_done(true);
         }
 
 
@@ -293,7 +293,7 @@ bool USBDevice::control_in(void)
     return true;
 }
 
-void USBDevice::complete_request_data(bool success)
+void USBDevice::complete_request_xfer_done(bool success)
 {
     if (!success) {
         phy->ep0_stall();
