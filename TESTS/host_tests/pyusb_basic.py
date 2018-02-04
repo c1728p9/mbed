@@ -20,6 +20,7 @@ from mbed_host_tests import BaseHostTest
 from argparse import ArgumentParser
 import time
 import sys
+from threading import Thread
 
 import usb.core
 
@@ -34,6 +35,11 @@ def get_interface(dev, interface, alternate=0):
 VENDOR_TEST_CTRL_IN = 1
 VENDOR_TEST_CTRL_OUT = 2
 VENDOR_TEST_CTRL_NONE = 3
+VENDOR_TEST_CTRL_IN_DELAY = 4
+VENDOR_TEST_CTRL_OUT_DELAY = 5
+VENDOR_TEST_CTRL_NONE_DELAY = 6
+VENDOR_TEST_CTRL_IN_STATUS_DELAY = 7
+VENDOR_TEST_CTRL_OUT_STATUS_DELAY = 8
 
 class PyusbBasicTest(BaseHostTest):
     """
@@ -179,7 +185,31 @@ def test_device(serial_number, log=print):
         bulk_out.write("hello2" + "x" *256);
         int_out.write("world2" + "x" *256);
 
+
+        t = Thread(target=write_data, args=(bulk_out,))
+        t.start()
+
+        for _ in range(10):
+            request_type = 0x40                         # Host-to-device, Vendor request to Device
+            request = VENDOR_TEST_CTRL_NONE_DELAY       # Vendor custom request
+            value = 0                                   # Always 0 for this request
+            index = 0                                   # Communication interface
+            length = 0                                  # No data
+            dev.ctrl_transfer(request_type, request, value, index, length, 5000)
+
+        t.join()
+
         return True
+
+def write_data(pipe):
+    print("Write data running")
+    count = 0
+    for _ in range(40):
+        pipe.write("Value is %s" % count)
+        count += 1
+        print("Count %s" % count)
+        time.sleep(0.5)
+    
     
 def control_stall_test(dev, log):
 

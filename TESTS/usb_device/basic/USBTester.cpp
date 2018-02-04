@@ -17,6 +17,7 @@
 
 #include "stdint.h"
 #include "USBTester.h"
+#include "mbed_shared_queues.h"
 
 #define DEFAULT_CONFIGURATION (1)
 
@@ -28,9 +29,14 @@
 #define CLS_DTR   (1 << 0)
 #define CLS_RTS   (1 << 1)
 
-#define VENDOR_TEST_CTRL_IN         1
-#define VENDOR_TEST_CTRL_OUT        2
-#define VENDOR_TEST_CTRL_NONE       3
+#define VENDOR_TEST_CTRL_IN                 1
+#define VENDOR_TEST_CTRL_OUT                2
+#define VENDOR_TEST_CTRL_NONE               3
+#define VENDOR_TEST_CTRL_IN_DELAY           4
+#define VENDOR_TEST_CTRL_OUT_DELAY          5
+#define VENDOR_TEST_CTRL_NONE_DELAY         6
+#define VENDOR_TEST_CTRL_IN_STATUS_DELAY    7
+#define VENDOR_TEST_CTRL_OUT_STATUS_DELAY   8
 
 #define MAX_CDC_REPORT_SIZE MAX_PACKET_SIZE_EPBULK
 
@@ -77,6 +83,10 @@ bool USBTester::callback_request(void) {
                 complete_request(true);
                 success = true;
                 break;
+            case VENDOR_TEST_CTRL_NONE_DELAY:
+                mbed_highprio_event_queue()->call_in(2000, static_cast<USBDevice*>(this), &USBTester::complete_request, true);
+                success = true;
+                break;
             default:
                 break;
         }
@@ -86,14 +96,22 @@ bool USBTester::callback_request(void) {
 }
 
 void USBTester::callback_request_xfer_done() {
-//    // Request of setting line coding has 7 bytes
-//    if (length != 7) {
-//        complete_request_data(false);
-//        return;
-//    }
-//
-//    control_transfer_t *transfer = get_transfer_ptr();
-    complete_request_xfer_done(true);
+
+    control_transfer_t *transfer = get_transfer_ptr();
+
+    if (transfer->setup.bmRequestType.Type == VENDOR_TYPE) {
+        switch (transfer->setup.bRequest) {
+            case VENDOR_TEST_CTRL_IN:
+                complete_request_xfer_done(true);
+                break;
+            case VENDOR_TEST_CTRL_OUT:
+                complete_request_xfer_done(true);
+                break;
+            default:
+                complete_request_xfer_done(false);
+                break;
+        }
+    }
 }
 
 // Called in ISR context
