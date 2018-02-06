@@ -59,6 +59,8 @@ enum  {
 };
 typedef uint8_t ep_attr_t;
 
+typedef uint8_t usb_ep_t;
+
 struct endpoint_entry_t {
     ep_attr_t attributes;
     uint8_t byte_cost;
@@ -108,15 +110,15 @@ public:
     virtual void ep0_write_result(void) = 0;
     virtual void ep0_stall(void) = 0;
 
-    virtual bool endpoint_add(uint8_t endpoint, uint32_t maxPacket, uint8_t type) = 0;
-    virtual bool endpoint_remove(uint8_t endpoint) = 0;
-    virtual void endpoint_stall(uint8_t endpoint) = 0;
-    virtual void endpoint_unstall(uint8_t endpoint) = 0;
-    virtual EP_STATUS endpoint_read(uint8_t endpoint, uint32_t maximumSize) = 0;
-    virtual EP_STATUS endpoint_read_result(uint8_t endpoint, uint8_t *data, uint32_t *bytesRead) = 0;
-    virtual EP_STATUS endpoint_write(uint8_t endpoint, uint8_t *data, uint32_t size) = 0;
-    virtual EP_STATUS endpoint_write_result(uint8_t endpoint) = 0;
-    virtual EP_STATUS endpoint_write_abort(uint8_t endpoint) = 0;
+    virtual bool endpoint_add(usb_ep_t endpoint, uint32_t maxPacket, uint8_t type) = 0;
+    virtual bool endpoint_remove(usb_ep_t endpoint) = 0;
+    virtual void endpoint_stall(usb_ep_t endpoint) = 0;
+    virtual void endpoint_unstall(usb_ep_t endpoint) = 0;
+    virtual EP_STATUS endpoint_read(usb_ep_t endpoint, uint32_t maximumSize) = 0;
+    virtual EP_STATUS endpoint_read_result(usb_ep_t endpoint, uint8_t *data, uint32_t *bytesRead) = 0;
+    virtual EP_STATUS endpoint_write(usb_ep_t endpoint, uint8_t *data, uint32_t size) = 0;
+    virtual EP_STATUS endpoint_write_result(usb_ep_t endpoint) = 0;
+    virtual EP_STATUS endpoint_write_abort(usb_ep_t endpoint) = 0;
 
     virtual void process() = 0;
 };

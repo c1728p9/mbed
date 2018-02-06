@@ -79,8 +79,8 @@ protected:
     virtual void callback_set_configuration(uint8_t configuration);
     virtual void callback_set_interface(uint16_t interface, uint8_t alternate);
     virtual void callback_reset(void);
-    virtual void epbulk_out_callback();
-    virtual void epint_out_callback();
+    virtual void epbulk_out_callback(usb_ep_t endpoint);
+    virtual void epint_out_callback(usb_ep_t endpoint);
     uint8_t ctrl_buf[2048];
 
 };

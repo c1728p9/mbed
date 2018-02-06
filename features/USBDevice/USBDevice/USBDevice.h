@@ -24,15 +24,28 @@
 #include "USBPhy.h"
 #include "EventQueue.h"
 
+class USBDevice;
+
+struct endpoint_info_t
+{
+    void (USBDevice::*callback)(usb_ep_t endpoint);
+    uint16_t max_packet_size;
+    uint8_t flags;
+    uint8_t pending;
+};
 
 
 class USBDevice: public  USBPhyEvents
 {
 public:
-    typedef void (USBDevice::*ep_cb_t)(void);
+    typedef void (USBDevice::*ep_cb_t)(usb_ep_t endpoint);
 
     USBDevice(uint16_t vendor_id, uint16_t product_id, uint16_t product_release);
     USBDevice(USBPhy *phy, uint16_t vendor_id, uint16_t product_id, uint16_t product_release);
+
+    void lock();
+    void unlock();
+    void assert_locked();
 
     /*
     * Check if the device is configured
@@ -60,7 +73,7 @@ public:
     * @param maxPacket Maximum size of a packet which can be sent for this endpoint
     * @returns true if successful, false otherwise
     */
-    bool endpoint_add(uint8_t endpoint, uint32_t maxPacket, uint8_t type=0, ep_cb_t callback=NULL);
+    bool endpoint_add(usb_ep_t endpoint, uint32_t maxPacket, uint8_t type=0, ep_cb_t callback=NULL);
 
     /*
     * Add an endpoint
@@ -70,77 +83,64 @@ public:
     * @returns true if successful, false otherwise
     */
     template<typename T>
-    bool endpoint_add(uint8_t endpoint, uint32_t maxPacket, uint8_t type, void (T::*method)()) {
+    bool endpoint_add(usb_ep_t endpoint, uint32_t maxPacket, uint8_t type, void (T::*method)(usb_ep_t endpoint)) {
         return endpoint_add(endpoint, maxPacket, type, static_cast<ep_cb_t>(method));
     }
 
-    bool endpoint_remove(uint8_t endpoint);
+    bool endpoint_remove(usb_ep_t endpoint);
 
-    void endpoint_stall(uint8_t endpoint);
+    void endpoint_stall(usb_ep_t endpoint);
 
-    void endpoint_unstall(uint8_t endpoint);
+    void endpoint_unstall(usb_ep_t endpoint);
 
-    /*
-    * Start a reading on a certain endpoint.
-    * You can access the result of the reading by USBDevice_read
-    *
-    * @param endpoint endpoint which will be read
-    * @param maxSize the maximum length that can be read
-    * @return true if successful
-    */
-    bool readStart(uint8_t endpoint, uint32_t maxSize);
+    /**
+     * Get the current maximum size for this endpoint
+     *
+     * Return the currently configured maximum packet size, wMaxPacketSize,
+     * for thie endpoint.
+     */
+    uint32_t endpoint_max_packet_size(usb_ep_t endpoint);
 
-    /*
-    * Read a certain endpoint. Before calling this function, USBUSBDevice_readStart
-    * must be called.
-    *
-    * Warning: blocking
-    *
-    * @param endpoint endpoint which will be read
-    * @param buffer buffer will be filled with the data received
-    * @param size the number of bytes read will be stored in *size
-    * @param maxSize the maximum length that can be read
-    * @returns true if successful
-    */
-    bool readEP(uint8_t endpoint, uint8_t * buffer, uint32_t * size, uint32_t maxSize);
+    /** Start a read on the given endpoint
+     *
+     * After the read is finished call read_start to get the result.
+     *
+     * @param endpoint endpoint to perform the read on
+     * @return true if the read was started, false if no more reads can be started
+     * @note Synchronization level: Interrupt safe
+     */
+    bool read_start(usb_ep_t endpoint);
 
-    /*
-    * Read a certain endpoint.
-    *
-    * Warning: non blocking
-    *
-    * @param endpoint endpoint which will be read
-    * @param buffer buffer will be filled with the data received (if data are available)
-    * @param size the number of bytes read will be stored in *size
-    * @param maxSize the maximum length that can be read
-    * @returns true if successful
-    */
-    bool readEP_NB(uint8_t endpoint, uint8_t * buffer, uint32_t * size, uint32_t maxSize);
+    /**
+     * Finish a read on the given endpoint
+     *
+     * Get the contents of a read started with read_start. To ensure all
+     * the data from this endpoint is read make sure the buffer and size
+     * passed is at least as big as the maximum packet for this endpoint.
+     *
+     * @param endpoint endpoint to read data from
+     * @param buffer buffer to fill with read data
+     * @param size The size of data that was read
+     * @param max_size the total size of the data buffer. This bust be at least
+     * the max packet size of this endpoint
+     * @return true if the read was completed, otherwise false
+     * @note Synchronization level: Interrupt safe
+     */
+    bool read_finish(usb_ep_t endpoint, uint8_t *buffer, uint32_t *size, uint32_t max_size);
 
-    /*
-    * Write a certain endpoint.
-    *
-    * Warning: blocking
-    *
-    * @param endpoint endpoint to write
-    * @param buffer data contained in buffer will be write
-    * @param size the number of bytes to write
-    * @param maxSize the maximum length that can be written on this endpoint
-    */
-    bool write(uint8_t endpoint, uint8_t * buffer, uint32_t size, uint32_t maxSize);
-
-
-    /*
-    * Write a certain endpoint.
-    *
-    * Warning: non blocking
-    *
-    * @param endpoint endpoint to write
-    * @param buffer data contained in buffer will be write
-    * @param size the number of bytes to write
-    * @param maxSize the maximum length that can be written on this endpoint
-    */
-    bool writeNB(uint8_t endpoint, uint8_t * buffer, uint32_t size, uint32_t maxSize);
+    /**
+     * Write a data to the given endpoint
+     *
+     * Write data to an endpoint.
+     *
+     * @param endpoint endpoint to write data to
+     * @param buffer data to write
+     * @param size the size of data to send. This must be less than or equal to the
+     * max packet size of this endpoint
+     *
+     * @note Synchronization level: Interrupt safe
+     */
+    bool write(usb_ep_t endpoint, uint8_t *buffer, uint32_t size);
 
     /*
     * Get device descriptor.
@@ -281,7 +281,7 @@ protected:
     uint16_t product_release;
     uint8_t device_descriptor[18];
 
-    ep_cb_t ep_callback[32 - 2];
+    endpoint_info_t endpoint_info[32 - 2];
 
 private:
     virtual void start_process(void);
@@ -295,8 +295,8 @@ private:
     virtual void ep0_setup(void);
     virtual void ep0_out(void);
     virtual void ep0_in(void);
-    virtual void out_callback(uint8_t endpoint);
-    virtual void in_callback(uint8_t endpoint);
+    virtual void out_callback(usb_ep_t endpoint);
+    virtual void in_callback(usb_ep_t endpoint);
 
     bool request_get_descriptor(void);
     bool control_out(void);
@@ -315,9 +315,9 @@ private:
     bool request_set_interface(void);
 
 
-
+    //TODO - expose a locking API
     USBPhy *phy;
-    control_transfer_t transfer;
+    control_transfer_t transfer;//TODO - move variables out of here
     usb_device_t device;
 
     uint16_t current_interface;

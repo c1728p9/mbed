@@ -129,8 +129,8 @@ void USBTester::callback_set_configuration(uint8_t configuration) {
     endpoint_add(EPBULK_IN, MAX_PACKET_SIZE_EPBULK);
     endpoint_add(EPBULK_OUT, MAX_PACKET_SIZE_EPBULK, 0, &USBTester::epbulk_out_callback);
 
-    readStart(EPBULK_OUT, MAX_PACKET_SIZE_EPBULK);
-    readStart(EPINT_OUT, MAX_PACKET_SIZE_EPINT);
+    read_start(EPBULK_OUT);
+    read_start(EPINT_OUT);
 
     complete_set_configuration(true);
 }
@@ -146,8 +146,8 @@ void USBTester::callback_set_interface(uint16_t interface, uint8_t alternate) {
         endpoint_add(EPBULK_IN, MAX_PACKET_SIZE_EPBULK);
         endpoint_add(EPBULK_OUT, MAX_PACKET_SIZE_EPBULK, 0, &USBTester::epbulk_out_callback);
 
-        readStart(EPBULK_OUT, MAX_PACKET_SIZE_EPBULK);
-        readStart(EPINT_OUT, MAX_PACKET_SIZE_EPINT);
+        read_start(EPBULK_OUT);
+        read_start(EPINT_OUT);
         complete_set_interface(true);
         return;
     }
@@ -161,8 +161,8 @@ void USBTester::callback_set_interface(uint16_t interface, uint8_t alternate) {
         endpoint_add(EPBULK_IN, 8);
         endpoint_add(EPBULK_OUT, 8, 0, &USBTester::epbulk_out_callback);
 
-        readStart(EPBULK_OUT, 8);
-        readStart(EPINT_OUT, 8);
+        read_start(EPBULK_OUT);
+        read_start(EPINT_OUT);
         complete_set_interface(true);
         return;
     }
@@ -332,22 +332,22 @@ const uint8_t * USBTester::configuration_desc() {
 }
 
 
-void USBTester::epint_out_callback() {
+void USBTester::epint_out_callback(usb_ep_t endpoint) {
     uint8_t buffer[65];
     uint32_t size = 0;
 
-    if (!readEP_NB(EPINT_OUT, buffer, &size, 64))
+    if (!read_finish(endpoint, buffer, &size, sizeof(buffer)))
         return;
-    if (!readStart(EPINT_OUT, 64))
+    if (!read_start(endpoint))
         return;
 }
-void USBTester::epbulk_out_callback() {
+void USBTester::epbulk_out_callback(usb_ep_t endpoint) {
     uint8_t buffer[65];
     uint32_t size = 0;
 
-    if (!readEP_NB(EPBULK_OUT, buffer, &size, 64))
+    if (!read_finish(endpoint, buffer, &size, sizeof(buffer)))
         return;
-    if (!readStart(EPBULK_OUT, 64))
+    if (!read_start(endpoint))
         return;
 }
 
