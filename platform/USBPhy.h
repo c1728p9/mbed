@@ -333,7 +333,7 @@ public:
      * @param endpoint Endpoint to start the read on
      * @param max_packet A hint as to the wMaxPacketSize of this endpoint.
      *  This must match the size in endpoint_add.
-     * @return true if the read was successfully started, false othewise
+     * @return true if the read was successfully started, false otherwise
      */
     virtual bool endpoint_read(usb_ep_t endpoint, uint32_t max_packet) = 0;
 
