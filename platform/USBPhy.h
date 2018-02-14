@@ -90,25 +90,25 @@ public:
      * Callback called when a bus reset occurs
      * @note called in the contex of USBPhy::process
      */
-    virtual void reset(void) = 0;
+    virtual void reset() = 0;
 
     /**
      * Callback called when an endpoint 0 setup packet is received
      * @note called in the contex of USBPhy::process
      */
-    virtual void ep0_setup(void) = 0;
+    virtual void ep0_setup() = 0;
 
     /**
      * Callback called when an endpoint 0 out packet is received
      * @note called in the contex of USBPhy::process
      */
-    virtual void ep0_out(void) = 0;
+    virtual void ep0_out() = 0;
 
     /**
      * Callback called when an endpoint 0 in packet is received
      * @note called in the contex of USBPhy::process
      */
-    virtual void ep0_in(void) = 0;
+    virtual void ep0_in() = 0;
 
     /**
      * Callback called when entering or leaving suspend mode
