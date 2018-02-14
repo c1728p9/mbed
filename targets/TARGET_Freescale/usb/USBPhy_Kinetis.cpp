@@ -21,11 +21,11 @@
 #if defined(TARGET_KSDK2_MCUS)
 #include "fsl_common.h"
 #endif
-#include "USBPhy.h"
+#include "USBPhyHw.h"
 #include "USBEndpoints_Kinetis.h"//TODO - see if this is needed
 #include "mbed_critical.h"
 
-USBHAL * USBHAL::instance;
+static USBPhyHw *instance;
 
 static volatile int epComplete = 0;
 
@@ -90,12 +90,22 @@ static uint32_t frameNumber() {
     return((USB0->FRMNUML | (USB0->FRMNUMH << 8)) & 0x07FF);
 }
 
+USBPhy *get_usb_phy() {
+    static USBPhyHw usbphy;
+    return &usbphy;
+}
+
 USBPhyHw::USBPhyHw()
 {
 
 }
 
-USBPhyHw::init(USBPhyEvents *events)
+USBPhyHw::~USBPhyHw()
+{
+}
+
+
+void USBPhyHw::init(USBPhyEvents *events)
 {
     this->events = events;
 
@@ -148,11 +158,7 @@ USBPhyHw::init(USBPhyEvents *events)
     endpoint_buffer[EP_BDT_IDX(0, RX, ODD)] = (uint8_t *)malloc(MAX_PACKET_SIZE_EP0);
 }
 
-USBPhyHw::~USBPhyHw()
-{
-}
-
-USBPhyHw::deinit()
+void USBPhyHw::deinit()
 {
 }
 
@@ -164,7 +170,7 @@ void USBPhyHw::connect()
     USB0->CONTROL |= USB_CONTROL_DPPULLUPNONOTG_MASK;
 
     // Allocate endpoint buffers; do allocate control endpoint buffers
-    for (int i = 4; i < (NUMBER_OF_PHYSICAL_ENDPOINTS * 2); i++) {
+    for (int i = 4; i < (NUMBER_OF_PHYSICAL_ENDPOINTS * 2); i++) {//TODO
         if ((i == EPISO_OUT) || (i == EPISO_IN)) {
             endpoint_buffer[i] = (uint8_t *)malloc(MAX_PACKET_SIZE_EPISO);
         } else {
@@ -223,7 +229,16 @@ void USBPhyHw::remote_wakeup()
 
 const usb_ep_table_t* USBPhyHw::endpoint_table()
 {
-    //TODO
+    static const usb_ep_table_t table = {
+        1, // No cost per endpoint
+        {
+            {USB_EP_ATTR_ALLOW_CTRL | USB_EP_ATTR_DIR_IN_AND_OUT, 0, 0},
+            {USB_EP_ATTR_ALLOW_INT | USB_EP_ATTR_DIR_IN_AND_OUT,  0, 0},
+            {USB_EP_ATTR_ALLOW_BULK | USB_EP_ATTR_DIR_IN_AND_OUT, 0, 0},
+            {USB_EP_ATTR_ALLOW_ISO | USB_EP_ATTR_DIR_IN_AND_OUT,  0, 0}
+        }
+    };
+    return &table;
 }
 
 uint32_t USBPhyHw::ep0_set_max_packet(uint32_t max_packet)
@@ -235,7 +250,7 @@ uint32_t USBPhyHw::ep0_set_max_packet(uint32_t max_packet)
 void USBPhyHw::ep0_setup_read_result(uint8_t *buffer, uint32_t size)
 {
     uint32_t sz;
-    endpointReadResult(EP0OUT, buffer, &sz);//TODO
+    endpoint_read_result(EP0OUT, buffer, size, &sz);
 }
 
 void USBPhyHw::ep0_read()
@@ -264,13 +279,13 @@ void USBPhyHw::ep0_read()
         // without any processor intervention.
         Data1 &= ~1UL;  // set DATA0
     }
-    endpointRead(EP0OUT, MAX_PACKET_SIZE_EP0);//TODO
+    endpoint_read(EP0OUT, MAX_PACKET_SIZE_EP0);
 }
 
 uint32_t USBPhyHw::ep0_read_result(uint8_t *buffer, uint32_t size)
 {
     uint32_t sz;
-    endpointReadResult(EP0OUT, buffer, &sz);//TODO
+    endpoint_read_result(EP0OUT, buffer, size, &sz);
     return sz;
 }
 
@@ -282,10 +297,10 @@ void USBPhyHw::ep0_write(uint8_t *buffer, uint32_t size)
     }
     if ((ctrl_xfer == CTRL_XFER_NONE) || (ctrl_xfer == CTRL_XFER_OUT)) {
         // Prepare for next setup packet
-        endpointRead(EP0OUT, MAX_PACKET_SIZE_EP0);
+        endpoint_read(EP0OUT, MAX_PACKET_SIZE_EP0);
         ctrl_xfer = CTRL_XFER_READY;
      }
-    endpointWrite(EP0IN, buffer, size);
+    endpoint_write(EP0IN, buffer, size);
 }
 
 void USBPhyHw::ep0_stall()
@@ -296,12 +311,12 @@ void USBPhyHw::ep0_stall()
     }
     ctrl_xfer = CTRL_XFER_READY;
     core_util_critical_section_enter();
-    stallEndpoint(EP0OUT);
+    endpoint_stall(EP0OUT);
     // Prepare for next setup packet
     // Note - time between stalling and setting up the endpoint
     //      must be kept to a minimum to prevent a dropped SETUP
     //      packet.
-    endpointRead(EP0OUT, MAX_PACKET_SIZE_EP0);
+    endpoint_read(EP0OUT, MAX_PACKET_SIZE_EP0);
     core_util_critical_section_exit();
 }
 
@@ -316,7 +331,7 @@ bool USBPhyHw::endpoint_add(usb_ep_t endpoint, uint32_t max_packet, usb_ep_type_
 
     uint32_t log_endpoint = PHY_TO_LOG(endpoint);
 
-    if ((flags & ISOCHRONOUS) == 0) {//TODO
+    if (type == USB_EP_TYPE_ISO) {
         handshake_flag = USB_ENDPT_EPHSHK_MASK;
     }
 
@@ -337,7 +352,7 @@ bool USBPhyHw::endpoint_add(usb_ep_t endpoint, uint32_t max_packet, usb_ep_type_
     else {
         USB0->ENDPOINT[log_endpoint].ENDPT |= handshake_flag |        // ep handshaking (not if iso endpoint)
                                               USB_ENDPT_EPRXEN_MASK;  // en RX (OUT) tran.
-        bdt[EP_BDT_IDX(log_endpoint, RX, ODD )].byte_count = maxPacket;
+        bdt[EP_BDT_IDX(log_endpoint, RX, ODD )].byte_count = max_packet;
         bdt[EP_BDT_IDX(log_endpoint, RX, ODD )].address    = (uint32_t) buf;
         bdt[EP_BDT_IDX(log_endpoint, RX, ODD )].info       = BD_DTS_MASK;
         bdt[EP_BDT_IDX(log_endpoint, RX, EVEN)].info       = 0;
@@ -369,7 +384,7 @@ void USBPhyHw::endpoint_unstall(usb_ep_t endpoint)
     USB0->ENDPOINT[PHY_TO_LOG(endpoint)].ENDPT &= ~USB_ENDPT_EPSTALL_MASK;
 }
 
-bool USBPhyHw:: endpoint_read(usb_ep_t endpoint, uint32_t max_packet)
+bool USBPhyHw::endpoint_read(usb_ep_t endpoint, uint32_t max_packet)
 {
     uint8_t log_endpoint = PHY_TO_LOG(endpoint);
 
@@ -383,10 +398,10 @@ bool USBPhyHw:: endpoint_read(usb_ep_t endpoint, uint32_t max_packet)
     }
 
     Data1 ^= (1 << endpoint);
-    return EP_PENDING;
+    return true;
 }
 
-bool USBPhyHw::endpoint_read_result(usb_ep_t endpoint, uint8_t *data, uint32_t size, uint32_t *bytes_read)
+bool USBPhyHw::endpoint_read_result(usb_ep_t endpoint, uint8_t *buffer, uint32_t size, uint32_t *bytes_read)
 {
     uint32_t n, sz, idx, setup = 0;
     uint8_t not_iso;
@@ -395,7 +410,7 @@ bool USBPhyHw::endpoint_read_result(usb_ep_t endpoint, uint8_t *data, uint32_t s
     uint32_t log_endpoint = PHY_TO_LOG(endpoint);
 
     if (endpoint > NUMBER_OF_PHYSICAL_ENDPOINTS - 1) {
-        return EP_INVALID;
+        return false;
     }
 
     // if read on a IN endpoint -> error
@@ -433,7 +448,7 @@ bool USBPhyHw::endpoint_read_result(usb_ep_t endpoint, uint8_t *data, uint32_t s
     }
 
     USB0->CTL &= ~USB_CTL_TXSUSPENDTOKENBUSY_MASK;
-    *bytesRead = sz;
+    *bytes_read = sz;
 
     epComplete &= ~EP(endpoint);
     return true;
@@ -470,7 +485,7 @@ bool USBPhyHw::endpoint_write(usb_ep_t endpoint, uint8_t *data, uint32_t size)
 
     Data1 ^= (1 << endpoint);
 
-    return EP_PENDING;
+    return true;
 }
 
 void USBPhyHw::endpoint_abort(usb_ep_t endpoint)
@@ -478,8 +493,8 @@ void USBPhyHw::endpoint_abort(usb_ep_t endpoint)
     //TODO
 }
 
-void USBHAL::_usbisr(void) {
-    instance->usbisr();
+void USBPhyHw::_usbisr(void) {
+    instance->events->start_process();
 }
 
 
@@ -496,8 +511,8 @@ void USBPhyHw::process()
         }
 
         // enable control endpoint
-        realiseEndpoint(EP0OUT, MAX_PACKET_SIZE_EP0, 0);
-        realiseEndpoint(EP0IN, MAX_PACKET_SIZE_EP0, 0);
+        endpoint_add(EP0OUT, MAX_PACKET_SIZE_EP0, USB_EP_TYPE_CTRL);
+        endpoint_add(EP0IN, MAX_PACKET_SIZE_EP0, USB_EP_TYPE_CTRL);
 
         Data1 = 0x55555555;
         USB0->CTL |=  USB_CTL_ODDRST_MASK;
@@ -557,9 +572,6 @@ void USBPhyHw::process()
                 else {
                     epComplete |= EP(endpoint);
                     events->out(endpoint);
-//                    if ((instance->*(epCallback[endpoint - 2]))()) {
-//                        epComplete &= ~EP(endpoint);
-//                    }
                 }
             }
 
@@ -575,9 +587,6 @@ void USBPhyHw::process()
                 else {
                     epComplete |= EP(endpoint);
                     events->in(endpoint);
-//                    if ((instance->*(epCallback[endpoint - 2]))()) {
-//                        epComplete &= ~EP(endpoint);
-//                    }
                 }
             }
         }

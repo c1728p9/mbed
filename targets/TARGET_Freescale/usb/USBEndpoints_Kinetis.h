@@ -23,14 +23,14 @@
 
 /*      Endpoint    No.   */
 /*      ----------------  */
-#define EP0OUT      (0)
-#define EP0IN       (1)
-#define EP1OUT      (2)
-#define EP1IN       (3)
-#define EP2OUT      (4)
-#define EP2IN       (5)
-#define EP3OUT      (6)
-#define EP3IN       (7)
+#define EP0OUT      (0x00)
+#define EP0IN       (0x80)
+#define EP1OUT      (0x01)
+#define EP1IN       (0x81)
+#define EP2OUT      (0x02)
+#define EP2IN       (0x82)
+#define EP3OUT      (0x03)
+#define EP3IN       (0x83)
 
 /* Maximum Packet sizes */
 
