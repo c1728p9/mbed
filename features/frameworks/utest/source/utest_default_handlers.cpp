@@ -50,14 +50,14 @@ static void test_failure_handler(const failure_t failure) {
 utest::v1::status_t utest::v1::verbose_test_setup_handler(const size_t number_of_cases)
 {
     UTEST_LOG_FUNCTION();
-    utest_printf(">>> Running %u test cases...\n", number_of_cases);
+    utest_printf(">>> Running %u test cases...\n", (unsigned int)number_of_cases);
     return STATUS_CONTINUE;
 }
 
 void utest::v1::verbose_test_teardown_handler(const size_t passed, const size_t failed, const failure_t failure)
 {
     UTEST_LOG_FUNCTION();
-    utest_printf("\n>>> Test cases: %u passed, %u failed", passed, failed);
+    utest_printf("\n>>> Test cases: %u passed, %u failed", (unsigned int)passed, (unsigned int)failed);
     if (failure.reason == REASON_NONE) {
         utest_printf("\n");
     } else  {
@@ -76,14 +76,14 @@ void utest::v1::verbose_test_failure_handler(const failure_t failure)
 utest::v1::status_t utest::v1::verbose_case_setup_handler(const Case *const source, const size_t index_of_case)
 {
     UTEST_LOG_FUNCTION();
-    utest_printf("\n>>> Running case #%u: '%s'...\n", index_of_case + 1, source->get_description());
+    utest_printf("\n>>> Running case #%u: '%s'...\n", (unsigned int)(index_of_case + 1), source->get_description());
     return STATUS_CONTINUE;
 }
 
 utest::v1::status_t utest::v1::verbose_case_teardown_handler(const Case *const source, const size_t passed, const size_t failed, const failure_t failure)
 {
     UTEST_LOG_FUNCTION();
-    utest_printf(">>> '%s': %u passed, %u failed", source->get_description(), passed, failed);
+    utest_printf(">>> '%s': %u passed, %u failed", source->get_description(), (unsigned int)passed, (unsigned int)failed);
     if (failure.reason == REASON_NONE) {
         utest_printf("\n");
     } else  {
