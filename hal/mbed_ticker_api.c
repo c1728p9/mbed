@@ -300,7 +300,7 @@ void ticker_irq_handler(const ticker_data_t *const ticker)
     core_util_critical_section_exit();
 }
 
-void ticker_insert_event(const ticker_data_t *const ticker, ticker_event_t *obj, timestamp_t timestamp, uint32_t id)
+void ticker_insert_event(const ticker_data_t *const ticker, ticker_event_t *obj, timestamp_t timestamp, uintptr_t id)
 {
     core_util_critical_section_enter();
 
@@ -320,7 +320,7 @@ void ticker_insert_event(const ticker_data_t *const ticker, ticker_event_t *obj,
     core_util_critical_section_exit();
 }
 
-void ticker_insert_event_us(const ticker_data_t *const ticker, ticker_event_t *obj, us_timestamp_t timestamp, uint32_t id)
+void ticker_insert_event_us(const ticker_data_t *const ticker, ticker_event_t *obj, us_timestamp_t timestamp, uintptr_t id)
 {
     core_util_critical_section_enter();
 

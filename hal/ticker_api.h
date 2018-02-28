@@ -41,11 +41,11 @@ typedef uint64_t us_timestamp_t;
  */
 typedef struct ticker_event_s {
     us_timestamp_t         timestamp; /**< Event's timestamp */
-    uint32_t               id;        /**< TimerEvent object */
+    uintptr_t               id;        /**< TimerEvent object */
     struct ticker_event_s *next;      /**< Next event in the queue */
 } ticker_event_t;
 
-typedef void (*ticker_event_handler)(uint32_t id);
+typedef void (*ticker_event_handler)(uintptr_t id);
 
 /** Information about the ticker implementation
  */
@@ -136,7 +136,7 @@ void ticker_remove_event(const ticker_data_t *const ticker, ticker_event_t *obj)
  * @param timestamp The event's timestamp
  * @param id        The event object
  */
-void ticker_insert_event(const ticker_data_t *const ticker, ticker_event_t *obj, timestamp_t timestamp, uint32_t id);
+void ticker_insert_event(const ticker_data_t *const ticker, ticker_event_t *obj, timestamp_t timestamp, uintptr_t id);
 
 /** Insert an event to the queue
  *
@@ -151,7 +151,7 @@ void ticker_insert_event(const ticker_data_t *const ticker, ticker_event_t *obj,
  * @param timestamp The event's timestamp
  * @param id        The event object
  */
-void ticker_insert_event_us(const ticker_data_t *const ticker, ticker_event_t *obj, us_timestamp_t timestamp, uint32_t id);
+void ticker_insert_event_us(const ticker_data_t *const ticker, ticker_event_t *obj, us_timestamp_t timestamp, uintptr_t id);
 
 /** Read the current (relative) ticker's timestamp
  *

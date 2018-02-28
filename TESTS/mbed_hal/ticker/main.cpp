@@ -757,7 +757,7 @@ static void test_legacy_insert_event_multiple_random()
 
     ticker_insert_event(
         &ticker_stub,
-        &first_event, first_event_timestamp, (uint32_t) &first_event
+        &first_event, first_event_timestamp, (uintptr_t) &first_event
     );
 
     TEST_ASSERT_EQUAL_PTR(&first_event, queue_stub.head);
@@ -771,7 +771,7 @@ static void test_legacy_insert_event_multiple_random()
         first_event_timestamp + 
         ((first_event_timestamp < ref_timestamp) ? (1ULL << 32) : 0)
     );
-    TEST_ASSERT_EQUAL_UINT32((uint32_t) &first_event, first_event.id);
+    TEST_ASSERT_EQUAL_UINT32((uintptr_t) &first_event, first_event.id);
 
     // insert second event at the tail of the queue
     ticker_event_t second_event;
@@ -779,7 +779,7 @@ static void test_legacy_insert_event_multiple_random()
 
     ticker_insert_event(
         &ticker_stub,
-        &second_event, second_event_timestamp, (uint32_t) &second_event
+        &second_event, second_event_timestamp, (uintptr_t) &second_event
     );
 
     TEST_ASSERT_EQUAL_PTR(&first_event, queue_stub.head);
@@ -794,7 +794,7 @@ static void test_legacy_insert_event_multiple_random()
         second_event_timestamp + 
         ((second_event_timestamp < ref_timestamp) ? (1ULL << 32) : 0)
     );
-    TEST_ASSERT_EQUAL_UINT32((uint32_t) &second_event, second_event.id);
+    TEST_ASSERT_EQUAL_UINT32((uintptr_t) &second_event, second_event.id);
 
 
     // insert third event at the head of the queue out the overflow zone
@@ -804,7 +804,7 @@ static void test_legacy_insert_event_multiple_random()
 
     ticker_insert_event(
         &ticker_stub,
-        &third_event, third_event_timestamp, (uint32_t) &third_event
+        &third_event, third_event_timestamp, (uintptr_t) &third_event
     );
 
     TEST_ASSERT_EQUAL_PTR(&third_event, queue_stub.head);
@@ -820,7 +820,7 @@ static void test_legacy_insert_event_multiple_random()
         third_event_timestamp + 
         ((third_event_timestamp < ref_timestamp) ? (1ULL << 32) : 0)
     );
-    TEST_ASSERT_EQUAL_UINT32((uint32_t) &third_event, third_event.id);
+    TEST_ASSERT_EQUAL_UINT32((uintptr_t) &third_event, third_event.id);
 
     // insert fourth event right after the third event
     ticker_event_t fourth_event;
@@ -828,7 +828,7 @@ static void test_legacy_insert_event_multiple_random()
 
     ticker_insert_event(
         &ticker_stub,
-        &fourth_event, fourth_event_timestamp, (uint32_t) &fourth_event
+        &fourth_event, fourth_event_timestamp, (uintptr_t) &fourth_event
     );
 
     TEST_ASSERT_EQUAL_PTR(&third_event, queue_stub.head);
@@ -845,7 +845,7 @@ static void test_legacy_insert_event_multiple_random()
         fourth_event_timestamp + 
         ((fourth_event_timestamp < ref_timestamp) ? (1ULL << 32) : 0)
     );
-    TEST_ASSERT_EQUAL_UINT32((uint32_t) &fourth_event, fourth_event.id);
+    TEST_ASSERT_EQUAL_UINT32((uintptr_t) &fourth_event, fourth_event.id);
 
     TEST_ASSERT_EQUAL(0, interface_stub.disable_interrupt_call);
 }
@@ -1166,7 +1166,7 @@ static void test_insert_event_us_multiple_random()
 
     ticker_insert_event_us(
         &ticker_stub,
-        &first_event, first_event_timestamp, (uint32_t) &first_event
+        &first_event, first_event_timestamp, (uintptr_t) &first_event
     );
 
     TEST_ASSERT_EQUAL_PTR(&first_event, queue_stub.head);
@@ -1175,7 +1175,7 @@ static void test_insert_event_us_multiple_random()
         ref_timestamp + TIMESTAMP_MAX_DELTA, interface_stub.interrupt_timestamp
     );
     TEST_ASSERT_EQUAL_UINT64(first_event.timestamp, first_event_timestamp);
-    TEST_ASSERT_EQUAL_UINT32((uint32_t) &first_event, first_event.id);
+    TEST_ASSERT_EQUAL_UINT32((uintptr_t) &first_event, first_event.id);
 
     // insert second event at the tail of the queue
     ticker_event_t second_event;
@@ -1183,7 +1183,7 @@ static void test_insert_event_us_multiple_random()
 
     ticker_insert_event_us(
         &ticker_stub,
-        &second_event, second_event_timestamp, (uint32_t) &second_event
+        &second_event, second_event_timestamp, (uintptr_t) &second_event
     );
 
     TEST_ASSERT_EQUAL_PTR(&first_event, queue_stub.head);
@@ -1193,7 +1193,7 @@ static void test_insert_event_us_multiple_random()
         ref_timestamp + TIMESTAMP_MAX_DELTA, interface_stub.interrupt_timestamp
     );
     TEST_ASSERT_EQUAL_UINT64(second_event_timestamp, second_event.timestamp);
-    TEST_ASSERT_EQUAL_UINT32((uint32_t) &second_event, second_event.id);
+    TEST_ASSERT_EQUAL_UINT32((uintptr_t) &second_event, second_event.id);
 
 
     // insert third event at the head of the queue out the overflow zone
@@ -1203,7 +1203,7 @@ static void test_insert_event_us_multiple_random()
 
     ticker_insert_event_us(
         &ticker_stub,
-        &third_event, third_event_timestamp, (uint32_t) &third_event
+        &third_event, third_event_timestamp, (uintptr_t) &third_event
     );
 
     TEST_ASSERT_EQUAL_PTR(&third_event, queue_stub.head);
@@ -1214,7 +1214,7 @@ static void test_insert_event_us_multiple_random()
         third_event_timestamp, interface_stub.interrupt_timestamp
     );
     TEST_ASSERT_EQUAL_UINT64(third_event_timestamp, third_event.timestamp);
-    TEST_ASSERT_EQUAL_UINT32((uint32_t) &third_event, third_event.id);
+    TEST_ASSERT_EQUAL_UINT32((uintptr_t) &third_event, third_event.id);
 
     // insert fourth event right after the third event
     ticker_event_t fourth_event;
@@ -1222,7 +1222,7 @@ static void test_insert_event_us_multiple_random()
 
     ticker_insert_event_us(
         &ticker_stub,
-        &fourth_event, fourth_event_timestamp, (uint32_t) &fourth_event
+        &fourth_event, fourth_event_timestamp, (uintptr_t) &fourth_event
     );
 
     TEST_ASSERT_EQUAL_PTR(&third_event, queue_stub.head);
@@ -1234,7 +1234,7 @@ static void test_insert_event_us_multiple_random()
         third_event_timestamp, interface_stub.interrupt_timestamp
     );
     TEST_ASSERT_EQUAL_UINT64(fourth_event_timestamp, fourth_event.timestamp);
-    TEST_ASSERT_EQUAL_UINT32((uint32_t) &fourth_event, fourth_event.id);
+    TEST_ASSERT_EQUAL_UINT32((uintptr_t) &fourth_event, fourth_event.id);
 
     TEST_ASSERT_EQUAL(0, interface_stub.disable_interrupt_call);
 }
@@ -1436,7 +1436,7 @@ static void test_remove_random()
 
     ticker_insert_event_us(
         &ticker_stub,
-        &first_event, first_event_timestamp, (uint32_t) &first_event
+        &first_event, first_event_timestamp, (uintptr_t) &first_event
     );
 
 
@@ -1445,7 +1445,7 @@ static void test_remove_random()
 
     ticker_insert_event_us(
         &ticker_stub,
-        &second_event, second_event_timestamp, (uint32_t) &second_event
+        &second_event, second_event_timestamp, (uintptr_t) &second_event
     );
 
     ticker_event_t third_event;
@@ -1454,7 +1454,7 @@ static void test_remove_random()
 
     ticker_insert_event_us(
         &ticker_stub,
-        &third_event, third_event_timestamp, (uint32_t) &third_event
+        &third_event, third_event_timestamp, (uintptr_t) &third_event
     );
 
     ticker_event_t fourth_event;
@@ -1462,7 +1462,7 @@ static void test_remove_random()
 
     ticker_insert_event_us(
         &ticker_stub,
-        &fourth_event, fourth_event_timestamp, (uint32_t) &fourth_event
+        &fourth_event, fourth_event_timestamp, (uintptr_t) &fourth_event
     );
 
     // test that the queue is in the correct state 
@@ -1475,7 +1475,7 @@ static void test_remove_random()
         third_event_timestamp, interface_stub.interrupt_timestamp
     );
     TEST_ASSERT_EQUAL_UINT64(fourth_event_timestamp, fourth_event.timestamp);
-    TEST_ASSERT_EQUAL_UINT32((uint32_t) &fourth_event, fourth_event.id);
+    TEST_ASSERT_EQUAL_UINT32((uintptr_t) &fourth_event, fourth_event.id);
 
     // remove fourth event 
     ticker_remove_event(&ticker_stub, &fourth_event);
@@ -1488,7 +1488,7 @@ static void test_remove_random()
         third_event_timestamp, interface_stub.interrupt_timestamp
     );
     TEST_ASSERT_EQUAL_UINT64(third_event_timestamp, third_event.timestamp);
-    TEST_ASSERT_EQUAL_UINT32((uint32_t) &third_event, third_event.id);
+    TEST_ASSERT_EQUAL_UINT32((uintptr_t) &third_event, third_event.id);
 
     // remove third event 
     ticker_remove_event(&ticker_stub, &third_event);
@@ -1500,7 +1500,7 @@ static void test_remove_random()
         ref_timestamp + TIMESTAMP_MAX_DELTA, interface_stub.interrupt_timestamp
     );
     TEST_ASSERT_EQUAL_UINT64(second_event_timestamp, second_event.timestamp);
-    TEST_ASSERT_EQUAL_UINT32((uint32_t) &second_event, second_event.id);
+    TEST_ASSERT_EQUAL_UINT32((uintptr_t) &second_event, second_event.id);
 
     // remove second event 
     ticker_remove_event(&ticker_stub, &second_event);
@@ -1511,7 +1511,7 @@ static void test_remove_random()
         ref_timestamp + TIMESTAMP_MAX_DELTA, interface_stub.interrupt_timestamp
     );
     TEST_ASSERT_EQUAL_UINT64(first_event.timestamp, first_event_timestamp);
-    TEST_ASSERT_EQUAL_UINT32((uint32_t) &first_event, first_event.id);
+    TEST_ASSERT_EQUAL_UINT32((uintptr_t) &first_event, first_event.id);
 
     // remove first event 
     ticker_remove_event(&ticker_stub, &first_event);
@@ -1539,7 +1539,7 @@ static void test_overflow_event_update()
 {
     static uint32_t handler_call = 0;
     struct irq_handler_stub_t { 
-        static void event_handler(uint32_t id) { 
+        static void event_handler(uintptr_t id) {
             ++handler_call;
         }
     };
@@ -1581,7 +1581,7 @@ static void test_overflow_event_update_when_spurious_interrupt()
 {
     static uint32_t handler_call = 0;
     struct irq_handler_stub_t { 
-        static void event_handler(uint32_t id) { 
+        static void event_handler(uintptr_t id) {
             ++handler_call;
         }
     };
@@ -1628,8 +1628,8 @@ static void test_irq_handler_single_event()
 
     uint32_t handler_call = 0;
     struct irq_handler_stub_t { 
-        static void event_handler(uint32_t id) { 
-            ++ (*((uint32_t*) id));
+        static void event_handler(uintptr_t id) {
+            ++ (*((uintptr_t*) id));
             interface_stub.timestamp = interface_timestamp_after_irq;
         }
     };
@@ -1638,7 +1638,7 @@ static void test_irq_handler_single_event()
     interface_stub.set_interrupt_call = 0;
 
     ticker_event_t e; 
-    ticker_insert_event(&ticker_stub, &e, event_timestamp, (uint32_t) &handler_call);
+    ticker_insert_event(&ticker_stub, &e, event_timestamp, (uintptr_t) &handler_call);
 
     interface_stub.timestamp = event_timestamp;
     interface_stub.set_interrupt_call = 0;
@@ -1671,7 +1671,7 @@ static void test_irq_handler_single_event()
 static void test_irq_handler_single_event_spurious()
 {
     struct irq_handler_stub_t { 
-        static void event_handler(uint32_t id) { 
+        static void event_handler(uintptr_t id) {
             TEST_FAIL();
         }
     };
@@ -1732,7 +1732,7 @@ static void test_irq_handler_multiple_event_multiple_dequeue()
 
     static size_t handler_called = 0;
     struct irq_handler_stub_t { 
-        static void event_handler(uint32_t id) { 
+        static void event_handler(uintptr_t id) {
             ++handler_called;
             ticker_event_t* e = (ticker_event_t*) id;
             if (e->next) { 
@@ -1750,7 +1750,7 @@ static void test_irq_handler_multiple_event_multiple_dequeue()
     for (size_t i = 0; i < MBED_ARRAY_SIZE(events); ++i) { 
         ticker_insert_event_us(
             &ticker_stub, 
-            &events[i], timestamps[i], (uint32_t) &events[i]
+            &events[i], timestamps[i], (uintptr_t) &events[i]
         );
     }
 
@@ -1792,7 +1792,7 @@ static void test_irq_handler_multiple_event_single_dequeue_overflow()
 
     size_t handler_called = 0;
     struct irq_handler_stub_t { 
-        static void event_handler(uint32_t id) { 
+        static void event_handler(uintptr_t id) {
             ++ (*((size_t*) id));
         }
     };
@@ -1805,7 +1805,7 @@ static void test_irq_handler_multiple_event_single_dequeue_overflow()
     for (size_t i = 0; i < MBED_ARRAY_SIZE(events); ++i) { 
         ticker_insert_event_us(
             &ticker_stub, 
-            &events[i], timestamps[i], (uint32_t) &handler_called
+            &events[i], timestamps[i], (uintptr_t) &handler_called
         );
     }
 
@@ -1847,7 +1847,7 @@ static void test_irq_handler_multiple_event_single_dequeue()
 
     size_t handler_called = 0;
     struct irq_handler_stub_t { 
-        static void event_handler(uint32_t id) { 
+        static void event_handler(uintptr_t id) {
             ++ (*((size_t*) id));
         }
     };
@@ -1860,7 +1860,7 @@ static void test_irq_handler_multiple_event_single_dequeue()
     for (size_t i = 0; i < MBED_ARRAY_SIZE(events); ++i) { 
         ticker_insert_event_us(
             &ticker_stub, 
-            &events[i], timestamps[i], (uint32_t) &handler_called
+            &events[i], timestamps[i], (uintptr_t) &handler_called
         );
     }
 
@@ -1914,7 +1914,7 @@ static void test_irq_handler_insert_immediate_in_irq()
     ctrl_block_t ctrl_block = { 0 };
 
     struct irq_handler_stub_t { 
-        static void event_handler(uint32_t id) { 
+        static void event_handler(uintptr_t id) {
             ctrl_block_t*  ctrl_block = (ctrl_block_t*) id;
 
             if (ctrl_block->handler_called == 0) {
@@ -1938,7 +1938,7 @@ static void test_irq_handler_insert_immediate_in_irq()
     for (size_t i = 0; i < MBED_ARRAY_SIZE(events); ++i) { 
         ticker_insert_event_us(
             &ticker_stub, 
-            &events[i], timestamps[i], (uint32_t) &ctrl_block
+            &events[i], timestamps[i], (uintptr_t) &ctrl_block
         );
     }
 
@@ -1990,7 +1990,7 @@ static void test_irq_handler_insert_non_immediate_in_irq()
     ctrl_block_t ctrl_block = { 0 };
 
     struct irq_handler_stub_t { 
-        static void event_handler(uint32_t id) { 
+        static void event_handler(uintptr_t id) {
             ctrl_block_t*  ctrl_block = (ctrl_block_t*) id;
 
             if (ctrl_block->handler_called == 0) {
@@ -2014,7 +2014,7 @@ static void test_irq_handler_insert_non_immediate_in_irq()
     for (size_t i = 0; i < MBED_ARRAY_SIZE(events); ++i) { 
         ticker_insert_event_us(
             &ticker_stub, 
-            &events[i], timestamps[i], (uint32_t) &ctrl_block
+            &events[i], timestamps[i], (uintptr_t) &ctrl_block
         );
     }
 
