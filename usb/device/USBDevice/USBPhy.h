@@ -17,11 +17,10 @@
 #ifndef USBPHY_H
 #define USBPHY_H
 
-#include <stdint.h>
+#include "USBDevice_Types.h"
+#include "USBPhyEvents.h"
 
-/**
- * \defgroup hal_usb_device USB Device HAL
- * Abstract interface to physical USB hardware
+/** Abstract interface to physical USB hardware
  *
  * # Defined behavior
  * * Any endpoint configurations which fit in the parameters of the table returned
@@ -55,121 +54,8 @@
  * * Signal corruption not handled correctly
  * * USB race conditions
  *
+ * @ingroup usb_device_core
  */
-
-typedef uint8_t usb_ep_t;
-
-typedef enum {
-    USB_EP_TYPE_CTRL = 0,
-    USB_EP_TYPE_ISO = 1,
-    USB_EP_TYPE_BULK = 2,
-    USB_EP_TYPE_INT = 3
-} usb_ep_type_t;
-
-enum  {
-    USB_EP_ATTR_ALLOW_CTRL = 1 << USB_EP_TYPE_CTRL,
-    USB_EP_ATTR_ALLOW_BULK = 1 << USB_EP_TYPE_BULK,
-    USB_EP_ATTR_ALLOW_INT = 1 << USB_EP_TYPE_INT,
-    USB_EP_ATTR_ALLOW_ISO = 1 << USB_EP_TYPE_ISO,
-    USB_EP_ATTR_ALLOW_ALL = USB_EP_ATTR_ALLOW_CTRL | USB_EP_ATTR_ALLOW_BULK |
-                             USB_EP_ATTR_ALLOW_INT | USB_EP_ATTR_ALLOW_ISO,
-
-    USB_EP_ATTR_DIR_IN = 0 << 4,
-    USB_EP_ATTR_DIR_OUT = 1 << 4,
-    USB_EP_ATTR_DIR_IN_OR_OUT = 2 << 4,
-    USB_EP_ATTR_DIR_IN_AND_OUT = 3 << 4,
-    USB_EP_ATTR_DIR_MASK = 3 << 4
-};
-typedef uint8_t usb_ep_attr_t;
-
-struct usb_ep_entry_t {
-    usb_ep_attr_t attributes;
-    uint8_t byte_cost;
-    uint16_t base_cost;
-};
-
-struct usb_ep_table_t {
-    uint32_t resources;
-    usb_ep_entry_t table[16];
-};
-
-class USBPhyEvents {
-public:
-    USBPhyEvents() {};
-    virtual ~USBPhyEvents() {};
-
-    /**
-     * Callback called when a bus reset occurs
-     * @note called in the contex of USBPhy::process
-     */
-    virtual void reset() = 0;
-
-    /**
-     * Callback called when an endpoint 0 setup packet is received
-     * @note called in the contex of USBPhy::process
-     */
-    virtual void ep0_setup() = 0;
-
-    /**
-     * Callback called when an endpoint 0 out packet is received
-     * @note called in the contex of USBPhy::process
-     */
-    virtual void ep0_out() = 0;
-
-    /**
-     * Callback called when an endpoint 0 in packet is received
-     * @note called in the contex of USBPhy::process
-     */
-    virtual void ep0_in() = 0;
-
-    /**
-     * Callback called USB power is applied or removed
-     *
-     * @param powered true if USB power is present, false otherwise
-     * @note called in the contex of USBPhy::process
-     */
-    virtual void power(bool powered) = 0;
-
-    /**
-     * Callback called when entering or leaving suspend mode
-     *
-     * @param suspended true if entering suspend mode false otherwise
-     * @note called in the contex of USBPhy::process
-     */
-    virtual void suspend(bool suspended) = 0;
-
-    /**
-     * Callback called on start of frame
-     *
-     * @param frame_number The current frame number
-     * @note This callback is enabled/disabled by
-     *  calling USBPhy::sof_enable / USBPhy::sof_disable
-     * @note called in the contex of USBPhy::process
-     */
-    virtual void sof(int frame_number) = 0;
-
-    /**
-     * Callback called on the reception of an OUT packet
-     *
-     * @param endpoint Endpoint which received the OUT packet
-     * @note called in the contex of USBPhy::process
-     */
-    virtual void out(usb_ep_t endpoint) = 0;
-
-    /**
-     * Callback called on the transmission of an IN packet
-     *
-     * @param endpoint Endpoint which sent the IN packet
-     * @note called in the contex of USBPhy::process
-     */
-    virtual void in(usb_ep_t endpoint) = 0;
-
-    /**
-     * Callback called to indicate the USB processing needs to be done
-     */
-    virtual void start_process() = 0;
-};
-
 class USBPhy {
 public:
     USBPhy() {};

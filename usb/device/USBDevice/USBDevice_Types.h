@@ -17,6 +17,8 @@
 #ifndef USBDEVICE_TYPES_H
 #define USBDEVICE_TYPES_H
 
+#include <stdint.h>
+
 /* Standard requests */
 #define GET_STATUS        (0)
 #define CLEAR_FEATURE     (1)
@@ -48,5 +50,41 @@
 /* Descriptors */
 #define DESCRIPTOR_TYPE(wValue)  (wValue >> 8)
 #define DESCRIPTOR_INDEX(wValue) (wValue & 0xff)
+
+typedef uint8_t usb_ep_t;
+
+typedef enum {
+    USB_EP_TYPE_CTRL = 0,
+    USB_EP_TYPE_ISO = 1,
+    USB_EP_TYPE_BULK = 2,
+    USB_EP_TYPE_INT = 3
+} usb_ep_type_t;
+
+enum  {
+    USB_EP_ATTR_ALLOW_CTRL = 1 << USB_EP_TYPE_CTRL,
+    USB_EP_ATTR_ALLOW_BULK = 1 << USB_EP_TYPE_BULK,
+    USB_EP_ATTR_ALLOW_INT = 1 << USB_EP_TYPE_INT,
+    USB_EP_ATTR_ALLOW_ISO = 1 << USB_EP_TYPE_ISO,
+    USB_EP_ATTR_ALLOW_ALL = USB_EP_ATTR_ALLOW_CTRL | USB_EP_ATTR_ALLOW_BULK |
+                             USB_EP_ATTR_ALLOW_INT | USB_EP_ATTR_ALLOW_ISO,
+
+    USB_EP_ATTR_DIR_IN = 0 << 4,
+    USB_EP_ATTR_DIR_OUT = 1 << 4,
+    USB_EP_ATTR_DIR_IN_OR_OUT = 2 << 4,
+    USB_EP_ATTR_DIR_IN_AND_OUT = 3 << 4,
+    USB_EP_ATTR_DIR_MASK = 3 << 4
+};
+typedef uint8_t usb_ep_attr_t;
+
+struct usb_ep_entry_t {
+    usb_ep_attr_t attributes;
+    uint8_t byte_cost;
+    uint16_t base_cost;
+};
+
+struct usb_ep_table_t {
+    uint32_t resources;
+    usb_ep_entry_t table[16];
+};
 
 #endif
