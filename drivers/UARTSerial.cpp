@@ -74,7 +74,11 @@ void UARTSerial::dcd_irq()
 
 void UARTSerial::set_baud(int baud)
 {
+    lock();
     SerialBase::baud(baud);
+    write_abort_all(EINTR);
+    read_abort_all(EINTR);
+    unlock();
 }
 
 void UARTSerial::set_data_carrier_detect(PinName dcd_pin, bool active_high)
@@ -96,6 +100,8 @@ void UARTSerial::set_format(int bits, Parity parity, int stop_bits)
 {
     lock();
     SerialBase::format(bits, parity, stop_bits);
+    write_abort_all(EINTR);
+    read_abort_all(EINTR);
     unlock();
 }
 
@@ -104,6 +110,8 @@ void UARTSerial::set_flow_control(Flow type, PinName flow1, PinName flow2)
 {
     lock();
     SerialBase::set_flow_control(type, flow1, flow2);
+    write_abort_all(EINTR);
+    read_abort_all(EINTR);
     unlock();
 }
 #endif
@@ -199,14 +207,14 @@ void UARTSerial::write_prep_buf()
     }
 }
 
-void UARTSerial::write_abort_all()
+void UARTSerial::write_abort_all(int reason)
 {
     if (_tx_cur == NULL) {
         _tx_cur = static_cast<UARTSerialWrite*>(_tx_list.dequeue());
     }
     while (_tx_cur != NULL) {
         if (_tx_cur->result == 0) {
-            _tx_cur->result = (ssize_t)-EAGAIN;
+            _tx_cur->result = (ssize_t)-reason;
         }
         _tx_cur->complete();
         _tx_cur = static_cast<UARTSerialWrite*>(_tx_list.dequeue());
@@ -257,14 +265,14 @@ void UARTSerial::read_prep_buf()
     }
 }
 
-void UARTSerial::read_abort_all()
+void UARTSerial::read_abort_all(int reason)
 {
     if (_rx_cur == NULL) {
         _rx_cur = static_cast<UARTSerialRead*>(_rx_list.dequeue());
     }
     while (_rx_cur != NULL) {
         if (_rx_cur->result == 0) {
-            _rx_cur->result = (ssize_t)-EAGAIN;
+            _rx_cur->result = (ssize_t)-reason;
         }
         _rx_cur->complete();
         _rx_cur = static_cast<UARTSerialRead*>(_rx_list.dequeue());

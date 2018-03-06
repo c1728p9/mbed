@@ -254,10 +254,10 @@ private:
     bool hup() const;
 
     void write_prep_buf();
-    void write_abort_all();
+    void write_abort_all(int reason=EAGAIN);
 
     void read_prep_buf();
-    void read_abort_all();
+    void read_abort_all(int reason=EAGAIN);
 
     /** ISRs for serial
      *  Routines to handle interrupts on serial pins.
