@@ -27,6 +27,8 @@
 #include "PlatformMutex.h"
 #include "serial_api.h"
 #include "CircularBuffer.h"
+#include "LinkedList.h"
+#include "AsyncOp.h"
 #include "platform/NonCopyable.h"
 
 #ifndef MBED_CONF_DRIVERS_UART_SERIAL_RXBUF_SIZE
@@ -38,6 +40,9 @@
 #endif
 
 namespace mbed {
+
+class UARTSerialWrite;
+class UARTSerialRead;
 
 /** \addtogroup drivers */
 
@@ -229,13 +234,16 @@ private:
     CircularBuffer<char, MBED_CONF_DRIVERS_UART_SERIAL_RXBUF_SIZE> _rxbuf;
     CircularBuffer<char, MBED_CONF_DRIVERS_UART_SERIAL_TXBUF_SIZE> _txbuf;
 
-    PlatformMutex _mutex;
+    UARTSerialWrite *_tx_cur;
+    LinkedList _tx_list;
+    bool _tx_in_progress;
+
+    UARTSerialRead *_rx_cur;
+    LinkedList _rx_list;
 
     Callback<void()> _sigio_cb;
 
     bool _blocking;
-    bool _tx_irq_enabled;
-    bool _rx_irq_enabled;
     InterruptIn *_dcd_irq;
 
     /** Device Hanged up
@@ -244,6 +252,12 @@ private:
      *  @return True, if hanged up
      */
     bool hup() const;
+
+    void write_prep_buf();
+    void write_abort_all();
+
+    void read_prep_buf();
+    void read_abort_all();
 
     /** ISRs for serial
      *  Routines to handle interrupts on serial pins.

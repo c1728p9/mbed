@@ -28,11 +28,34 @@
 
 namespace mbed {
 
+class UARTSerialWrite: public AsyncOp {
+public:
+    UARTSerialWrite(uint8_t *buf, uint32_t size): AsyncOp(NULL), tx_buf(buf), tx_size(size), result(0)
+    {
+
+    }
+    uint8_t *tx_buf;
+    uint32_t tx_size;
+    ssize_t result;
+};
+
+class UARTSerialRead: public AsyncOp {
+public:
+    UARTSerialRead(uint8_t *buf, uint32_t size)
+        :   AsyncOp(NULL), rx_buf(buf), rx_size(size), result(0)
+    {
+
+    }
+    uint8_t *rx_buf;
+    uint32_t rx_size;
+    ssize_t result;
+};
+
 UARTSerial::UARTSerial(PinName tx, PinName rx, int baud) :
         SerialBase(tx, rx, baud),
+        _tx_cur(NULL),
+        _rx_cur(NULL),
         _blocking(true),
-        _tx_irq_enabled(false),
-        _rx_irq_enabled(true),
         _dcd_irq(NULL)
 {
     /* Attatch IRQ routines to the serial device. */
@@ -135,92 +158,117 @@ void UARTSerial::sigio(Callback<void()> func) {
 
 ssize_t UARTSerial::write(const void* buffer, size_t length)
 {
-    size_t data_written = 0;
-    const char *buf_ptr = static_cast<const char *>(buffer);
-
     if (length == 0) {
         return 0;
     }
 
     lock();
 
-    // Unlike read, we should write the whole thing if blocking. POSIX only
-    // allows partial as a side-effect of signal handling; it normally tries to
-    // write everything if blocking. Without signals we can always write all.
-    while (data_written < length) {
-
-        if (_txbuf.full()) {
-            if (!_blocking) {
-                break;
-            }
-            do {
-                unlock();
-                wait_ms(1); // XXX todo - proper wait, WFE for non-rtos ?
-                lock();
-            } while (_txbuf.full());
-        }
-
-        while (data_written < length && !_txbuf.full()) {
-            _txbuf.push(*buf_ptr++);
-            data_written++;
-        }
-
-        core_util_critical_section_enter();
-        if (!_tx_irq_enabled) {
-            UARTSerial::tx_irq();                // only write to hardware in one place
-            if (!_txbuf.empty()) {
-                SerialBase::attach(callback(this, &UARTSerial::tx_irq), TxIrq);
-                _tx_irq_enabled = true;
-            }
-        }
-        core_util_critical_section_exit();
-    }
+    UARTSerialWrite write_op((uint8_t*)buffer, length);
+    _tx_list.enqueue(&write_op);
+    write_prep_buf();
+    SerialBase::attach(callback(this, &UARTSerial::tx_irq), TxIrq);
 
     unlock();
 
-    return data_written != 0 ? (ssize_t) data_written : (ssize_t) -EAGAIN;
+    write_op.wait();
+    return write_op.result;
+}
+
+void UARTSerial::write_prep_buf()
+{
+    if (_tx_cur == NULL) {
+        _tx_cur = static_cast<UARTSerialWrite*>(_tx_list.dequeue());
+    }
+    if (_tx_cur == NULL) {
+        return;
+    }
+
+    while ((_tx_cur->tx_size > 0) && !_txbuf.full()) {
+        _txbuf.push(_tx_cur->tx_buf[0]);
+        _tx_cur->tx_size -= 1;
+        _tx_cur->tx_buf += 1;
+        _tx_cur->result += 1;
+    }
+
+    if (_tx_cur->tx_size == 0) {
+        _tx_cur->complete();
+        _tx_cur = NULL;
+    } else if (!_blocking) {
+        write_abort_all();
+    }
+}
+
+void UARTSerial::write_abort_all()
+{
+    if (_tx_cur == NULL) {
+        _tx_cur = static_cast<UARTSerialWrite*>(_tx_list.dequeue());
+    }
+    while (_tx_cur != NULL) {
+        if (_tx_cur->result == 0) {
+            _tx_cur->result = (ssize_t)-EAGAIN;
+        }
+        _tx_cur->complete();
+        _tx_cur = static_cast<UARTSerialWrite*>(_tx_list.dequeue());
+    }
 }
 
 ssize_t UARTSerial::read(void* buffer, size_t length)
 {
-    size_t data_read = 0;
-
-    char *ptr = static_cast<char *>(buffer);
-
     if (length == 0) {
         return 0;
     }
 
     lock();
 
-    while (_rxbuf.empty()) {
-        if (!_blocking) {
-            unlock();
-            return -EAGAIN;
-        }
-        unlock();
-        wait_ms(1);  // XXX todo - proper wait, WFE for non-rtos ?
-        lock();
-    }
-
-    while (data_read < length && !_rxbuf.empty()) {
-        _rxbuf.pop(*ptr++);
-        data_read++;
-    }
-
-    core_util_critical_section_enter();
-    if (!_rx_irq_enabled) {
-        UARTSerial::rx_irq();               // only read from hardware in one place
-        if (!_rxbuf.full()) {
-            SerialBase::attach(callback(this, &UARTSerial::rx_irq), RxIrq);
-            _rx_irq_enabled = true;
-        }
-    }
-    core_util_critical_section_exit();
+    UARTSerialRead read_op((uint8_t*)buffer, length);
+    _rx_list.enqueue(&read_op);
+    read_prep_buf();
+    SerialBase::attach(callback(this, &UARTSerial::rx_irq), RxIrq);
 
     unlock();
 
-    return data_read;
+    read_op.wait();
+    return read_op.result;
+}
+void UARTSerial::read_prep_buf()
+{
+    if (_rx_cur == NULL) {
+        _rx_cur = static_cast<UARTSerialRead*>(_rx_list.dequeue());
+    }
+    if (_rx_cur == NULL) {
+        return;
+    }
+
+    while ((_rx_cur->rx_size > 0) && !_rxbuf.empty()) {
+        char data;
+        _rxbuf.pop(data);
+        *_rx_cur->rx_buf = data;
+        _rx_cur->rx_size -= 1;
+        _rx_cur->rx_buf += 1;
+        _rx_cur->result += 1;
+    }
+
+    if (_rx_cur->result > 0) {
+        _rx_cur->complete();
+        _rx_cur = NULL;
+    } else if (!_blocking) {
+        read_abort_all();
+    }
+}
+
+void UARTSerial::read_abort_all()
+{
+    if (_rx_cur == NULL) {
+        _rx_cur = static_cast<UARTSerialRead*>(_rx_list.dequeue());
+    }
+    while (_rx_cur != NULL) {
+        if (_rx_cur->result == 0) {
+            _rx_cur->result = (ssize_t)-EAGAIN;
+        }
+        _rx_cur->complete();
+        _rx_cur = static_cast<UARTSerialRead*>(_rx_list.dequeue());
+    }
 }
 
 bool UARTSerial::hup() const
@@ -276,11 +324,11 @@ void UARTSerial::rx_irq(void)
     while (!_rxbuf.full() && SerialBase::readable()) {
         char data = SerialBase::_base_getc();
         _rxbuf.push(data);
+        read_prep_buf();
     }
 
-    if (_rx_irq_enabled && _rxbuf.full()) {
+    if (_rxbuf.full()) {
         SerialBase::attach(NULL, RxIrq);
-        _rx_irq_enabled = false;
     }
 
     /* Report the File handler that data is ready to be read from the buffer. */
@@ -294,6 +342,8 @@ void UARTSerial::tx_irq(void)
 {
     bool was_full = _txbuf.full();
 
+    write_prep_buf();
+
     /* Write to the peripheral if there is something to write
      * and if the peripheral is available to write. */
     while (!_txbuf.empty() && SerialBase::writeable()) {
@@ -302,9 +352,8 @@ void UARTSerial::tx_irq(void)
         SerialBase::_base_putc(data);
     }
 
-    if (_tx_irq_enabled && _txbuf.empty()) {
+    if (_txbuf.empty()) {
         SerialBase::attach(NULL, TxIrq);
-        _tx_irq_enabled = false;
     }
 
     /* Report the File handler that data can be written to peripheral. */
