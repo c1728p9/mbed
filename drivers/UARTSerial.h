@@ -223,12 +223,6 @@ private:
     /** SerialBase unlock override */
     virtual void unlock(void);
 
-    /** Acquire mutex */
-    virtual void api_lock(void);
-
-    /** Release mutex */
-    virtual void api_unlock(void);
-
     /** Software serial buffers
      *  By default buffer size is 256 for TX and 256 for RX. Configurable through mbed_app.json
      */
