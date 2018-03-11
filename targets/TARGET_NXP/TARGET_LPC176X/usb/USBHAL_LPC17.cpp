@@ -468,7 +468,8 @@ void USBPhyHw::ep0_setup_read_result(uint8_t *buffer, uint32_t size)
 
 void USBPhyHw::ep0_read(void)
 {
-    endpoint_read(EP0OUT, MAX_PACKET_SIZE_EP0);
+    SIEselectEndpoint(EP0OUT);
+    SIEclearBuffer();
 }
 
 uint32_t USBPhyHw::ep0_read_result(uint8_t *buffer, uint32_t size)
@@ -489,11 +490,6 @@ void USBPhyHw::ep0_stall(void)
 
 bool USBPhyHw::endpoint_read(usb_ep_t endpoint, uint32_t maximumSize)
 {
-    // Don't clear isochronous endpoints
-    if ((DESC_TO_PHY(endpoint) >> 1) % 3 || (DESC_TO_PHY(endpoint) >> 1) == 0) {
-        SIEselectEndpoint(endpoint);
-        SIEclearBuffer();
-    }
     return true;
 }
 
@@ -508,6 +504,13 @@ bool USBPhyHw::endpoint_read_result(usb_ep_t endpoint, uint8_t *buffer, uint32_t
     }
 
     *bytesRead = endpointReadcore(endpoint, buffer, size);
+
+    // Don't clear isochronous endpoints
+    if ((DESC_TO_PHY(endpoint) >> 1) % 3 || (DESC_TO_PHY(endpoint) >> 1) == 0) {
+        SIEselectEndpoint(endpoint);
+        SIEclearBuffer();
+    }
+
     epComplete &= ~EP(endpoint);
     return true;
 }
