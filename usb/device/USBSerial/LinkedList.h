@@ -19,24 +19,64 @@
 
 #include "LinkEntry.h"
 
-class LinkedList {
+class LinkedList<class T> {
 public:
-    LinkedList();
-    ~LinkedList();
+    LinkedList(): _head(0), _tail(0)
+    {
+
+    }
+
+    ~LinkedList()
+    {
+
+    }
+
+    /**
+     * Return the element at the head of the list
+     *
+     * @return The element at the head of the list or NULL if the list is empty
+     */
+    T *head()
+    {
+        return _head;
+    }
 
     /**
      * Add an element to the tail of the list
      *
      * @param entry New element to add
      */
-    void enqueue(LinkEntry *entry);
+    void enqueue(T *entry)
+    {
+        LinkEntry *link_entry = static_cast<LinkEntry*>(entry);
+        link_entry->_next = NULL;
+        if (_tail == NULL) {
+            _head = entry;
+        } else {
+            _tail->_next = entry;
+        }
+        _tail = entry;
+    }
 
     /**
      * Remove the element at the head of the list
      *
      * @return The element at the head of the list or NULL if the list is empty
      */
-    LinkEntry *dequeue();
+    T *dequeue()
+    {
+        if (_head == NULL) {
+            return NULL;
+        }
+        if (_head->_next == NULL) {
+            _tail = NULL;
+        }
+        T *entry = static_cast<T*>(_head);
+        LinkEntry next = _head->_next;
+        _head->_next = NULL;
+        _head = next;
+        return entry;
+    }
 
 private:
     LinkEntry *_head;

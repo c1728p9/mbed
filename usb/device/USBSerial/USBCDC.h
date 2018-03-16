@@ -153,11 +153,9 @@ protected:
 
     bool terminal_connected;
 
-    AsyncWrite *_tx_cur;
     LinkedList _tx_list;
     bool _tx_in_progress;
 
-    AsyncRead *_rx_cur;
     LinkedList _rx_list;
     uint32_t _rx_count;
     uint8_t _rx_buffer[64];

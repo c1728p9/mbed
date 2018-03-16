@@ -74,10 +74,8 @@ USBCDC::USBCDC(uint16_t vendor_id, uint16_t product_id, uint16_t product_release
 
     terminal_connected = false;
 
-    _tx_cur = NULL;
     _tx_in_progress = false;
 
-    _rx_cur = NULL;
     _rx_count = 0;
     _rx_buf = _rx_buffer;
     _rx_size = 0;
@@ -233,11 +231,8 @@ bool USBCDC::send(uint8_t * buffer, uint32_t size) {
 void USBCDC::send_next()
 {
     assert_locked();
-    // Set current TX operation or return if there are none left
-    if (_tx_cur == NULL) {
-        _tx_cur = static_cast<AsyncWrite*>(_tx_list.dequeue());
-    }
-    if (_tx_cur == NULL) {
+    AsyncWrite *cur_tx = static_cast<AsyncWrite*>(_tx_list.head());
+    if (cur_tx == NULL) {
         return;
     }
 
@@ -245,20 +240,21 @@ void USBCDC::send_next()
         return;
     }
 
-    uint32_t size_to_send = _tx_cur->tx_size > CDC_MAX_PACKET_SIZE ?  CDC_MAX_PACKET_SIZE : _tx_cur->tx_size;
-    if (USBDevice::write(bulk_in, _tx_cur->tx_buf, size_to_send)) {
-        _tx_cur->tx_size -= size_to_send;
-        _tx_cur->tx_buf += size_to_send;
+    uint32_t size_to_send = cur_tx->tx_size > CDC_MAX_PACKET_SIZE ?  CDC_MAX_PACKET_SIZE : cur_tx->tx_size;
+    if (USBDevice::write(bulk_in, cur_tx->tx_buf, size_to_send)) {
+        cur_tx->tx_size -= size_to_send;
+        cur_tx->tx_buf += size_to_send;
         _tx_in_progress = true;
-        if (_tx_cur->tx_size == 0) {
-            _tx_cur->result = true;
-            _tx_cur->complete();
-            _tx_cur = NULL;
+        if (cur_tx->tx_size == 0) {
+            cur_tx->result = true;
+            _tx_list.dequeue();
+            cur_tx->complete();
+            cur_tx = NULL;
         }
     } else {
-        _tx_cur->result = false;
-        _tx_cur->complete();
-        _tx_cur = NULL;
+        cur_tx->result = false;
+        cur_tx->complete();
+        cur_tx = NULL;
     }
 }
 
@@ -266,13 +262,11 @@ void USBCDC::send_abort_all()
 {
     assert_locked();
 
-    if (_tx_cur == NULL) {
-        _tx_cur = static_cast<AsyncWrite*>(_tx_list.dequeue());
-    }
-    while (_tx_cur != NULL) {
-        _tx_cur->result = false;
-        _tx_cur->complete();
-        _tx_cur = static_cast<AsyncWrite*>(_tx_list.dequeue());
+    AsyncWrite *cur_tx = static_cast<AsyncWrite*>(_tx_list.dequeue());
+    while (cur_tx != NULL) {
+        cur_tx->result = false;
+        cur_tx->complete();
+        cur_tx = static_cast<AsyncWrite*>(_tx_list.dequeue());
     }
 }
 
@@ -314,11 +308,8 @@ void USBCDC::receive_next()
     assert_locked();
 
     while (true) {
-        // Set current RX operation or return if there are none left
-        if (_rx_cur == NULL) {
-            _rx_cur = static_cast<AsyncRead*>(_rx_list.dequeue());
-        }
-        if (_rx_cur == NULL) {
+        AsyncRead *cur_rx = static_cast<AsyncRead*>(_rx_list.head());
+        if (cur_rx == NULL) {
             return;
         }
 
@@ -328,19 +319,20 @@ void USBCDC::receive_next()
         }
 
         // Copy data over
-        uint32_t copy_size = _rx_size > _rx_cur->rx_size ? _rx_cur->rx_size : _rx_size;
-        memcpy(_rx_cur->rx_buf, _rx_buf, copy_size);
-        _rx_cur->rx_buf += copy_size;
-        *_rx_cur->rx_actual += copy_size;
-        _rx_cur->rx_size -= copy_size;
+        uint32_t copy_size = _rx_size > cur_rx->rx_size ? cur_rx->rx_size : _rx_size;
+        memcpy(cur_rx->rx_buf, _rx_buf, copy_size);
+        cur_rx->rx_buf += copy_size;
+        *cur_rx->rx_actual += copy_size;
+        cur_rx->rx_size -= copy_size;
         _rx_buf += copy_size;
         _rx_size -= copy_size;
 
         // Wake thread if request is done
-        if (!_rx_cur->all || (_rx_cur->rx_size == 0)) {
-            _rx_cur->result = true;
-            _rx_cur->complete();
-            _rx_cur = NULL;
+        if (!cur_rx->all || (cur_rx->rx_size == 0)) {
+            cur_rx->result = true;
+            _rx_list.dequeue();
+            cur_rx->complete();
+            cur_rx = NULL;
         }
     }
 }
@@ -366,13 +358,11 @@ void USBCDC::receive_abort_all()
 {
     assert_locked();
 
-    if (_rx_cur == NULL) {
-        _rx_cur = static_cast<AsyncRead*>(_rx_list.dequeue());
-    }
-    while (_rx_cur != NULL) {
-        _rx_cur->result = false;
-        _rx_cur->complete();
-        _rx_cur = static_cast<AsyncRead*>(_rx_list.dequeue());
+    AsyncRead *cur_rx = static_cast<AsyncRead*>(_rx_list.dequeue());
+    while (cur_rx != NULL) {
+        cur_rx->result = false;
+        cur_rx->complete();
+        cur_rx = static_cast<AsyncRead*>(_rx_list.dequeue());
     }
 }
 
