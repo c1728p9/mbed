@@ -48,6 +48,13 @@
  */
 
 
+#include "mbed_toolchain.h"
+#include "mbed_wait_api.h"
+
+#if defined(TARGET_KSDK2_MCUS)
+#include "fsl_common.h"
+#endif
+
 #include <stdint.h>
 #include <string.h>
 #include "cmsis_os.h"
@@ -60,8 +67,8 @@
 #define OTG_FS_USBD_DRIVER_POWERED     (1U << 1U)
 #define OTG_FS_USBD_DRIVER_CONNECTED   (1U << 2U)
 
-extern  uint8_t  otg_fs_role;
-extern  uint8_t  otg_fs_state;
+uint8_t otg_fs_role   = ARM_USB_ROLE_NONE;
+uint8_t otg_fs_state  = 0;
 
 
 // USB Device Driver ***********************************************************
@@ -141,7 +148,7 @@ static volatile uint8_t    setup_received    =   0U;    // Setup packet received
 static volatile uint32_t   configured_ep;               // Bit mask of configured Endpoints
 
 // Buffer Descriptor Table
-static BD_t __align(512)   bd          [(USBD_MAX_ENDPOINT_NUM+1U)*2U*2U];
+static BD_t MBED_ALIGN(512)   bd          [(USBD_MAX_ENDPOINT_NUM+1U)*2U*2U];
 
 // Endpoints IN data buffers
 static uint32_t            ep_in_data  [(USBD_MAX_ENDPOINT_NUM+1U)][2U][USBD_EP_MAX_PACKET_SIZE/4U] = { 0U };
@@ -164,7 +171,12 @@ static void USBD_HW_Initialize (void) {
   uint8_t i;
 
   USB0->USBTRC0      |=  USB_USBTRC0_USBRESET_MASK;     // Reset OTG FS Controller
-  osDelay(1);                                           // wait for reset to finish
+  wait_ms(1);                                           // wait for reset to finish
+
+#if defined(TARGET_KL43Z) || defined(TARGET_K22F) || defined(TARGET_K64F)
+  // enable USBFS clock
+  CLOCK_EnableUsbfs0Clock(kCLOCK_UsbSrcIrc48M, 48000000U);
+#endif
 
   USB0->CTL          &= ~USB_CTL_USBENSOFEN_MASK;       // Disable USB
   USB0->CTL          |=  USB_CTL_USBENSOFEN_MASK;       // Enable USB
@@ -337,7 +349,7 @@ static int32_t USBD_Initialize (ARM_USBD_SignalDeviceEvent_t   cb_device_event,
   SignalDeviceEvent   = cb_device_event;
   SignalEndpointEvent = cb_endpoint_event;
 
-  MPU_CESR = 0;                         // Disable MPU
+  MPU->CESR=0;                          // Disable MPU
 
   otg_fs_role   =  ARM_USB_ROLE_DEVICE;
   otg_fs_state |=  OTG_FS_USBD_DRIVER_INITIALIZED;
@@ -464,7 +476,7 @@ static int32_t USBD_DeviceRemoteWakeup (void) {
   if (!(otg_fs_state & OTG_FS_USBD_DRIVER_CONNECTED)) { return ARM_DRIVER_ERROR; }
 
   USB0->CTL |=  USB_CTL_RESUME_MASK;
-  osDelay(5);
+  wait_ms(5);
   USB0->CTL &= ~USB_CTL_RESUME_MASK;
 
   return ARM_DRIVER_OK;
