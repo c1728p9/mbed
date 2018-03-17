@@ -47,7 +47,6 @@
 #include "Driver_USBD.h"
 
 #include "RTE_Device.h"
-#include "RTE_Components.h"
 
 #define USBD_STATE_INITIALIZED     (1 << 0)
 #define USBD_STATE_POWERED         (1 << 1)

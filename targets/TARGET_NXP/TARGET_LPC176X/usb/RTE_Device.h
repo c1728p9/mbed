@@ -32,7 +32,7 @@
 // <e> USB0 Controller [Driver_USBD and Driver_USBH]
 // <i> Configuration settings for Driver_USBD in component ::Drivers:USB Device
 // <i> Configuration settings for Driver_USBH in component ::Drivers:USB Host
-#define   RTE_USB_USB0                  0
+#define   RTE_USB_USB0                  1
 
 //   <h> Pin Configuration
 //     <o> USB_PPWR (Host) <0=>Not used <1=>P1_19

@@ -29,18 +29,18 @@
  *    - Initial release
  */
 
+#include "mbed_toolchain.h"
 #include "LPC17xx.h"
 #include "PIN_LPC17xx.h"
 
 #include "Driver_USB.h"
 
 #include "RTE_Device.h"
-#include "RTE_Components.h"
 
 volatile uint32_t usb_role = ARM_USB_ROLE_NONE;
 
-__weak void USBH_IRQ (void) {};
-__weak void USBD_IRQ (void) {};
+MBED_WEAK void USBH_IRQ (void) {};
+MBED_WEAK void USBD_IRQ (void) {};
 
 /**
   \fn          void USB_IRQHandler (void)
