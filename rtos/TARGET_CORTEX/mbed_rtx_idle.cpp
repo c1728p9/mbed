@@ -32,6 +32,10 @@ extern "C" {
 #include "rtx_lib.h"
 }
 
+#include "mbed.h"
+
+extern DigitalOut pin_run;
+
 using namespace mbed;
 
 #if (defined(MBED_TICKLESS) && defined(DEVICE_LPTICKER))
@@ -92,6 +96,7 @@ static void default_idle_hook(void)
     uint32_t ticks_to_sleep = osKernelSuspend();
     os_timer->suspend(ticks_to_sleep);
 
+    pin_run = 0;
     bool event_pending = false;
     while (!os_timer->suspend_time_passed() && !event_pending) {
 
@@ -106,6 +111,7 @@ static void default_idle_hook(void)
         // Ensure interrupts get a chance to fire
         __ISB();
     }
+    pin_run = 1;
     osKernelResume(os_timer->resume());
 }
 
@@ -123,9 +129,11 @@ static void default_idle_hook(void)
 {
     // critical section to complete sleep with locked deepsleep
     core_util_critical_section_enter();
+    pin_run = 0;
     sleep_manager_lock_deep_sleep();
     sleep();
     sleep_manager_unlock_deep_sleep();
+    pin_run = 1;
     core_util_critical_section_exit();
 }
 

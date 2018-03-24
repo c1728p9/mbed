@@ -27,7 +27,12 @@
 #include "mbed_stats.h"
 
 
+#include "mbed.h"
+
 #if DEVICE_SLEEP
+
+extern DigitalOut pin_sleep;
+extern DigitalOut pin_deepsleep;
 
 // deep sleep locking counter. A target is allowed to deep sleep if counter == 0
 static uint16_t deep_sleep_lock = 0U;
@@ -197,10 +202,14 @@ void sleep_manager_sleep_auto(void)
     hal_sleep();
 #else
     if (sleep_manager_can_deep_sleep()) {
+        pin_deepsleep = 1;
         deep = true;
         hal_deepsleep();
+        pin_deepsleep = 0;
     } else {
+        pin_sleep = 1;
         hal_sleep();
+        pin_sleep = 0;
     }
 #endif
 
