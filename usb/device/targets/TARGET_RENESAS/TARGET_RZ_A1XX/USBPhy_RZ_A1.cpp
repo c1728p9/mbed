@@ -250,7 +250,7 @@ void USBPhyHw::init(USBPhyEvents *events)
 
     volatile uint16_t buf;
     buf  = USB20X.INTENB0;
-    buf |= USB_INTENB0_SOFE;
+    //buf |= USB_INTENB0_SOFE;
     USB20X.INTENB0 = buf;
 
     greentea_send_kv("USBPhyHw::init", 1);
