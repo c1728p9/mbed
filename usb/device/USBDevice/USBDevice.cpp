@@ -21,6 +21,7 @@
 #include "usb_phy_api.h"
 #include "mbed_critical.h"
 #include "Callback.h"
+#include "mbed_shared_queues.h"
 
 //#define DEBUG
 
@@ -1296,6 +1297,7 @@ USBDevice::USBDevice(USBPhy *phy, uint16_t vendor_id, uint16_t product_id, uint1
     _device.suspended = false;
 
     _task_queue = &_default_queue;
+    _task_queue = mbed_event_queue();
     _phy_callback = callback(this, &USBDevice::_process);
     _control_callback.set(_task_queue);
     _phy_callback.set(_task_queue);

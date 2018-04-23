@@ -23,6 +23,7 @@
 
 #include "USBTester.h"
 #include "usb_phy_api.h"
+#include "USBPhyTest.h"
 
 // TODO
 // suspend resume test: implement host side USB suspend/resume
@@ -46,7 +47,8 @@ using namespace utest::v1;
 
 static USBPhy *get_phy()
 {
-    return get_usb_phy();
+    static USBPhyTest phy(get_usb_phy());
+    return &phy;
 }
 
 
@@ -414,7 +416,7 @@ Case cases[] = {
 
 utest::v1::status_t greentea_test_setup(const size_t number_of_cases)
 {
-    GREENTEA_SETUP(120, "pyusb_basic");
+    GREENTEA_SETUP(240, "pyusb_basic");
     return greentea_test_setup_handler(number_of_cases);
 }
 
