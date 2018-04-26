@@ -408,12 +408,7 @@ void USBPhyHw::ep0_write(uint8_t *buffer, uint32_t size)
 
 void USBPhyHw::ep0_stall()
 {
-    uint16_t ret;
-    
-    greentea_send_kv("USBPhyHw::ep0_stall", 1);
-    ret = usbx_function_clear_pid_stall(0);
-    greentea_send_kv("USBPhyHw::ep0_stall", 2);
-    greentea_send_kv("USBPhyHw::ep0_stall ret =", ret);
+    usbx_function_set_pid_stall(0);
 }
 
 bool USBPhyHw::endpoint_add(usb_ep_t endpoint, uint32_t max_packet, usb_ep_type_t type)
@@ -502,14 +497,14 @@ void USBPhyHw::endpoint_stall(usb_ep_t endpoint)
 {
     uint32_t pipe = EP2PIPE(endpoint);
 
-    usbx_function_clear_pid_stall(pipe);
+    usbx_function_set_pid_stall(pipe);
 }
 
 void USBPhyHw::endpoint_unstall(usb_ep_t endpoint)
 {
     uint32_t pipe = EP2PIPE(endpoint);
 
-    usbx_function_set_pid_stall(pipe);
+    usbx_function_clear_pid_stall(pipe);
 }
 
 bool USBPhyHw::endpoint_read(usb_ep_t endpoint, uint8_t *data, uint32_t size)
@@ -683,6 +678,10 @@ void USBPhyHw::process()
                 USB_FUNCTION_BITBEMP  |
                 USB_FUNCTION_BITNRDY  |
                 USB_FUNCTION_BITBRDY ))) {
+
+        // Re-enable interrupt
+        GIC_ClearPendingIRQ(USBIX_IRQn);
+        GIC_EnableIRQ(USBIX_IRQn);
         return;
     }
 
@@ -874,6 +873,10 @@ void USBPhyHw::process()
                 dumy_sts = USB20X.INTSTS0;
                 dumy_sts = USB20X.INTSTS0;
                 (void)dumy_sts;
+
+                // Re-enable interrupt
+                GIC_ClearPendingIRQ(USBIX_IRQn);
+                GIC_EnableIRQ(USBIX_IRQn);
                 return;
             }
         }
@@ -1155,13 +1158,14 @@ void USBPhyHw::process()
     dumy_sts = USB20X.INTSTS1;
     (void)dumy_sts;
 
+    // Re-enable interrupt
+    GIC_ClearPendingIRQ(USBIX_IRQn);
+    GIC_EnableIRQ(USBIX_IRQn);
+
 }
 
 void USBPhyHw::_usbisr(void) {
     GIC_DisableIRQ(USBIX_IRQn);
     instance->events->start_process();
-    // Re-enable interrupt
-    GIC_ClearPendingIRQ(USBIX_IRQn);
-    GIC_EnableIRQ(USBIX_IRQn);
 }
 #endif
