@@ -19,6 +19,7 @@
 #include "USBDevice.h"
 #include "USBDescriptor.h"
 #include "usb_phy_api.h"
+#include "CriticalContext.h"
 
 //#define DEBUG
 
@@ -317,7 +318,8 @@ void USBDevice::complete_request_xfer_done(bool success)
 
     MBED_ASSERT(_transfer.user_callback == RequestXferDone);
     _transfer.args.status = success;
-    _run_later(&USBDevice::_complete_request_xfer_done);
+    _control_callback = Callback<void()>(this, &USBDevice::_complete_request_xfer_done);
+    _context->post(&_control_callback);
 
     unlock();
 }
@@ -391,7 +393,8 @@ void USBDevice::complete_set_configuration(bool success)
 
     MBED_ASSERT(_transfer.user_callback == SetConfiguration);
     _transfer.args.status = success;
-    _run_later(&USBDevice::_complete_set_configuration);
+    _control_callback = Callback<void()>(this, &USBDevice::_complete_set_configuration);
+    _context->post(&_control_callback);
 
     unlock();
 }
@@ -464,7 +467,8 @@ void USBDevice::complete_set_interface(bool success)
 
     MBED_ASSERT(_transfer.user_callback == SetInterface);
     _transfer.args.status = success;
-    _run_later(&USBDevice::_complete_set_interface);
+    _control_callback = Callback<void()>(this, &USBDevice::_complete_set_interface);
+    _context->post(&_control_callback);
 
     unlock();
 }
@@ -695,7 +699,8 @@ void USBDevice::complete_request(RequestResult direction, uint8_t *data, uint32_
     _transfer.args.request.result = direction;
     _transfer.args.request.data = data;
     _transfer.args.request.size = size;
-    _run_later(&USBDevice::_complete_request);
+    _control_callback = Callback<void()>(this, &USBDevice::_complete_request);
+    _context->post(&_control_callback);
 
     unlock();
 }
@@ -978,6 +983,8 @@ void USBDevice::deinit()
         disconnect();
         this->_phy->deinit();
         _initialized = false;
+        _control_callback.cancel();
+        _phy_callback.cancel();
     }
 
     unlock();
@@ -1239,13 +1246,13 @@ USBDevice::USBDevice(USBPhy *phy, uint16_t vendor_id, uint16_t product_id, uint1
     _connected = false;
     _current_interface = 0;
     _current_alternate = 0;
-    _locked = 0;
-    _post_process = NULL;
 
     /* Set initial device state */
     _device.state = Powered;
     _device.configuration = 0;
     _device.suspended = false;
+
+    _context = CriticalContext::get();
 }
 
 USBDevice::~USBDevice()
@@ -1547,40 +1554,23 @@ const uint8_t *USBDevice::string_iproduct_desc()
 
 void USBDevice::start_process()
 {
-    lock();
-
-    _phy->process();
-
-    unlock();
+    _phy_callback = Callback<void()>(_phy, &USBPhy::process);
+    _context->post(&_phy_callback);
 }
 
 void USBDevice::lock()
 {
-    core_util_critical_section_enter();
-    _locked++;
-    MBED_ASSERT(_locked > 0);
+    _context->lock();
 }
 
 void USBDevice::unlock()
 {
-    MBED_ASSERT(_locked > 0);
-
-    if (_locked == 1) {
-        // Perform post processing before fully unlocking
-        while (_post_process != NULL) {
-            void (USBDevice::*call)() = _post_process;
-            _post_process = NULL;
-            (this->*call)();
-        }
-    }
-
-    _locked--;
-    core_util_critical_section_exit();
+    _context->unlock();
 }
 
 void USBDevice::assert_locked()
 {
-    MBED_ASSERT(_locked > 0);
+    _context->assert_context();
 }
 
 void USBDevice::_change_state(DeviceState new_state) {
@@ -1607,9 +1597,4 @@ void USBDevice::_change_state(DeviceState new_state) {
     }
 
     callback_state_change(new_state);
-}
-
-void USBDevice::_run_later(void (USBDevice::*function)())
-{
-    _post_process = function;
 }
