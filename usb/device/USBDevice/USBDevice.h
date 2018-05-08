@@ -20,7 +20,8 @@
 #include "mbed.h"
 #include "USBDevice_Types.h"
 #include "USBPhy.h"
-#include "mbed_critical.h"
+#include "ExecutionContext.h"
+#include "Runnable.h"
 
 /**
  * \defgroup usb_device USB Device
@@ -598,14 +599,16 @@ private:
     control_transfer_t _transfer;
     usb_device_t _device;
     uint32_t _max_packet_size_ep0;
-    void (USBDevice::*_post_process)();
 
     bool _setup_ready;
     bool _abort_control;
 
     uint16_t _current_interface;
     uint8_t _current_alternate;
-    uint32_t _locked;
+
+    ExecutionContext *_context;
+    Runnable _control_callback;
+    Runnable _phy_callback;
 };
 
 #endif
