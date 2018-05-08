@@ -20,12 +20,12 @@
 #define USBMIDI_H
 
 /* These headers are included for child class. */
-#include "USBEndpoints.h"
 #include "USBDescriptor.h"
 #include "USBDevice_Types.h"
 
 #include "USBDevice.h"
 #include "MIDIMessage.h"
+#include "EventFlags.h"
 
 #define DEFAULT_CONFIGURATION (1)
 
@@ -67,7 +67,7 @@ public:
      *
      * @param m The MIDIMessage to send
      */
-    void write(MIDIMessage m);
+    bool write(MIDIMessage m);
 
     /**
      * Attach a callback for when a MIDIEvent is received
@@ -78,35 +78,40 @@ public:
 
 
 protected:
-    virtual bool EPBULK_OUT_callback();
-    virtual bool USBCallback_setConfiguration(uint8_t configuration);
-    /*
-    * Get string product descriptor
-    *
-    * @returns pointer to the string product descriptor
-    */
-    virtual const uint8_t *stringIproductDesc();
 
-    /*
-    * Get string interface descriptor
-    *
-    * @returns pointer to the string interface descriptor
-    */
-    virtual const uint8_t *stringIinterfaceDesc();
+    virtual void callback_state_change(DeviceState new_state);
 
-    /*
-    * Get configuration descriptor
-    *
-    * @returns pointer to the configuration descriptor
-    */
-    virtual const uint8_t *configurationDesc();
+    virtual void callback_request(const setup_packet_t *setup);
+
+    virtual void callback_request_xfer_done(const setup_packet_t *setup, bool aborted);
+
+    virtual void callback_set_configuration(uint8_t configuration);
+
+    virtual void callback_set_interface(uint16_t interface, uint8_t alternate);
+
+    virtual const uint8_t *string_iproduct_desc();
+
+    virtual const uint8_t *string_iinterface_desc();
+
+    virtual const uint8_t *configuration_desc(uint8_t index);
 
 private:
-    uint8_t data[MAX_MIDI_MESSAGE_SIZE + 1];
-    uint8_t cur_data;
-    bool data_end;
+    static const uint32_t MaxSize = 64;
+
+    uint8_t _bulk_buf[MaxSize];
+    uint8_t _data[MAX_MIDI_MESSAGE_SIZE + 1];
+    uint8_t _cur_data;
+    rtos::EventFlags _flags;
+
+    usb_ep_t _bulk_in;
+    usb_ep_t _bulk_out;
+    uint8_t _config_descriptor[0x65];
 
     void (*midi_evt)(MIDIMessage);
+
+    void _in_callback(usb_ep_t);
+    void _out_callback(usb_ep_t);
+
 };
 
 #endif
