@@ -26,6 +26,7 @@
 #include "USBDevice.h"
 #include "MIDIMessage.h"
 #include "EventFlags.h"
+#include "Mutex.h"
 
 #define DEFAULT_CONFIGURATION (1)
 
@@ -67,7 +68,11 @@ public:
      *
      * @param m The MIDIMessage to send
      */
-    bool write(MIDIMessage m);
+    bool write(MIDIMessage &m);
+
+    bool readable();
+
+    bool read(MIDIMessage *m);
 
     /**
      * Attach a callback for when a MIDIEvent is received
@@ -102,6 +107,7 @@ private:
     uint8_t _data[MAX_MIDI_MESSAGE_SIZE + 1];
     uint8_t _cur_data;
     rtos::EventFlags _flags;
+    rtos::Mutex _write_mutex;
 
     usb_ep_t _bulk_in;
     usb_ep_t _bulk_out;

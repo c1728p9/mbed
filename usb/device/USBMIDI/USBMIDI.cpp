@@ -42,9 +42,9 @@ USBMIDI::USBMIDI(uint16_t vendor_id, uint16_t product_id, uint16_t product_relea
 }
 
 // write plain MIDIMessage that will be converted to USBMidi event packet
-bool USBMIDI::write(MIDIMessage m)
+bool USBMIDI::write(MIDIMessage &m)
 {
-    //todo synchonize
+    _write_mutex.lock();
 
     bool ret = true;
     // first byte keeped for retro-compatibility
@@ -98,18 +98,22 @@ bool USBMIDI::write(MIDIMessage m)
         USBDevice::write_finish(_bulk_in);
     }
 
-
+    _write_mutex.unlock();
     return ret;
 }
 
 
 void USBMIDI::attach(void (*fptr)(MIDIMessage))
 {
+    assert_locked();
+    //TODO - replace with callback
     midi_evt = fptr;
 }
 
 void USBMIDI::callback_state_change(DeviceState new_state)
 {
+    assert_locked();
+
     if (new_state == Configured) {
         _flags.set(FLAG_CONNECT);
         _flags.clear(FLAG_DISCONNECT);
@@ -121,6 +125,8 @@ void USBMIDI::callback_state_change(DeviceState new_state)
 
 void USBMIDI::callback_request(const setup_packet_t *setup)
 {
+    assert_locked();
+
     RequestResult result = PassThrough;
     uint8_t *data = NULL;
     uint32_t size = 0;
@@ -130,6 +136,8 @@ void USBMIDI::callback_request(const setup_packet_t *setup)
 
 void USBMIDI::callback_request_xfer_done(const setup_packet_t *setup, bool aborted)
 {
+    assert_locked();
+
     complete_request_xfer_done(false);
 }
 
@@ -138,6 +146,8 @@ void USBMIDI::callback_request_xfer_done(const setup_packet_t *setup, bool abort
 // configuration is not supported.
 void USBMIDI::callback_set_configuration(uint8_t configuration)
 {
+    assert_locked();
+
     if (configuration == DEFAULT_CONFIGURATION) {
         complete_set_configuration(false);
     }
@@ -154,6 +164,7 @@ void USBMIDI::callback_set_configuration(uint8_t configuration)
 void USBMIDI::callback_set_interface(uint16_t interface, uint8_t alternate)
 {
     assert_locked();
+
     complete_set_interface(true);
 }
 
@@ -234,11 +245,15 @@ const uint8_t *USBMIDI::configuration_desc(uint8_t index)
 
 void USBMIDI::_in_callback(usb_ep_t ep)
 {
+    assert_locked();
+
     _flags.set(FLAG_WRITE_DONE);
 }
 
 void USBMIDI::_out_callback(usb_ep_t ep)
 {
+    assert_locked();
+
     uint32_t len = read_finish(_bulk_out);
 
     if (midi_evt != NULL) {
