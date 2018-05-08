@@ -204,7 +204,7 @@ const uint8_t *USBMIDI::configuration_desc(uint8_t index)
         // OUT endpoint descriptor
         0x09,       // bLength
         0x05,       // bDescriptorType
-        _bulk_in,   // bEndpointAddress
+        _bulk_out,   // bEndpointAddress
         0x02,       // bmAttributes
         0x40,       // wMaxPacketSize (LSB)
         0x00,       // wMaxPacketSize (MSB)
@@ -217,7 +217,7 @@ const uint8_t *USBMIDI::configuration_desc(uint8_t index)
         // IN endpoint descriptor
         0x09,       // bLength
         0x05,       // bDescriptorType
-        _bulk_out,  // bEndpointAddress
+        _bulk_in,  // bEndpointAddress
         0x02,       // bmAttributes
         0x40,       // wMaxPacketSize (LSB)
         0x00,       // wMaxPacketSize (MSB)
