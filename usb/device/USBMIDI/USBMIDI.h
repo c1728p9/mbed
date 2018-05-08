@@ -85,27 +85,27 @@ protected:
     *
     * @returns pointer to the string product descriptor
     */
-    virtual const uint8_t * stringIproductDesc();
+    virtual const uint8_t *stringIproductDesc();
 
     /*
     * Get string interface descriptor
     *
     * @returns pointer to the string interface descriptor
     */
-    virtual const uint8_t * stringIinterfaceDesc();
+    virtual const uint8_t *stringIinterfaceDesc();
 
     /*
     * Get configuration descriptor
     *
     * @returns pointer to the configuration descriptor
     */
-    virtual const uint8_t * configurationDesc();
+    virtual const uint8_t *configurationDesc();
 
 private:
-    uint8_t data[MAX_MIDI_MESSAGE_SIZE+1];
+    uint8_t data[MAX_MIDI_MESSAGE_SIZE + 1];
     uint8_t cur_data;
     bool data_end;
-    
+
     void (*midi_evt)(MIDIMessage);
 };
 
