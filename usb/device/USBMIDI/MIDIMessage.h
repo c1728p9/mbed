@@ -44,9 +44,10 @@
 /** A MIDI message container */
 class MIDIMessage {
 public:
-    MIDIMessage() : length(4) {}
 
-    MIDIMessage(uint8_t *buf) : length(4)
+    MIDIMessage() : data(data_buf), length(4) {}
+
+    MIDIMessage(uint8_t *buf) : data(data_buf), length(4)
     {
         for (int i = 0; i < 4; i++) {
             data[i] = buf[i];
@@ -56,12 +57,46 @@ public:
     // New constructor, buf is a true MIDI message (not USBMidi message) and buf_len true message length.
     MIDIMessage(uint8_t *buf, int buf_len)
     {
+        if (buf_len > 4) {
+            data = new uint8_t[buf_len + 1];
+        } else {
+            data = data_buf;
+        }
         length = buf_len + 1;
         // first byte keeped for retro-compatibility
         data[0] = 0;
 
         for (int i = 0; i < buf_len; i++) {
             data[i + 1] = buf[i];
+        }
+    }
+
+    MIDIMessage(const MIDIMessage& other)
+    {
+        *this = other;
+    }
+
+    MIDIMessage& operator=(const MIDIMessage& other)
+    {
+        if ((data != 0) && (data != data_buf)) {
+            delete[] data;
+            data = data_buf;
+        }
+
+        if (other.length > 4) {
+            data = new uint8_t[other.length];
+        }
+        length = other.length;
+        memcpy(data, other.data, length);
+
+         return *this;
+     }
+
+    ~MIDIMessage()
+    {
+        if ((data != 0) && (data != data_buf)) {
+            delete[] data;
+            data = data_buf;
         }
     }
 
@@ -299,8 +334,9 @@ public:
         return p - 8192; // 0 - 16383, 8192 is center
     }
 
-    uint8_t data[MAX_MIDI_MESSAGE_SIZE + 1];
-    uint8_t length;
+    uint8_t *data;
+    uint8_t data_buf[4];
+    uint16_t length;
 };
 
 #endif

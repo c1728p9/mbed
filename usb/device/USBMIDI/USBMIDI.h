@@ -27,6 +27,7 @@
 #include "MIDIMessage.h"
 #include "EventFlags.h"
 #include "Mutex.h"
+#include "Callback.h"
 
 #define DEFAULT_CONFIGURATION (1)
 
@@ -68,7 +69,7 @@ public:
      *
      * @param m The MIDIMessage to send
      */
-    bool write(MIDIMessage &m);
+    bool write(MIDIMessage m);
 
     bool readable();
 
@@ -79,7 +80,7 @@ public:
      *
      * @param fptr function pointer
      */
-    void attach(void (*fptr)(MIDIMessage));
+    void attach(Callback<void()> callback);
 
 
 protected:
@@ -104,8 +105,13 @@ private:
     static const uint32_t MaxSize = 64;
 
     uint8_t _bulk_buf[MaxSize];
+    uint32_t _bulk_buf_pos;
+    uint32_t _bulk_buf_size;
+
+    bool _data_ready;
     uint8_t _data[MAX_MIDI_MESSAGE_SIZE + 1];
     uint8_t _cur_data;
+
     rtos::EventFlags _flags;
     rtos::Mutex _write_mutex;
 
@@ -113,11 +119,11 @@ private:
     usb_ep_t _bulk_out;
     uint8_t _config_descriptor[0x65];
 
-    void (*midi_evt)(MIDIMessage);
+    Callback<void()> _callback;
 
     void _in_callback(usb_ep_t);
     void _out_callback(usb_ep_t);
-
+    bool _next_message();
 };
 
 #endif

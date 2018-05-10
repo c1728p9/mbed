@@ -27,9 +27,13 @@
 #define FLAG_CONNECT        (1 << 3)
 
 USBMIDI::USBMIDI(uint16_t vendor_id, uint16_t product_id, uint16_t product_release)
-    : USBDevice(get_usb_phy(), vendor_id, product_id, product_release), _cur_data(0)
+    : USBDevice(get_usb_phy(), vendor_id, product_id, product_release)
 {
-    midi_evt = NULL;
+    _bulk_buf_pos = 0;
+    _bulk_buf_size = 0;
+
+    _data_ready = false;
+    _cur_data = 0;
 
     EndpointResolver resolver(endpoint_table());
 
@@ -42,7 +46,7 @@ USBMIDI::USBMIDI(uint16_t vendor_id, uint16_t product_id, uint16_t product_relea
 }
 
 // write plain MIDIMessage that will be converted to USBMidi event packet
-bool USBMIDI::write(MIDIMessage &m)
+bool USBMIDI::write(MIDIMessage m)
 {
     _write_mutex.lock();
 
@@ -102,12 +106,46 @@ bool USBMIDI::write(MIDIMessage &m)
     return ret;
 }
 
-
-void USBMIDI::attach(void (*fptr)(MIDIMessage))
+bool USBMIDI::readable()
 {
-    assert_locked();
-    //TODO - replace with callback
-    midi_evt = fptr;
+    lock();
+
+    bool ret = _data_ready;
+
+    unlock();
+
+    return ret;
+}
+
+bool USBMIDI::read(MIDIMessage *m)
+{
+    lock();
+
+    if (!_data_ready) {
+        unlock();
+        return false;
+    }
+
+    *m = MIDIMessage(_data, _cur_data);
+    _cur_data = 0;
+    _next_message();
+
+    if (!_data_ready) {
+        read_start(_bulk_out, _bulk_buf, MaxSize);
+    }
+
+    unlock();
+
+    return true;
+}
+
+void USBMIDI::attach(Callback<void()> callback)
+{
+    lock();
+
+    _callback = callback;
+
+    unlock();
 }
 
 void USBMIDI::callback_state_change(DeviceState new_state)
@@ -254,59 +292,74 @@ void USBMIDI::_out_callback(usb_ep_t ep)
 {
     assert_locked();
 
-    uint32_t len = read_finish(_bulk_out);
+    _bulk_buf_size = read_finish(_bulk_out);
+    _bulk_buf_pos = 0;
 
-    if (midi_evt != NULL) {
-        for (uint32_t i = 0; i < len; i += 4) {
-            uint8_t data_read;
-            bool data_end = true;
-            switch (_bulk_buf[i]) {
-                case 0x2:
-                    // Two-bytes System Common Message - undefined in USBMidi 1.0
-                    data_read = 2;
-                    break;
-                case 0x4:
-                    // SysEx start or continue
-                    data_end = false;
-                    data_read = 3;
-                    break;
-                case 0x5:
-                    // Single-byte System Common Message or SysEx end with one byte
-                    data_read = 1;
-                    break;
-                case 0x6:
-                    // SysEx end with two bytes
-                    data_read = 2;
-                    break;
-                case 0xC:
-                    // Program change
-                    data_read = 2;
-                    break;
-                case 0xD:
-                    // Channel pressure
-                    data_read = 2;
-                    break;
-                case 0xF:
-                    // Single byte
-                    data_read = 1;
-                    break;
-                default:
-                    // Others three-bytes messages
-                    data_read = 3;
-                    break;
-            }
-
-            for (uint8_t j = 1; j < data_read + 1; j++) {
-                _data[_cur_data] = _bulk_buf[i + j];
-                _cur_data++;
-            }
-
-            if (data_end) {
-                midi_evt(MIDIMessage(_data, _cur_data));
-                _cur_data = 0;
-            }
-        }
+    if (_callback && _next_message()) {
+        _callback();
+        return;
     }
 
     read_start(_bulk_out, _bulk_buf, MaxSize);
+}
+
+bool USBMIDI::_next_message()
+{
+    assert_locked();
+    bool data_ready = false;
+
+    while (_bulk_buf_pos < _bulk_buf_size) {
+        uint8_t data_read;
+        bool data_end = true;
+        switch (_bulk_buf[_bulk_buf_pos]) {
+            case 0x2:
+                // Two-bytes System Common Message - undefined in USBMidi 1.0
+                data_read = 2;
+                break;
+            case 0x4:
+                // SysEx start or continue
+                data_end = false;
+                data_read = 3;
+                break;
+            case 0x5:
+                // Single-byte System Common Message or SysEx end with one byte
+                data_read = 1;
+                break;
+            case 0x6:
+                // SysEx end with two bytes
+                data_read = 2;
+                break;
+            case 0xC:
+                // Program change
+                data_read = 2;
+                break;
+            case 0xD:
+                // Channel pressure
+                data_read = 2;
+                break;
+            case 0xF:
+                // Single byte
+                data_read = 1;
+                break;
+            default:
+                // Others three-bytes messages
+                data_read = 3;
+                break;
+        }
+
+        for (uint8_t j = 1; j < data_read + 1; j++) {
+            _data[_cur_data] = _bulk_buf[_bulk_buf_pos + j];
+            _cur_data++;
+        }
+        _bulk_buf_pos += 4;
+
+        if (data_end) {
+            // Message is ready to be read
+            data_ready = true;
+            break;
+        }
+    }
+
+    _data_ready = data_ready;
+    return data_ready;
 }
