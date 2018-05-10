@@ -45,29 +45,12 @@
 class MIDIMessage {
 public:
 
-    MIDIMessage() : data(data_buf), length(4) {}
+    MIDIMessage() : _data(new uint8_t[MAX_MIDI_MESSAGE_SIZE + 1]), _length(4) {}
 
-    MIDIMessage(uint8_t *buf) : data(data_buf), length(4)
+    MIDIMessage(uint8_t *buf) : _data(new uint8_t[MAX_MIDI_MESSAGE_SIZE + 1]), _length(4)
     {
         for (int i = 0; i < 4; i++) {
-            data[i] = buf[i];
-        }
-    }
-
-    // New constructor, buf is a true MIDI message (not USBMidi message) and buf_len true message length.
-    MIDIMessage(uint8_t *buf, int buf_len)
-    {
-        if (buf_len > 4) {
-            data = new uint8_t[buf_len + 1];
-        } else {
-            data = data_buf;
-        }
-        length = buf_len + 1;
-        // first byte keeped for retro-compatibility
-        data[0] = 0;
-
-        for (int i = 0; i < buf_len; i++) {
-            data[i + 1] = buf[i];
+            _data[i] = buf[i];
         }
     }
 
@@ -78,25 +61,31 @@ public:
 
     MIDIMessage& operator=(const MIDIMessage& other)
     {
-        if ((data != 0) && (data != data_buf)) {
-            delete[] data;
-            data = data_buf;
+        _length = other._length;
+        for (int i = 0; i < _length; i++) {
+            _data[i] = other._data[i];
         }
-
-        if (other.length > 4) {
-            data = new uint8_t[other.length];
-        }
-        length = other.length;
-        memcpy(data, other.data, length);
 
          return *this;
      }
 
     ~MIDIMessage()
     {
-        if ((data != 0) && (data != data_buf)) {
-            delete[] data;
-            data = data_buf;
+        delete[] _data;
+    }
+
+    void from_raw(uint8_t *buf, int buf_len)
+    {
+        _length = buf_len + 1;
+        if (_length > MAX_MIDI_MESSAGE_SIZE) {
+            _length = MAX_MIDI_MESSAGE_SIZE;
+        }
+
+        // first byte keeped for retro-compatibility
+        _data[0] = CABLE_NUM | 0x08;
+
+        for (int i = 0; i < buf_len; i++) {
+            _data[i + 1] = buf[i];
         }
     }
 
@@ -111,10 +100,10 @@ public:
     static MIDIMessage NoteOff(int key, int velocity = 127, int channel = 0)
     {
         MIDIMessage msg;
-        msg.data[0] = CABLE_NUM | 0x08;
-        msg.data[1] = 0x80 | (channel & 0x0F);
-        msg.data[2] = key & 0x7F;
-        msg.data[3] = velocity & 0x7F;
+        msg._data[0] = CABLE_NUM | 0x08;
+        msg._data[1] = 0x80 | (channel & 0x0F);
+        msg._data[2] = key & 0x7F;
+        msg._data[3] = velocity & 0x7F;
         return msg;
     }
 
@@ -127,10 +116,10 @@ public:
     static MIDIMessage NoteOn(int key, int velocity = 127, int channel = 0)
     {
         MIDIMessage msg;
-        msg.data[0] = CABLE_NUM | 0x09;
-        msg.data[1] = 0x90 | (channel & 0x0F);
-        msg.data[2] = key & 0x7F;
-        msg.data[3] = velocity & 0x7F;
+        msg._data[0] = CABLE_NUM | 0x09;
+        msg._data[1] = 0x90 | (channel & 0x0F);
+        msg._data[2] = key & 0x7F;
+        msg._data[3] = velocity & 0x7F;
         return msg;
     }
 
@@ -143,10 +132,10 @@ public:
     static MIDIMessage PolyphonicAftertouch(int key, int pressure, int channel = 0)
     {
         MIDIMessage msg;
-        msg.data[0] = CABLE_NUM | 0x0A;
-        msg.data[1] = 0xA0 | (channel & 0x0F);
-        msg.data[2] = key & 0x7F;
-        msg.data[3] = pressure & 0x7F;
+        msg._data[0] = CABLE_NUM | 0x0A;
+        msg._data[1] = 0xA0 | (channel & 0x0F);
+        msg._data[2] = key & 0x7F;
+        msg._data[3] = pressure & 0x7F;
         return msg;
     }
 
@@ -159,10 +148,10 @@ public:
     static MIDIMessage ControlChange(int control, int value, int channel = 0)
     {
         MIDIMessage msg;
-        msg.data[0] = CABLE_NUM | 0x0B;
-        msg.data[1] = 0xB0 | (channel & 0x0F);
-        msg.data[2] = control & 0x7F;
-        msg.data[3] = value & 0x7F;
+        msg._data[0] = CABLE_NUM | 0x0B;
+        msg._data[1] = 0xB0 | (channel & 0x0F);
+        msg._data[2] = control & 0x7F;
+        msg._data[3] = value & 0x7F;
         return msg;
     }
 
@@ -174,10 +163,10 @@ public:
     static MIDIMessage ProgramChange(int program, int channel = 0)
     {
         MIDIMessage msg;
-        msg.data[0] = CABLE_NUM | 0x0C;
-        msg.data[1] = 0xC0 | (channel & 0x0F);
-        msg.data[2] = program & 0x7F;
-        msg.data[3] = 0x00;
+        msg._data[0] = CABLE_NUM | 0x0C;
+        msg._data[1] = 0xC0 | (channel & 0x0F);
+        msg._data[2] = program & 0x7F;
+        msg._data[3] = 0x00;
         return msg;
     }
 
@@ -189,10 +178,10 @@ public:
     static MIDIMessage ChannelAftertouch(int pressure, int channel = 0)
     {
         MIDIMessage msg;
-        msg.data[0] = CABLE_NUM | 0x0D;
-        msg.data[1] = 0xD0 | (channel & 0x0F);
-        msg.data[2] = pressure & 0x7F;
-        msg.data[3] = 0x00;
+        msg._data[0] = CABLE_NUM | 0x0D;
+        msg._data[1] = 0xD0 | (channel & 0x0F);
+        msg._data[2] = pressure & 0x7F;
+        msg._data[3] = 0x00;
         return msg;
     }
 
@@ -205,10 +194,10 @@ public:
     {
         MIDIMessage msg;
         int p = pitch + 8192;    // 0 - 16383, 8192 is center
-        msg.data[0] = CABLE_NUM | 0x0E;
-        msg.data[1] = 0xE0 | (channel & 0x0F);
-        msg.data[2] = p & 0x7F;
-        msg.data[3] = (p >> 7) & 0x7F;
+        msg._data[0] = CABLE_NUM | 0x0E;
+        msg._data[1] = 0xE0 | (channel & 0x0F);
+        msg._data[2] = p & 0x7F;
+        msg._data[3] = (p >> 7) & 0x7F;
         return msg;
     }
 
@@ -228,7 +217,8 @@ public:
     */
     static MIDIMessage SysEx(uint8_t *data, int len)
     {
-        MIDIMessage msg = MIDIMessage(data, len);
+        MIDIMessage msg;// = MIDIMessage(data, len);
+        msg.from_raw(data, len);
         return msg;
     }
 
@@ -249,94 +239,190 @@ public:
     };
 
     /** Read the message type
+     *
      * @returns MIDIMessageType
      */
     MIDIMessageType type()
     {
-        switch ((data[1] >> 4) & 0xF) {
+        MIDIMessageType message_type;
+        uint8_t min_size;
+        switch ((_data[1] >> 4) & 0xF) {
             case 0x8:
-                return NoteOffType;
+                // message, channel
+                // key
+                // velocity
+                min_size = 3;
+                message_type = NoteOffType;
+                break;
             case 0x9:
-                return NoteOnType;
+                // message, channel
+                // key
+                // velocity
+                min_size = 3;
+                message_type = NoteOnType;
+                break;
             case 0xA:
-                return PolyphonicAftertouchType;
+                // message, channel
+                // key
+                // pressure
+                min_size = 3;
+                message_type = PolyphonicAftertouchType;
+                break;
             case 0xB:
+                // message, channel
+                // controller
+                min_size = 2;
                 if (controller() < 120) { // standard controllers
-                    return ControlChangeType;
+                    message_type = ControlChangeType;
                 } else if (controller() == 123) {
-                    return AllNotesOffType;
+                    message_type = AllNotesOffType;
                 } else {
-                    return ErrorType; // unsupported atm
+                    message_type = ErrorType; // unsupported atm
                 }
+                break;
             case 0xC:
-                return ProgramChangeType;
+                // message, channel
+                // program
+                min_size = 2;
+                message_type = ProgramChangeType;
+                break;
             case 0xD:
-                return ChannelAftertouchType;
+                // message, channel
+                // pressure
+                min_size = 2;
+                message_type = ChannelAftertouchType;
+                break;
             case 0xE:
-                return PitchWheelType;
+                // message, channel
+                // pitch lsb
+                // pitch msb
+                min_size = 3;
+                message_type = PitchWheelType;
+                break;
             case 0xF:
-                return SysExType;
+                min_size = 2;
+                message_type = SysExType;
+                break;
             default:
-                return ErrorType;
+                message_type = ErrorType;
+                break;
         }
+
+
+        if (_length < min_size) {
+            // too small to be a valid message
+            message_type = ErrorType;
+        }
+        return message_type;
     }
 
-    /** Read the channel number */
+    /**
+     * Read the channel number
+     *
+     * @return channel number or -1 on error
+     */
+
     int channel()
     {
-        return (data[1] & 0x0F);
+        return (_data[1] & 0x0F);
     }
 
     /** Read the key ID */
     int key()
     {
-        return (data[2] & 0x7F);
+        MIDIMessageType msg_type = type();
+        if ((msg_type != NoteOffType) &&
+            (msg_type != NoteOnType) &&
+            (msg_type != PolyphonicAftertouchType)) {
+            return -1;
+        }
+
+        return _data[2] & 0x7F;
     }
 
     /** Read the velocity */
     int velocity()
     {
-        return (data[3] & 0x7F);
+        MIDIMessageType msg_type = type();
+        if ((msg_type != NoteOffType) &&
+            (msg_type != NoteOnType)) {
+            return -1;
+        }
+
+        return _data[3] & 0x7F;
     }
 
     /** Read the controller value */
     int value()
     {
-        return (data[3] & 0x7F);
+        MIDIMessageType msg_type = type();
+        if ((msg_type != ControlChangeType) &&
+            (msg_type != AllNotesOffType)) {
+            return -1;
+        }
+
+        // ControlChangeType
+        // AllNotesOffType
+        return _data[3] & 0x7F;
     }
 
     /** Read the aftertouch pressure */
     int pressure()
     {
+        MIDIMessageType msg_type = type();
+        if ((msg_type != PolyphonicAftertouchType) &&
+            (msg_type != ChannelAftertouchType)) {
+            return -1;
+        }
+
+        // PolyphonicAftertouchType
         if (type() == PolyphonicAftertouchType) {
-            return (data[3] & 0x7F);
+            return _data[3] & 0x7F;
         } else {
-            return (data[2] & 0x7F);
+            // ChannelAftertouchType
+            return _data[2] & 0x7F;
         }
     }
 
     /** Read the controller number */
     int controller()
     {
-        return (data[2] & 0x7F);
+        MIDIMessageType msg_type = type();
+        if ((msg_type != ControlChangeType) &&
+            (msg_type != AllNotesOffType)) {
+            return -1;
+        }
+
+        return _data[2] & 0x7F;
     }
 
     /** Read the program number */
     int program()
     {
-        return (data[2] & 0x7F);
+        MIDIMessageType msg_type = type();
+        if (msg_type != ProgramChangeType) {
+            return -1;
+        }
+
+        // ProgramChangeType
+        return _data[2] & 0x7F;
     }
 
     /** Read the pitch value */
     int pitch()
     {
-        int p = ((data[3] & 0x7F) << 7) | (data[2] & 0x7F);
+        MIDIMessageType msg_type = type();
+        if (msg_type != PitchWheelType) {
+            return -1;
+        }
+
+        // PitchWheelType
+        int p = ((_data[3] & 0x7F) << 7) | (_data[2] & 0x7F);
         return p - 8192; // 0 - 16383, 8192 is center
     }
 
-    uint8_t *data;
-    uint8_t data_buf[4];
-    uint16_t length;
+    uint8_t *_data;
+    uint16_t _length;
 };
 
 #endif

@@ -4,17 +4,22 @@
 
 USBMIDI midi;
 
-void stub() {}
+Semaphore can_read;
+void release_sem(Semaphore *sem)
+{
+    sem->release();
+}
 
 int main_midi()
 {
     printf("Running MIDI test\r\n");
-    midi.attach(stub);
-
-    wait(5);
+    midi.attach(Callback<void()>(&release_sem, &can_read));
 
     while (1) {
-        if (midi.readable()) {
+
+        can_read.wait();
+
+        while (midi.readable()) {
 
             MIDIMessage message;
             midi.read(&message);

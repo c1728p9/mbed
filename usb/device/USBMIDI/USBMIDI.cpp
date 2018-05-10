@@ -126,7 +126,7 @@ bool USBMIDI::read(MIDIMessage *m)
         return false;
     }
 
-    *m = MIDIMessage(_data, _cur_data);
+    m->from_raw(_data, _cur_data);
     _cur_data = 0;
     _next_message();
 
