@@ -47,6 +47,57 @@ void EventQueue::cancel(int id) {
     return equeue_cancel(&_equeue, id);
 }
 
+void EventQueue::static_event_thunk(EventQueue *queue)
+{
+    core_util_critical_section_enter();
+    uint64_t buf[2];
+
+    while (true) {
+
+        // Atomically dequeue the task and copy the callback
+        TaskBase *task = queue->_static_list.dequeue();
+        if (!task) {
+            break;
+        }
+        MBED_ASSERT(sizeof(buf) >= task->size);
+        TaskBase::callback_t callback = task_start(task, (uint8_t*)buf, sizeof(buf));
+
+        // Run the callback outside the critical section
+        core_util_critical_section_exit();
+        callback((uint8_t*)buf);
+        core_util_critical_section_enter();
+
+        // Finish
+        task_finish(task);
+        task = NULL;
+
+    }
+
+    core_util_critical_section_exit();
+}
+
+void EventQueue::post(TaskBase *task)
+{
+    core_util_critical_section_enter();
+
+    _static_list.remove(task);
+    _static_list.enqueue(task);
+    task_post(task, this);
+    call(static_event_thunk, this);
+
+    core_util_critical_section_exit();
+}
+
+void EventQueue::cancel(TaskBase *task)
+{
+    core_util_critical_section_enter();
+
+    _static_list.remove(task);
+    task_cancel(task);
+
+    core_util_critical_section_exit();
+}
+
 void EventQueue::background(Callback<void(int)> update) {
     _update = update;
 

@@ -17,9 +17,11 @@
 #ifndef EVENT_QUEUE_H
 #define EVENT_QUEUE_H
 
+#include "events/TaskQueue.h"
 #include "equeue/equeue.h"
 #include "platform/Callback.h"
 #include "platform/NonCopyable.h"
+#include "LinkedList.h"
 #include <cstddef>
 #include <new>
 
@@ -48,7 +50,7 @@ class Event;
  *  Flexible event queue for dispatching events
  * @ingroup events
  */
-class EventQueue : private mbed::NonCopyable<EventQueue> {
+class EventQueue : public TaskQueue, private mbed::NonCopyable<EventQueue> {
 public:
     /** Create an EventQueue
      *
@@ -123,6 +125,10 @@ public:
      *  @param id       Unique id of the event
      */
     void cancel(int id);
+
+    virtual void post(TaskBase *event);
+
+    virtual void cancel(TaskBase *event);
 
     /** Background an event queue onto a single-shot timer-interrupt
      *
@@ -2285,6 +2291,9 @@ protected:
     friend class Event;
     struct equeue _equeue;
     mbed::Callback<void(int)> _update;
+    LinkedList<TaskBase> _static_list;
+
+    static void static_event_thunk(EventQueue *queue);
 
     // Function attributes
     template <typename F>
