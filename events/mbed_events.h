@@ -25,7 +25,10 @@
 
 #ifdef __cplusplus
 
+#include "events/TaskQueue.h"
 #include "events/EventQueue.h"
+#include "events/TaskBase.h"
+#include "events/Task.h"
 #include "events/Event.h"
 
 #include "events/mbed_shared_queues.h"
