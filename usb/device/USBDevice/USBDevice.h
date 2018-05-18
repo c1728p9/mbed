@@ -20,8 +20,7 @@
 #include "mbed.h"
 #include "USBDevice_Types.h"
 #include "USBPhy.h"
-#include "ExecutionContext.h"
-#include "Runnable.h"
+#include "PolledQueue.h"
 
 /**
  * \defgroup usb_device USB Device
@@ -532,6 +531,7 @@ private:
     bool _request_get_interface();
     bool _request_set_interface();
     void _change_state(DeviceState state);
+    void _process();
     void _run_later(void (USBDevice::*function)());
 
     void _complete_request();
@@ -606,9 +606,13 @@ private:
     uint16_t _current_interface;
     uint8_t _current_alternate;
 
-    ExecutionContext *_context;
-    Runnable _control_callback;
-    Runnable _phy_callback;
+    TaskQueue *_task_queue;
+    PolledQueue _default_queue;
+    Mutex _mut;
+    uint32_t _locked;
+
+    Task< mbed::Callback<void()> > _control_callback;
+    Task< mbed::Callback<void()> > _phy_callback;
 };
 
 #endif
