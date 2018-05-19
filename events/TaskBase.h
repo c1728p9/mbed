@@ -38,7 +38,8 @@ class TaskQueue;
 class TaskBase : public LinkEntry {
 public:
 
-    typedef void (*callback_t)(void *data);
+    typedef void (*copy_callback_t)(void *dest, void *source);
+    typedef void (*run_callback_t)(void *data);
     const uint32_t size;
 
     /**
@@ -46,7 +47,7 @@ public:
      *
      * @param callback Completion callback
      */
-    TaskBase(uint8_t *data, uint32_t size, callback_t cb=NULL);
+    TaskBase(uint8_t *data, uint32_t size, copy_callback_t copy=NULL, run_callback_t run=NULL);
 
     ~TaskBase();
 
@@ -94,7 +95,8 @@ public:
 private:
 
     uint8_t * const _buffer;
-    callback_t _callback;
+    copy_callback_t _copy;
+    run_callback_t _callback;
 
     bool _started;
     TaskQueue *_queue;

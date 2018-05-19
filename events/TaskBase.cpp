@@ -25,8 +25,11 @@ static void stub(void *buffer)
     (void)buffer;
 }
 
-TaskBase::TaskBase(uint8_t *data, uint32_t size, callback_t cb): size(size), _buffer(data), _callback(cb), _started(false), _queue(NULL), _flush_sem(NULL)
+TaskBase::TaskBase(uint8_t *data, uint32_t size, copy_callback_t copy, run_callback_t run)
+    : size(size), _buffer(data), _copy(copy), _callback(cb),
+      _started(false), _queue(NULL), _flush_sem(NULL)
 {
+    _copy = copy;
     if (!_callback) {
         _callback = stub;
     }
@@ -130,7 +133,11 @@ TaskBase::callback_t TaskBase::_start(uint8_t *buffer, uint32_t size)
         return stub;
     }
 
-    memcpy(buffer, this->_buffer, this->size);
+    if (_copy) {
+        _copy((void*)buffer, this->_buffer);
+    } else {
+        memcpy(buffer, this->_buffer, this->size);
+    }
     return _callback;
 }
 

@@ -16,6 +16,7 @@
 #ifndef EVENT_H
 #define EVENT_H
 
+#include "events/EventQueue.h"
 #include "events/TaskBase.h"
 #include "platform/mbed_assert.h"
 
@@ -28,66 +29,517 @@ namespace events {
  * @ingroup events
  */
 
+
+
+//template <typename C>
+//class _Task: public TaskBase {
+//public:
+//
+//    _Task(TaskQueue *q, C *c): TaskBase(reinterpret_cast<uint8_t *>(&c), sizeof(C), C::thunk), _q(q) {
+//
+//    }
+//
+//    void set(TaskQueue *q)
+//    {
+//        _q = q;
+//    }
+//
+//protected:
+//    TaskQueue *_q;
+//
+//};
+
+template<typename F, typename B0=void, typename B1=void, typename B2=void,
+        typename B3=void, typename B4=void, typename B5=void, typename B6=void,
+        typename B7=void, typename B8=void>
+struct AllArgs {
+    typedef AllArgs Self;
+    F f; B0 b0; B1 b1; B2 b2; B3 b3; B4 b4; B5 b5; B6 b6; B7 b7; B8 b8;
+
+    AllArgs(F f, B0 b0=B0(), B1 b1=B1(), B2 b2=B2(), B3 b3=B3(), B4 b4=B4(), B5 b5=B5(), B6 b6=B6(), B7 b7=B7(), B8 b8=B8())
+        : f(f), b0(b0), b1(b1), b2(b2), b3(b3), b4(b4), b5(b5), b6(b6), b7(b7), b8(b8) {}
+
+    static void copy(void *dest, void *src) {
+        new (dest) Self(*(Self*)src);
+    }
+
+    static void call_and_destroy(void *data) {
+        Self *s = static_cast<Self*>(data);
+        s->f(s->b0, s->b1, s->b2, s->b3, s->b4, s->b5, s->b6, s->b7, s->b8);
+        s->~Self();
+    }
+};
+
+template<typename F, typename B0, typename B1, typename B2,
+        typename B3, typename B4, typename B5, typename B6,
+        typename B7>
+struct AllArgs<F, B0, B1, B2, B3, B4, B5, B6, B7, void> {
+    typedef AllArgs Self;
+    F f; B0 b0; B1 b1; B2 b2; B3 b3; B4 b4; B5 b5; B6 b6; B7 b7;
+
+    AllArgs(F f, B0 b0=B0(), B1 b1=B1(), B2 b2=B2(), B3 b3=B3(), B4 b4=B4(), B5 b5=B5(), B6 b6=B6(), B7 b7=B7())
+        : f(f), b0(b0), b1(b1), b2(b2), b3(b3), b4(b4), b5(b5), b6(b6), b7(b7) {}
+
+    static void copy(void *dest, void *src) {
+        new (dest) Self(*(Self*)src);
+    }
+
+    static void call_and_destroy(void *data) {
+        Self *s = static_cast<Self*>(data);
+        s->f(s->b0, s->b1, s->b2, s->b3, s->b4, s->b5, s->b6, s->b7);
+        s->~Self();
+    }
+};
+
+template<typename F, typename B0, typename B1, typename B2,
+        typename B3, typename B4, typename B5, typename B6>
+struct AllArgs<F, B0, B1, B2, B3, B4, B5, B6, void, void> {
+    typedef AllArgs Self;
+    F f; B0 b0; B1 b1; B2 b2; B3 b3; B4 b4; B5 b5; B6 b6;
+
+    AllArgs(F f, B0 b0=B0(), B1 b1=B1(), B2 b2=B2(), B3 b3=B3(), B4 b4=B4(), B5 b5=B5(), B6 b6=B6())
+        : f(f), b0(b0), b1(b1), b2(b2), b3(b3), b4(b4), b5(b5), b6(b6) {}
+
+    static void copy(void *dest, void *src) {
+        new (dest) Self(*(Self*)src);
+    }
+
+    static void call_and_destroy(void *data) {
+        Self *s = static_cast<Self*>(data);
+        s->f(s->b0, s->b1, s->b2, s->b3, s->b4, s->b5, s->b6);
+        s->~Self();
+    }
+};
+
+template<typename F, typename B0, typename B1, typename B2,
+        typename B3, typename B4, typename B5>
+struct AllArgs<F, B0, B1, B2, B3, B4, B5, void, void, void> {
+    typedef AllArgs Self;
+    F f; B0 b0; B1 b1; B2 b2; B3 b3; B4 b4; B5 b5;
+
+    AllArgs(F f, B0 b0=B0(), B1 b1=B1(), B2 b2=B2(), B3 b3=B3(), B4 b4=B4(), B5 b5=B5())
+        : f(f), b0(b0), b1(b1), b2(b2), b3(b3), b4(b4), b5(b5) {}
+
+    static void copy(void *dest, void *src) {
+        new (dest) Self(*(Self*)src);
+    }
+
+    static void call_and_destroy(void *data) {
+        Self *s = static_cast<Self*>(data);
+        s->f(s->b0, s->b1, s->b2, s->b3, s->b4, s->b5);
+        s->~Self();
+    }
+};
+
+template<typename F, typename B0, typename B1, typename B2,
+        typename B3, typename B4>
+struct AllArgs<F, B0, B1, B2, B3, B4, void, void, void, void> {
+    typedef AllArgs Self;
+    F f; B0 b0; B1 b1; B2 b2; B3 b3; B4 b4;
+
+    AllArgs(F f, B0 b0=B0(), B1 b1=B1(), B2 b2=B2(), B3 b3=B3(), B4 b4=B4())
+        : f(f), b0(b0), b1(b1), b2(b2), b3(b3), b4(b4) {}
+
+    static void copy(void *dest, void *src) {
+        new (dest) Self(*(Self*)src);
+    }
+
+    static void call_and_destroy(void *data) {
+        Self *s = static_cast<Self*>(data);
+        s->f(s->b0, s->b1, s->b2, s->b3, s->b4);
+        s->~Self();
+    }
+};
+
+template<typename F, typename B0, typename B1, typename B2,
+        typename B3>
+struct AllArgs<F, B0, B1, B2, B3, void, void, void, void, void> {
+    typedef AllArgs Self;
+    F f; B0 b0; B1 b1; B2 b2; B3 b3;
+
+    AllArgs(F f, B0 b0=B0(), B1 b1=B1(), B2 b2=B2(), B3 b3=B3())
+        : f(f), b0(b0), b1(b1), b2(b2), b3(b3) {}
+
+    static void copy(void *dest, void *src) {
+        new (dest) Self(*(Self*)src);
+    }
+
+    static void call_and_destroy(void *data) {
+        Self *s = static_cast<Self*>(data);
+        s->f(s->b0, s->b1, s->b2, s->b3);
+        s->~Self();
+    }
+};
+
+template<typename F, typename B0, typename B1, typename B2>
+struct AllArgs<F, B0, B1, B2, void, void, void, void, void, void> {
+    typedef AllArgs Self;
+    F f; B0 b0; B1 b1; B2 b2;
+
+    AllArgs(F f, B0 b0=B0(), B1 b1=B1(), B2 b2=B2())
+        : f(f), b0(b0), b1(b1), b2(b2) {}
+
+    static void copy(void *dest, void *src) {
+        new (dest) Self(*(Self*)src);
+    }
+
+    static void call_and_destroy(void *data) {
+        Self *s = static_cast<Self*>(data);
+        s->f(s->b0, s->b1, s->b2);
+        s->~Self();
+    }
+};
+
+template<typename F, typename B0, typename B1>
+struct AllArgs<F, B0, B1, void, void, void, void, void, void, void> {
+    typedef AllArgs Self;
+    F f; B0 b0; B1 b1;
+
+    AllArgs(F f, B0 b0=B0(), B1 b1=B1())
+        : f(f), b0(b0), b1(b1) {}
+
+    static void copy(void *dest, void *src) {
+        new (dest) Self(*(Self*)src);
+    }
+
+    static void call_and_destroy(void *data) {
+        Self *s = static_cast<Self*>(data);
+        s->f(s->b0, s->b1);
+        s->~Self();
+    }
+};
+
+template<typename F, typename B0>
+struct AllArgs<F, B0, void, void, void, void, void, void, void, void> {
+    typedef AllArgs Self;
+    F f; B0 b0;
+
+    AllArgs(F f, B0 b0=B0())
+        : f(f), b0(b0) {}
+
+    static void copy(void *dest, void *src) {
+        new (dest) Self(*(Self*)src);
+    }
+
+    static void call_and_destroy(void *data) {
+        Self *s = static_cast<Self*>(data);
+        s->f(s->b0);
+        s->~Self();
+    }
+};
+
+template<typename F>
+struct AllArgs<F, void, void, void, void, void, void, void, void, void> {
+    typedef AllArgs Self;
+    F f;
+
+    AllArgs(F f)
+        : f(f) {}
+
+    static void copy(void *dest, void *src) {
+        new (dest) Self(*(Self*)src);
+    }
+
+    static void call_and_destroy(void *data) {
+        Self *s = static_cast<Self*>(data);
+        s->f();
+        s->~Self();
+    }
+};
+
+
+
+
+//template<typename F, typename B0=void, typename B1=void, typename B2=void,
+//        typename B3=void, typename B4=void, typename B5=void, typename B6=void,
+//        typename B7=void, typename B8=void>
+//struct AllArgs;
+//
+//template<typename F, typename B0, typename B1, typename B2,
+//        typename B3, typename B4, typename B5, typename B6,
+//        typename B7, typename B8>
+//struct AllArgs<F, B0, B1, void, void, void, void, void, void, void> {
+//    typedef AllArgs<F, B0, B1, void, void, void, void, void, void, void> Self;
+//    F f; B0 b0; B1 b1;
+//
+//    static void copy(void *dest, void *src) {
+//        new (dest) Self(*(Self*)src);
+//    }
+//
+//    static void call_and_destroy(void *data) {
+//        Self *self = static_cast<Self*>(data);
+//        self->f(self->b0, self->b1);
+//        self->~Self();
+//    }
+//};
+//
+//template<typename F, typename B0, typename B1, typename B2,
+//        typename B3, typename B4, typename B5, typename B6,
+//        typename B7, typename B8>
+//struct AllArgs<F, B0, B1, B2, B3, B4, B5, B6, B7, B8> {
+//    typedef AllArgs<F, B0, B1, B2, B3, B4, B5, B6, B7, B8> Self;
+//    F f; B0 b0; B1 b1; B2 b2; B3 b3; B4 b4; B5 b5; B6 b6; B7 b7; B8 b8;
+//
+//    AllArgs(F f, B0 b0=B0(), B1 b1=B1(), B2 b2=B2(), B3 b3=B3(), B4 b4=B4(), B5 b5=B5(), B6 b6=B6(), B7 b7=B7(), B8 b8=B8())
+//        : f(f), b0(b0), b1(b1), b2(b2), b3(b3), b4(b4), b5(b5), b6(b6), b7(b7), b8(b8) {}
+//
+//    static void copy(void *dest, void *src) {
+//        new (dest) Self(*(Self*)src);
+//    }
+//
+//    static void call_and_destroy(void *data) {
+//        Self *s = static_cast<Self*>(data);
+//        s->f(s->b0, s->b1, s->b2, s->b3, s->b4, s->b5, s->b6, s->b7, s->b8);
+//        s->~Self();
+//    }
+//};
+//
+
+
+template <typename F, typename B0=void, typename B1=void, typename B2=void, typename B3=void, typename B4=void>
+struct PartialArgs;
+
+template <typename A0, typename A1, typename B0, typename B1, typename B2, typename B3, typename B4>
+struct PartialArgs<void(A0, A1), B0, B1, B2, B3, B4> {
+    typedef AllArgs<B0, B1, B2, B3, B4, A0, A1> AllArgs;
+
+    AllArgs all;
+
+    void set(A0 a0, A1 a1) {
+        all.b0 = a0;
+        all.b1 = a1;
+    }
+
+};
+
+template <typename F, typename B0=void, typename B1=void, typename B2=void, typename B3=void, typename B4=void>
+class Task;
+
+template <typename F, typename B0, typename B1, typename B2, typename B3, typename B4>
+class Task<F, B0, B1, B2, B3, B4>: public TaskBase {
+    typedef PartialArgs<F, B0, B1, B2, B3, B4> PartialArgs;
+    typedef PartialArgs::AllArgs AllArgs;
+    PartialArgs partial;
+
+    template <typename F>
+    Task(F f): TaskBase((void*)&partial.all, sizeof(partial.all), &AllArgs::copy, &AllArgs::call_and_destroy), _c(f) {
+
+    }
+
+    template <typename F, typename B0>
+    Task(F f, B0 b0): TaskBase((void*)&partial.all, sizeof(partial.all), &AllArgs::copy, &AllArgs::call_and_destroy), _c(f, b0) {
+
+    }
+
+    template <typename F, typename B0, typename B1>
+    Task(F f, B0 b0, B1 b1): TaskBase((void*)&partial.all, sizeof(partial.all), &AllArgs::copy, &AllArgs::call_and_destroy), _c(f, b0, b1) {
+
+    }
+
+    void call() {
+        //TODO - post
+    }
+
+    template <typename A0>
+    void call(A0 a0) {
+        _c.set(a0);
+        //TODO - post
+    }
+
+    template <typename A0, typename A1>
+    void call(A0 a0, A1 a1) {
+        _c.set(a0, a1);
+        //TODO - post
+    }
+};
+
 //template <typename F>
+//struct ContextF;
+//
+//template <typename A0, typename A1>
+//struct ArgContext<void(A0, A1)> {
+//    A0 a0;
+//    A1 a1;
+//};
+//
+//template <typename F, typename B0=void, typename B1=void, typename B2=void, typename B3=void, typename B4=void>
+//struct ContextF0;
+//
+//template <typename F, typename B0>
+//struct ContextF0<F, B0, void, void, void> {
+//    typedef ContextF0<F, B0, void, void, void> Self;
+//    F call;
+//    ArgContext<F> args;
+//    B0 b0;
+//
+//    ContextF0(F f, B0 b0)
+//        : f(f), b0(b0) {}
+//
+//    static void copy(void *dest, void *src) {
+//        new (dest) Self(*(Self*)src);
+//    }
+//
+//    static void call_and_destroy(void *data) {
+//        Self *self = static_cast<Self*>(data);
+//        self->f(self->b0);
+//        self->~Self();
+//    }
+//};
+//
+
+
+
+//template <typename F, typename B0=void, typename B1=void, typename B2=void, typename B3=void, typename B4=void>
 //class Task;
+//
+//template <typename F>
+//class Task: public TaskBase {
+//    typedef EventQueue::contextF0<F, B0, B1, B2, B3, B4> Context;
+//    Context _c;
+//
+//    template <typename F>
+//    Task(F f): _c(f) {
+//
+//    }
+//
+//    template <typename F, typename C0>
+//    Task(F f, C0 c0): _c(f, c0) {
+//
+//    }
+//
+//    template <typename F, typename C0, typename C1>
+//    Task(F f, C0 c0, C1 c1): _c(f, c0, c1) {
+//
+//    }
+//
+//    void call() {
+//        _c.f();
+//    }
+//
+//    template <typename A0>
+//    void call(A0 a0) {
+//        _c.f(a0);
+//    }
+//
+//    template <typename A0, typename A1>
+//    void call(A0 a0, A1 a1) {
+//        _c.f(a0, a1);
+//        //post
+//    }
+//};
 
+//template <typename F, typename A0>
+//class Task: public TaskBase {
+//    typedef EventQueue::contextF1<F, A0> Context;
+//
+//    /** Create an event
+//     *  @param q                Event queue to dispatch on
+//     *  @param f                Function to execute when the event is dispatched
+//     *  @param b0,b1            Arguments to bind to the callback, these arguments are
+//     *                          copied to the task. Must be type-compatible with b0..b1, the
+//     *                          arguments to the underlying callback.
+//     */
+//    template<typename B0, typename B1>
+//    Task(F f, B0 b0, B1 b1): _c(f, b0, b1) {
+//
+//    }
+//
+//
+//    Context _c;
+//    void call(A0 a0) {
+//        _c(a0);
+//    }
+//}
 
-/** Task
- *
- *  Representation of a postable task
- * @ingroup events
- */
-class Task: public TaskBase {
+template <typename F, typename A0, typename A1>
+class Task;
+
+template <typename F, typename A0, typename A1, typename A2>
+class Task;
+
+template <typename F, typename A0, typename A1, typename A2, typename A3>
+class Task;
+
+template <>
+class Task<void()>;
+
+template <typename A0>
+class Task<void(A0)>;
+
+template <typename A0, typename A1>
+class Task<void(A0, A1)>;
+
+template <typename A0, typename A1, typename A2>
+class Task<void(A0, A1, A2)>;
+
+template <typename A0>
+class Task<void(A0)>: public TaskBase {
 public:
-    /** Create a task
-     *
-     *  Constructs a task. The specified callback acts as the target
-     *  for the task and is executed in the context of the task queue's
-     *  dispatch loop once posted.
-     *
-     *  @param q                Event queue to dispatch on
-     *  @param f                Function to execute when the event is dispatched
-     */
-    Task(TaskQueue *q=NULL): TaskBase(reinterpret_cast<uint8_t *>(&_callback), sizeof(_callback), task_thunk), _q(q) {
+    typedef EventQueue::context10<A0> Context;
 
-    }
-
-    void set(TaskQueue *q)
-    {
-        _q = q;
-    }
-
-    void call()
-    {
-        cancel();
-        _q->post(this);
-    }
-
-    template <typename A1>
-    void call(A1 a1)
-    {
-        cancel();
-        _callback = mbed::Callback<void()>(a1);
-        _q->post(this);
-    }
-
-    template <typename A1, typename A2>
-    void call(A1 a1, A2 a2)
-    {
-        cancel();
-        _callback = mbed::Callback<void()>(a1, a2);
-        _q->post(this);
+    Task(TaskQueue *q): _Task< Task<void()> >(q, this) {
+        Context::thunk;
     }
 
 private:
 
-    TaskQueue *_q;
-    mbed::Callback<void()> _callback;
 
-    static void task_thunk(void *data) {
-        (*(mbed::Callback<void()>*)data)();
-    }
 };
+
+///** Task
+// *
+// *  Representation of a postable task
+// * @ingroup events
+// */
+//class Task: public _Task< {
+//public:
+//    /** Create a task
+//     *
+//     *  Constructs a task. The specified callback acts as the target
+//     *  for the task and is executed in the context of the task queue's
+//     *  dispatch loop once posted.
+//     *
+//     *  @param q                Event queue to dispatch on
+//     *  @param f                Function to execute when the event is dispatched
+//     */
+//    Task(TaskQueue *q=NULL): TaskBase(reinterpret_cast<uint8_t *>(&_callback), sizeof(_callback), task_thunk), _q(q) {
+//
+//    }
+//
+//    void set(TaskQueue *q)
+//    {
+//        _q = q;
+//    }
+//
+//    void call()
+//    {
+//        cancel();
+//        _q->post(this);
+//    }
+//
+//    template <typename A1>
+//    void call(A1 a1)
+//    {
+//        cancel();
+//        _callback = mbed::Callback<void()>(a1);
+//        _q->post(this);
+//    }
+//
+//    template <typename A1, typename A2>
+//    void call(A1 a1, A2 a2)
+//    {
+//        cancel();
+//        _callback = mbed::Callback<void()>(a1, a2);
+//        _q->post(this);
+//    }
+//
+//private:
+//    mbed::Callback<void()> _callback;
+//
+//    static void task_thunk(void *data) {
+//        (*(mbed::Callback<void()>*)data)();
+//    }
+//};
 
 }
 
