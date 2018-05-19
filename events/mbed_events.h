@@ -26,6 +26,7 @@
 #ifdef __cplusplus
 
 #include "events/TaskQueue.h"
+#include "events/PolledQueue.h"
 #include "events/EventQueue.h"
 #include "events/TaskBase.h"
 #include "events/Task.h"
