@@ -611,8 +611,8 @@ private:
     Mutex _mut;
     uint32_t _locked;
 
-    Task< mbed::Callback<void()> > _control_callback;
-    Task< mbed::Callback<void()> > _phy_callback;
+    Task _control_callback;
+    Task _phy_callback;
 };
 
 #endif

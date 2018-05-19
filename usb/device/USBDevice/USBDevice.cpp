@@ -318,8 +318,7 @@ void USBDevice::complete_request_xfer_done(bool success)
 
     MBED_ASSERT(_transfer.user_callback == RequestXferDone);
     _transfer.args.status = success;
-    _control_callback.set(Callback<void()>(this, &USBDevice::_complete_request_xfer_done));
-    _task_queue->post(&_control_callback);
+    _control_callback.call(this, &USBDevice::_complete_request_xfer_done);
 
     unlock();
 }
@@ -395,8 +394,7 @@ void USBDevice::complete_set_configuration(bool success)
 
     MBED_ASSERT(_transfer.user_callback == SetConfiguration);
     _transfer.args.status = success;
-    _control_callback.set(Callback<void()>(this, &USBDevice::_complete_set_configuration));
-    _task_queue->post(&_control_callback);
+    _control_callback.call(this, &USBDevice::_complete_set_configuration);
 
     unlock();
 }
@@ -472,8 +470,7 @@ void USBDevice::complete_set_interface(bool success)
 
     MBED_ASSERT(_transfer.user_callback == SetInterface);
     _transfer.args.status = success;
-    _control_callback.set(Callback<void()>(this, &USBDevice::_complete_set_interface));
-    _task_queue->post(&_control_callback);
+    _control_callback.call(this, &USBDevice::_complete_set_interface);
 
     unlock();
 }
@@ -707,8 +704,7 @@ void USBDevice::complete_request(RequestResult direction, uint8_t *data, uint32_
     _transfer.args.request.result = direction;
     _transfer.args.request.data = data;
     _transfer.args.request.size = size;
-    _control_callback.set(Callback<void()>(this, &USBDevice::_complete_request));
-    _task_queue->post(&_control_callback);
+    _control_callback.call(this, &USBDevice::_complete_request);
 
     unlock();
 }
@@ -1268,6 +1264,9 @@ USBDevice::USBDevice(USBPhy *phy, uint16_t vendor_id, uint16_t product_id, uint1
     _device.suspended = false;
 
     _task_queue = &_default_queue;
+    _control_callback.set(_task_queue);
+    _phy_callback.set(_task_queue);
+
     _locked = 0;
 }
 
@@ -1570,8 +1569,8 @@ const uint8_t *USBDevice::string_iproduct_desc()
 
 void USBDevice::start_process()
 {
-    _phy_callback.set(Callback<void()>(_phy, &USBPhy::process));
-    _task_queue->post(&_phy_callback);
+    //TODO - fixme
+    _phy_callback.call(_phy, &USBPhy::process);
 }
 
 void USBDevice::lock()

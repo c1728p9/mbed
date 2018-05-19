@@ -37,7 +37,6 @@ namespace events {
  *  Representation of a postable task
  * @ingroup events
  */
-template <typename F>
 class Task: public TaskBase {
 public:
     /** Create a task
@@ -49,17 +48,44 @@ public:
      *  @param q                Event queue to dispatch on
      *  @param f                Function to execute when the event is dispatched
      */
-    Task(F f): TaskBase(reinterpret_cast<uint8_t *>(&_f), sizeof(F), task_thunk),  _f(f) {
-        // Nothing to do
+    Task(TaskQueue *q=NULL): TaskBase(reinterpret_cast<uint8_t *>(&_callback), sizeof(_callback), task_thunk), _q(q) {
+
+    }
+
+    void set(TaskQueue *q)
+    {
+        _q = q;
+    }
+
+    void call()
+    {
+        cancel();
+        _q->post(this);
+    }
+
+    template <typename A1>
+    void call(A1 a1)
+    {
+        cancel();
+        _callback = mbed::Callback<void()>(a1);
+        _q->post(this);
+    }
+
+    template <typename A1, typename A2>
+    void call(A1 a1, A2 a2)
+    {
+        cancel();
+        _callback = mbed::Callback<void()>(a1, a2);
+        _q->post(this);
     }
 
 private:
 
-    F _f;
+    TaskQueue *_q;
+    mbed::Callback<void()> _callback;
 
     static void task_thunk(void *data) {
-        F *callback = (F*)data;
-        (*callback)();
+        (*(mbed::Callback<void()>*)data)();
     }
 };
 
