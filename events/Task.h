@@ -296,12 +296,12 @@ struct AllArgs<F, void, void, void, void, void, void, void, void, void> {
 //
 
 
-template <typename F, typename B0=void, typename B1=void, typename B2=void, typename B3=void, typename B4=void>
+template <typename F, typename B0=void, typename B1=void, typename B2=void, typename B3=void>
 struct PartialArgs;
 
-template <typename A0, typename A1, typename A2, typename A3, typename B0, typename B1, typename B2, typename B3, typename B4>
-struct PartialArgs<void(A0, A1, A2, A3), B0, B1, B2, B3, B4> {
-    typedef AllArgs<void(A0, A1, A2, A3), B0, B1, B2, B3, B4, A0, A1, A2, A3> AllArgs;
+template <typename A0, typename A1, typename A2, typename A3, typename A4, typename B0, typename B1, typename B2, typename B3>
+struct PartialArgs<void(A0, A1, A2, A3), B0, B1, B2, B3> {
+    typedef AllArgs<void(B0, B1, B2, B3, A0, A1, A2, A3, A4), B0, B1, B2, B3, A0, A1, A2, A3, A4> AllArgs;
 
     AllArgs all;
 
