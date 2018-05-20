@@ -106,7 +106,7 @@ protected:
      * @note Every call to event_start must be paired with event_finish
      * @note This call must be made in a critical section
      */
-    static TaskBase::callback_t task_start(TaskBase *task, uint8_t *buffer, uint32_t size)
+    static TaskBase::run_callback_t task_start(TaskBase *task, uint8_t *buffer, uint32_t size)
     {
         return task->_start(buffer, size);
     }

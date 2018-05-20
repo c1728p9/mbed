@@ -56,7 +56,7 @@ public:
      *
      * @param callback Callback to invoke when posted
      */
-    TaskBase &operator=(callback_t callback);
+    TaskBase &operator=(run_callback_t callback);
 
     /**
      * Cancel the execution of this event
@@ -112,7 +112,7 @@ private:
     /*
      * Must be called in a critical section
      */
-    callback_t _start(uint8_t *buffer, uint32_t size);
+    run_callback_t _start(uint8_t *buffer, uint32_t size);
 
     /*
      * Must be called in a critical section

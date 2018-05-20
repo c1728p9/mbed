@@ -118,7 +118,7 @@ void TaskBase::_post(TaskQueue *queue)
     _queue = queue;
 }
 
-TaskBase::callback_t TaskBase::_start(uint8_t *buffer, uint32_t size)
+TaskBase::run_callback_t TaskBase::_start(uint8_t *buffer, uint32_t size)
 {
     // Each call to _start must result in a call to _finish
     // before _start can be called again
