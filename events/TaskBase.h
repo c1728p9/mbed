@@ -47,7 +47,7 @@ public:
      *
      * @param callback Completion callback
      */
-    TaskBase(uint8_t *data, uint32_t size, copy_callback_t copy=NULL, run_callback_t run=NULL);
+    TaskBase(void *data, uint32_t size, copy_callback_t copy=NULL, run_callback_t run=NULL);
 
     ~TaskBase();
 

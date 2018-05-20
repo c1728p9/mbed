@@ -25,8 +25,8 @@ static void stub(void *buffer)
     (void)buffer;
 }
 
-TaskBase::TaskBase(uint8_t *data, uint32_t size, copy_callback_t copy, run_callback_t run)
-    : size(size), _buffer(data), _copy(copy), _callback(cb),
+TaskBase::TaskBase(void *data, uint32_t size, copy_callback_t copy, run_callback_t run)
+    : size(size), _buffer((uint8_t *)data), _copy(copy), _callback(run),
       _started(false), _queue(NULL), _flush_sem(NULL)
 {
     _copy = copy;
@@ -41,7 +41,7 @@ TaskBase::~TaskBase()
     wait_finished();
 }
 
-TaskBase &TaskBase::operator=(callback_t callback)
+TaskBase &TaskBase::operator=(run_callback_t callback)
 {
     // Event must be idle
     MBED_ASSERT(ready());

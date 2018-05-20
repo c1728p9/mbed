@@ -253,10 +253,11 @@ struct AllArgs<F, void, void, void, void, void, void, void, void, void, void> {
 
 template <typename F, typename B0=void, typename B1=void, typename B2=void, typename B3=void, typename B4=void>
 struct PartialArgs;
+
 template <typename R>
 struct PartialArgs<R()> {
-    typedef AllArgs<void(*)()> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)()> All;
+    All all;
 
     template <typename F>
     PartialArgs(F f): all(f) { }
@@ -266,8 +267,8 @@ struct PartialArgs<R()> {
 };
 template <typename R, typename A0>
 struct PartialArgs<R(A0)> {
-    typedef AllArgs<void(*)(A0), A0> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(A0), A0> All;
+    All all;
 
     template <typename F>
     PartialArgs(F f): all(f) { }
@@ -278,8 +279,8 @@ struct PartialArgs<R(A0)> {
 };
 template <typename R, typename A0, typename A1>
 struct PartialArgs<R(A0, A1)> {
-    typedef AllArgs<void(*)(A0, A1), A0, A1> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(A0, A1), A0, A1> All;
+    All all;
 
     template <typename F>
     PartialArgs(F f): all(f) { }
@@ -291,8 +292,8 @@ struct PartialArgs<R(A0, A1)> {
 };
 template <typename R, typename A0, typename A1, typename A2>
 struct PartialArgs<R(A0, A1, A2)> {
-    typedef AllArgs<void(*)(A0, A1, A2), A0, A1, A2> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(A0, A1, A2), A0, A1, A2> All;
+    All all;
 
     template <typename F>
     PartialArgs(F f): all(f) { }
@@ -305,8 +306,8 @@ struct PartialArgs<R(A0, A1, A2)> {
 };
 template <typename R, typename A0, typename A1, typename A2, typename A3>
 struct PartialArgs<R(A0, A1, A2, A3)> {
-    typedef AllArgs<void(*)(A0, A1, A2, A3), A0, A1, A2, A3> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(A0, A1, A2, A3), A0, A1, A2, A3> All;
+    All all;
 
     template <typename F>
     PartialArgs(F f): all(f) { }
@@ -320,8 +321,8 @@ struct PartialArgs<R(A0, A1, A2, A3)> {
 };
 template <typename R, typename A0, typename A1, typename A2, typename A3, typename A4>
 struct PartialArgs<R(A0, A1, A2, A3, A4)> {
-    typedef AllArgs<void(*)(A0, A1, A2, A3, A4), A0, A1, A2, A3, A4> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(A0, A1, A2, A3, A4), A0, A1, A2, A3, A4> All;
+    All all;
 
     template <typename F>
     PartialArgs(F f): all(f) { }
@@ -336,8 +337,8 @@ struct PartialArgs<R(A0, A1, A2, A3, A4)> {
 };
 template <typename R, typename B0>
 struct PartialArgs<R(), B0> {
-    typedef AllArgs<void(*)(B0), B0> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0), B0> All;
+    All all;
 
     template <typename F, typename C0>
     PartialArgs(F f, C0 c0): all(f, c0) { }
@@ -347,8 +348,8 @@ struct PartialArgs<R(), B0> {
 };
 template <typename R, typename A0, typename B0>
 struct PartialArgs<R(A0), B0> {
-    typedef AllArgs<void(*)(B0, A0), B0, A0> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, A0), B0, A0> All;
+    All all;
 
     template <typename F, typename C0>
     PartialArgs(F f, C0 c0): all(f, c0) { }
@@ -359,8 +360,8 @@ struct PartialArgs<R(A0), B0> {
 };
 template <typename R, typename A0, typename A1, typename B0>
 struct PartialArgs<R(A0, A1), B0> {
-    typedef AllArgs<void(*)(B0, A0, A1), B0, A0, A1> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, A0, A1), B0, A0, A1> All;
+    All all;
 
     template <typename F, typename C0>
     PartialArgs(F f, C0 c0): all(f, c0) { }
@@ -372,8 +373,8 @@ struct PartialArgs<R(A0, A1), B0> {
 };
 template <typename R, typename A0, typename A1, typename A2, typename B0>
 struct PartialArgs<R(A0, A1, A2), B0> {
-    typedef AllArgs<void(*)(B0, A0, A1, A2), B0, A0, A1, A2> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, A0, A1, A2), B0, A0, A1, A2> All;
+    All all;
 
     template <typename F, typename C0>
     PartialArgs(F f, C0 c0): all(f, c0) { }
@@ -386,8 +387,8 @@ struct PartialArgs<R(A0, A1, A2), B0> {
 };
 template <typename R, typename A0, typename A1, typename A2, typename A3, typename B0>
 struct PartialArgs<R(A0, A1, A2, A3), B0> {
-    typedef AllArgs<void(*)(B0, A0, A1, A2, A3), B0, A0, A1, A2, A3> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, A0, A1, A2, A3), B0, A0, A1, A2, A3> All;
+    All all;
 
     template <typename F, typename C0>
     PartialArgs(F f, C0 c0): all(f, c0) { }
@@ -401,8 +402,8 @@ struct PartialArgs<R(A0, A1, A2, A3), B0> {
 };
 template <typename R, typename A0, typename A1, typename A2, typename A3, typename A4, typename B0>
 struct PartialArgs<R(A0, A1, A2, A3, A4), B0> {
-    typedef AllArgs<void(*)(B0, A0, A1, A2, A3, A4), B0, A0, A1, A2, A3, A4> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, A0, A1, A2, A3, A4), B0, A0, A1, A2, A3, A4> All;
+    All all;
 
     template <typename F, typename C0>
     PartialArgs(F f, C0 c0): all(f, c0) { }
@@ -417,8 +418,8 @@ struct PartialArgs<R(A0, A1, A2, A3, A4), B0> {
 };
 template <typename R, typename B0, typename B1>
 struct PartialArgs<R(), B0, B1> {
-    typedef AllArgs<void(*)(B0, B1), B0, B1> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1), B0, B1> All;
+    All all;
 
     template <typename F, typename C0, typename C1>
     PartialArgs(F f, C0 c0, C1 c1): all(f, c0, c1) { }
@@ -428,8 +429,8 @@ struct PartialArgs<R(), B0, B1> {
 };
 template <typename R, typename A0, typename B0, typename B1>
 struct PartialArgs<R(A0), B0, B1> {
-    typedef AllArgs<void(*)(B0, B1, A0), B0, B1, A0> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, A0), B0, B1, A0> All;
+    All all;
 
     template <typename F, typename C0, typename C1>
     PartialArgs(F f, C0 c0, C1 c1): all(f, c0, c1) { }
@@ -440,8 +441,8 @@ struct PartialArgs<R(A0), B0, B1> {
 };
 template <typename R, typename A0, typename A1, typename B0, typename B1>
 struct PartialArgs<R(A0, A1), B0, B1> {
-    typedef AllArgs<void(*)(B0, B1, A0, A1), B0, B1, A0, A1> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, A0, A1), B0, B1, A0, A1> All;
+    All all;
 
     template <typename F, typename C0, typename C1>
     PartialArgs(F f, C0 c0, C1 c1): all(f, c0, c1) { }
@@ -453,8 +454,8 @@ struct PartialArgs<R(A0, A1), B0, B1> {
 };
 template <typename R, typename A0, typename A1, typename A2, typename B0, typename B1>
 struct PartialArgs<R(A0, A1, A2), B0, B1> {
-    typedef AllArgs<void(*)(B0, B1, A0, A1, A2), B0, B1, A0, A1, A2> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, A0, A1, A2), B0, B1, A0, A1, A2> All;
+    All all;
 
     template <typename F, typename C0, typename C1>
     PartialArgs(F f, C0 c0, C1 c1): all(f, c0, c1) { }
@@ -467,8 +468,8 @@ struct PartialArgs<R(A0, A1, A2), B0, B1> {
 };
 template <typename R, typename A0, typename A1, typename A2, typename A3, typename B0, typename B1>
 struct PartialArgs<R(A0, A1, A2, A3), B0, B1> {
-    typedef AllArgs<void(*)(B0, B1, A0, A1, A2, A3), B0, B1, A0, A1, A2, A3> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, A0, A1, A2, A3), B0, B1, A0, A1, A2, A3> All;
+    All all;
 
     template <typename F, typename C0, typename C1>
     PartialArgs(F f, C0 c0, C1 c1): all(f, c0, c1) { }
@@ -482,8 +483,8 @@ struct PartialArgs<R(A0, A1, A2, A3), B0, B1> {
 };
 template <typename R, typename A0, typename A1, typename A2, typename A3, typename A4, typename B0, typename B1>
 struct PartialArgs<R(A0, A1, A2, A3, A4), B0, B1> {
-    typedef AllArgs<void(*)(B0, B1, A0, A1, A2, A3, A4), B0, B1, A0, A1, A2, A3, A4> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, A0, A1, A2, A3, A4), B0, B1, A0, A1, A2, A3, A4> All;
+    All all;
 
     template <typename F, typename C0, typename C1>
     PartialArgs(F f, C0 c0, C1 c1): all(f, c0, c1) { }
@@ -498,8 +499,8 @@ struct PartialArgs<R(A0, A1, A2, A3, A4), B0, B1> {
 };
 template <typename R, typename B0, typename B1, typename B2>
 struct PartialArgs<R(), B0, B1, B2> {
-    typedef AllArgs<void(*)(B0, B1, B2), B0, B1, B2> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, B2), B0, B1, B2> All;
+    All all;
 
     template <typename F, typename C0, typename C1, typename C2>
     PartialArgs(F f, C0 c0, C1 c1, C2 c2): all(f, c0, c1, c2) { }
@@ -509,8 +510,8 @@ struct PartialArgs<R(), B0, B1, B2> {
 };
 template <typename R, typename A0, typename B0, typename B1, typename B2>
 struct PartialArgs<R(A0), B0, B1, B2> {
-    typedef AllArgs<void(*)(B0, B1, B2, A0), B0, B1, B2, A0> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, B2, A0), B0, B1, B2, A0> All;
+    All all;
 
     template <typename F, typename C0, typename C1, typename C2>
     PartialArgs(F f, C0 c0, C1 c1, C2 c2): all(f, c0, c1, c2) { }
@@ -521,8 +522,8 @@ struct PartialArgs<R(A0), B0, B1, B2> {
 };
 template <typename R, typename A0, typename A1, typename B0, typename B1, typename B2>
 struct PartialArgs<R(A0, A1), B0, B1, B2> {
-    typedef AllArgs<void(*)(B0, B1, B2, A0, A1), B0, B1, B2, A0, A1> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, B2, A0, A1), B0, B1, B2, A0, A1> All;
+    All all;
 
     template <typename F, typename C0, typename C1, typename C2>
     PartialArgs(F f, C0 c0, C1 c1, C2 c2): all(f, c0, c1, c2) { }
@@ -534,8 +535,8 @@ struct PartialArgs<R(A0, A1), B0, B1, B2> {
 };
 template <typename R, typename A0, typename A1, typename A2, typename B0, typename B1, typename B2>
 struct PartialArgs<R(A0, A1, A2), B0, B1, B2> {
-    typedef AllArgs<void(*)(B0, B1, B2, A0, A1, A2), B0, B1, B2, A0, A1, A2> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, B2, A0, A1, A2), B0, B1, B2, A0, A1, A2> All;
+    All all;
 
     template <typename F, typename C0, typename C1, typename C2>
     PartialArgs(F f, C0 c0, C1 c1, C2 c2): all(f, c0, c1, c2) { }
@@ -548,8 +549,8 @@ struct PartialArgs<R(A0, A1, A2), B0, B1, B2> {
 };
 template <typename R, typename A0, typename A1, typename A2, typename A3, typename B0, typename B1, typename B2>
 struct PartialArgs<R(A0, A1, A2, A3), B0, B1, B2> {
-    typedef AllArgs<void(*)(B0, B1, B2, A0, A1, A2, A3), B0, B1, B2, A0, A1, A2, A3> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, B2, A0, A1, A2, A3), B0, B1, B2, A0, A1, A2, A3> All;
+    All all;
 
     template <typename F, typename C0, typename C1, typename C2>
     PartialArgs(F f, C0 c0, C1 c1, C2 c2): all(f, c0, c1, c2) { }
@@ -563,8 +564,8 @@ struct PartialArgs<R(A0, A1, A2, A3), B0, B1, B2> {
 };
 template <typename R, typename A0, typename A1, typename A2, typename A3, typename A4, typename B0, typename B1, typename B2>
 struct PartialArgs<R(A0, A1, A2, A3, A4), B0, B1, B2> {
-    typedef AllArgs<void(*)(B0, B1, B2, A0, A1, A2, A3, A4), B0, B1, B2, A0, A1, A2, A3, A4> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, B2, A0, A1, A2, A3, A4), B0, B1, B2, A0, A1, A2, A3, A4> All;
+    All all;
 
     template <typename F, typename C0, typename C1, typename C2>
     PartialArgs(F f, C0 c0, C1 c1, C2 c2): all(f, c0, c1, c2) { }
@@ -579,8 +580,8 @@ struct PartialArgs<R(A0, A1, A2, A3, A4), B0, B1, B2> {
 };
 template <typename R, typename B0, typename B1, typename B2, typename B3>
 struct PartialArgs<R(), B0, B1, B2, B3> {
-    typedef AllArgs<void(*)(B0, B1, B2, B3), B0, B1, B2, B3> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, B2, B3), B0, B1, B2, B3> All;
+    All all;
 
     template <typename F, typename C0, typename C1, typename C2, typename C3>
     PartialArgs(F f, C0 c0, C1 c1, C2 c2, C3 c3): all(f, c0, c1, c2, c3) { }
@@ -590,8 +591,8 @@ struct PartialArgs<R(), B0, B1, B2, B3> {
 };
 template <typename R, typename A0, typename B0, typename B1, typename B2, typename B3>
 struct PartialArgs<R(A0), B0, B1, B2, B3> {
-    typedef AllArgs<void(*)(B0, B1, B2, B3, A0), B0, B1, B2, B3, A0> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, B2, B3, A0), B0, B1, B2, B3, A0> All;
+    All all;
 
     template <typename F, typename C0, typename C1, typename C2, typename C3>
     PartialArgs(F f, C0 c0, C1 c1, C2 c2, C3 c3): all(f, c0, c1, c2, c3) { }
@@ -602,8 +603,8 @@ struct PartialArgs<R(A0), B0, B1, B2, B3> {
 };
 template <typename R, typename A0, typename A1, typename B0, typename B1, typename B2, typename B3>
 struct PartialArgs<R(A0, A1), B0, B1, B2, B3> {
-    typedef AllArgs<void(*)(B0, B1, B2, B3, A0, A1), B0, B1, B2, B3, A0, A1> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, B2, B3, A0, A1), B0, B1, B2, B3, A0, A1> All;
+    All all;
 
     template <typename F, typename C0, typename C1, typename C2, typename C3>
     PartialArgs(F f, C0 c0, C1 c1, C2 c2, C3 c3): all(f, c0, c1, c2, c3) { }
@@ -615,8 +616,8 @@ struct PartialArgs<R(A0, A1), B0, B1, B2, B3> {
 };
 template <typename R, typename A0, typename A1, typename A2, typename B0, typename B1, typename B2, typename B3>
 struct PartialArgs<R(A0, A1, A2), B0, B1, B2, B3> {
-    typedef AllArgs<void(*)(B0, B1, B2, B3, A0, A1, A2), B0, B1, B2, B3, A0, A1, A2> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, B2, B3, A0, A1, A2), B0, B1, B2, B3, A0, A1, A2> All;
+    All all;
 
     template <typename F, typename C0, typename C1, typename C2, typename C3>
     PartialArgs(F f, C0 c0, C1 c1, C2 c2, C3 c3): all(f, c0, c1, c2, c3) { }
@@ -629,8 +630,8 @@ struct PartialArgs<R(A0, A1, A2), B0, B1, B2, B3> {
 };
 template <typename R, typename A0, typename A1, typename A2, typename A3, typename B0, typename B1, typename B2, typename B3>
 struct PartialArgs<R(A0, A1, A2, A3), B0, B1, B2, B3> {
-    typedef AllArgs<void(*)(B0, B1, B2, B3, A0, A1, A2, A3), B0, B1, B2, B3, A0, A1, A2, A3> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, B2, B3, A0, A1, A2, A3), B0, B1, B2, B3, A0, A1, A2, A3> All;
+    All all;
 
     template <typename F, typename C0, typename C1, typename C2, typename C3>
     PartialArgs(F f, C0 c0, C1 c1, C2 c2, C3 c3): all(f, c0, c1, c2, c3) { }
@@ -644,8 +645,8 @@ struct PartialArgs<R(A0, A1, A2, A3), B0, B1, B2, B3> {
 };
 template <typename R, typename A0, typename A1, typename A2, typename A3, typename A4, typename B0, typename B1, typename B2, typename B3>
 struct PartialArgs<R(A0, A1, A2, A3, A4), B0, B1, B2, B3> {
-    typedef AllArgs<void(*)(B0, B1, B2, B3, A0, A1, A2, A3, A4), B0, B1, B2, B3, A0, A1, A2, A3, A4> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, B2, B3, A0, A1, A2, A3, A4), B0, B1, B2, B3, A0, A1, A2, A3, A4> All;
+    All all;
 
     template <typename F, typename C0, typename C1, typename C2, typename C3>
     PartialArgs(F f, C0 c0, C1 c1, C2 c2, C3 c3): all(f, c0, c1, c2, c3) { }
@@ -660,8 +661,8 @@ struct PartialArgs<R(A0, A1, A2, A3, A4), B0, B1, B2, B3> {
 };
 template <typename R, typename B0, typename B1, typename B2, typename B3, typename B4>
 struct PartialArgs<R(), B0, B1, B2, B3, B4> {
-    typedef AllArgs<void(*)(B0, B1, B2, B3, B4), B0, B1, B2, B3, B4> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, B2, B3, B4), B0, B1, B2, B3, B4> All;
+    All all;
 
     template <typename F, typename C0, typename C1, typename C2, typename C3, typename C4>
     PartialArgs(F f, C0 c0, C1 c1, C2 c2, C3 c3, C4 c4): all(f, c0, c1, c2, c3, c4) { }
@@ -671,8 +672,8 @@ struct PartialArgs<R(), B0, B1, B2, B3, B4> {
 };
 template <typename R, typename A0, typename B0, typename B1, typename B2, typename B3, typename B4>
 struct PartialArgs<R(A0), B0, B1, B2, B3, B4> {
-    typedef AllArgs<void(*)(B0, B1, B2, B3, B4, A0), B0, B1, B2, B3, B4, A0> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, B2, B3, B4, A0), B0, B1, B2, B3, B4, A0> All;
+    All all;
 
     template <typename F, typename C0, typename C1, typename C2, typename C3, typename C4>
     PartialArgs(F f, C0 c0, C1 c1, C2 c2, C3 c3, C4 c4): all(f, c0, c1, c2, c3, c4) { }
@@ -683,8 +684,8 @@ struct PartialArgs<R(A0), B0, B1, B2, B3, B4> {
 };
 template <typename R, typename A0, typename A1, typename B0, typename B1, typename B2, typename B3, typename B4>
 struct PartialArgs<R(A0, A1), B0, B1, B2, B3, B4> {
-    typedef AllArgs<void(*)(B0, B1, B2, B3, B4, A0, A1), B0, B1, B2, B3, B4, A0, A1> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, B2, B3, B4, A0, A1), B0, B1, B2, B3, B4, A0, A1> All;
+    All all;
 
     template <typename F, typename C0, typename C1, typename C2, typename C3, typename C4>
     PartialArgs(F f, C0 c0, C1 c1, C2 c2, C3 c3, C4 c4): all(f, c0, c1, c2, c3, c4) { }
@@ -696,8 +697,8 @@ struct PartialArgs<R(A0, A1), B0, B1, B2, B3, B4> {
 };
 template <typename R, typename A0, typename A1, typename A2, typename B0, typename B1, typename B2, typename B3, typename B4>
 struct PartialArgs<R(A0, A1, A2), B0, B1, B2, B3, B4> {
-    typedef AllArgs<void(*)(B0, B1, B2, B3, B4, A0, A1, A2), B0, B1, B2, B3, B4, A0, A1, A2> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, B2, B3, B4, A0, A1, A2), B0, B1, B2, B3, B4, A0, A1, A2> All;
+    All all;
 
     template <typename F, typename C0, typename C1, typename C2, typename C3, typename C4>
     PartialArgs(F f, C0 c0, C1 c1, C2 c2, C3 c3, C4 c4): all(f, c0, c1, c2, c3, c4) { }
@@ -710,8 +711,8 @@ struct PartialArgs<R(A0, A1, A2), B0, B1, B2, B3, B4> {
 };
 template <typename R, typename A0, typename A1, typename A2, typename A3, typename B0, typename B1, typename B2, typename B3, typename B4>
 struct PartialArgs<R(A0, A1, A2, A3), B0, B1, B2, B3, B4> {
-    typedef AllArgs<void(*)(B0, B1, B2, B3, B4, A0, A1, A2, A3), B0, B1, B2, B3, B4, A0, A1, A2, A3> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, B2, B3, B4, A0, A1, A2, A3), B0, B1, B2, B3, B4, A0, A1, A2, A3> All;
+    All all;
 
     template <typename F, typename C0, typename C1, typename C2, typename C3, typename C4>
     PartialArgs(F f, C0 c0, C1 c1, C2 c2, C3 c3, C4 c4): all(f, c0, c1, c2, c3, c4) { }
@@ -725,8 +726,8 @@ struct PartialArgs<R(A0, A1, A2, A3), B0, B1, B2, B3, B4> {
 };
 template <typename R, typename A0, typename A1, typename A2, typename A3, typename A4, typename B0, typename B1, typename B2, typename B3, typename B4>
 struct PartialArgs<R(A0, A1, A2, A3, A4), B0, B1, B2, B3, B4> {
-    typedef AllArgs<void(*)(B0, B1, B2, B3, B4, A0, A1, A2, A3, A4), B0, B1, B2, B3, B4, A0, A1, A2, A3, A4> AllArgs;
-    AllArgs all;
+    typedef AllArgs<void(*)(B0, B1, B2, B3, B4, A0, A1, A2, A3, A4), B0, B1, B2, B3, B4, A0, A1, A2, A3, A4> All;
+    All all;
 
     template <typename F, typename C0, typename C1, typename C2, typename C3, typename C4>
     PartialArgs(F f, C0 c0, C1 c1, C2 c2, C3 c3, C4 c4): all(f, c0, c1, c2, c3, c4) { }
@@ -744,39 +745,91 @@ template <typename F, typename B0=void, typename B1=void, typename B2=void, type
 class Task;
 
 template <typename F, typename B0, typename B1, typename B2, typename B3, typename B4>
-class Task<F, B0, B1, B2, B3, B4>: public TaskBase {
-    typedef PartialArgs<F, B0, B1, B2, B3, B4> PartialArgs;
-    typedef PartialArgs::AllArgs AllArgs;
-    TaskQueue _queue;
-    PartialArgs partial;
+class Task: public TaskBase {
+public:
 
-    template <typename F>
     Task(TaskQueue *q, F f)
-        : TaskBase((void*)&partial.all, sizeof(partial.all), &AllArgs::copy, &AllArgs::call_and_destroy),
-          _queue(q), partial(f) {
+        : TaskBase((void*)&_partial.all, sizeof(_partial.all), &All::copy, &All::call_and_destroy),
+          _queue(q), _partial(f) {
     }
 
-    template <typename F, typename C0, typename C1, typename C2, typename C3, typename C4>
+    //TODO - change constructor type
+    //TODO - add other variants
+    //     pointer
+    //         R(*)(...)   pass through
+    //     functor
+    //         R()         F, (F::*)
+    //     const
+    //     volatile
+    //     const volatile
+    //     template <typename G, typename C0>
+    Task(TaskQueue *q, G f, C0 c0)
+        : TaskBase((void*)&_partial.all, sizeof(_partial.all), &All::copy, &All::call_and_destroy),
+          _queue(q), _partial(f, c0) {
+    }
+
+    template <typename C0, typename C1>
+    Task(TaskQueue *q, F f, C0 c0, C1 c1)
+        : TaskBase((void*)&_partial.all, sizeof(_partial.all), &All::copy, &All::call_and_destroy),
+          _queue(q), _partial(f, c0, c1) {
+    }
+
+    template <typename C0, typename C1, typename C2>
+    Task(TaskQueue *q, F f, C0 c0, C1 c1, C2 c2)
+        : TaskBase((void*)&_partial.all, sizeof(_partial.all), &All::copy, &All::call_and_destroy),
+          _queue(q), _partial(f, c0, c1, c2) {
+    }
+
+    template <typename C0, typename C1, typename C2, typename C3>
+    Task(TaskQueue *q, F f, C0 c0, C1 c1, C2 c2, C3 c3)
+        : TaskBase((void*)&_partial.all, sizeof(_partial.all), &All::copy, &All::call_and_destroy),
+          _queue(q), _partial(f, c0, c1, c2, c3) {
+    }
+
+    template <typename C0, typename C1, typename C2, typename C3, typename C4>
     Task(TaskQueue *q, F f, C0 c0, C1 c1, C2 c2, C3 c3, C4 c4)
-        : TaskBase((void*)&partial.all, sizeof(partial.all), &AllArgs::copy, &AllArgs::call_and_destroy),
-          _queue(q), partial(f) {
+        : TaskBase((void*)&_partial.all, sizeof(_partial.all), &All::copy, &All::call_and_destroy),
+          _queue(q), _partial(f, c0, c1, c2, c3, c4) {
     }
 
     void call() {
-        //TODO - post
+        _queue->post(this);
     }
 
     template <typename A0>
     void call(A0 a0) {
-        partial.set(a0);
-        //TODO - post
+        _partial.set(a0);
+        _queue->post(this);
     }
 
     template <typename A0, typename A1>
     void call(A0 a0, A1 a1) {
-        partial.set(a0, a1);
-        //TODO - post
+        _partial.set(a0, a1);
+        _queue->post(this);
     }
+    template <typename A0, typename A1, typename A2>
+    void call(A0 a0, A1 a1, A2 a2) {
+        _partial.set(a0, a1, a2);
+        _queue->post(this);
+    }
+
+    template <typename A0, typename A1, typename A2, typename A3>
+    void call(A0 a0, A1 a1, A2 a2, A3 a3) {
+        _partial.set(a0, a1, a2, a3);
+        _queue->post(this);
+    }
+
+    template <typename A0, typename A1, typename A2, typename A3, typename A4>
+    void call(A0 a0, A1 a1, A2 a2, A3 a3, A4 a4) {
+        _partial.set(a0, a1, a2, a3, a4);
+        _queue->post(this);
+    }
+
+private:
+    typedef PartialArgs<F, B0, B1, B2, B3, B4> Partial;
+    typedef typename Partial::All All;
+    TaskQueue *_queue;
+    Partial _partial;
 };
 
 }
