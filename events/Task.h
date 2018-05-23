@@ -72,10 +72,33 @@ template<typename F, typename B0>
 struct AllArgs<F, B0, void, void, void, void, void, void, void, void, void> {
     typedef AllArgs<F, B0, void, void, void, void, void, void, void, void, void> Self;
     F f; B0 b0;
+//    union {
+//        void (*_staticfunc)(B0);
+//        void (*_boundfunc)(_class*, B0);
+//        void (_class::*_methodfunc)(B0);
+//    } _func;
+//    void *_obj;
 
+
+    template<typename T, typename T1>
     AllArgs(F f, B0 b0=B0())
-        : f(f), b0(b0)  {}
+        : f(f), b0(b0) {
+        //TODO - copy the callable
+    }
 
+    template<typename T, typename T1>
+    AllArgs<void(*)(T), void>(F f, B0 b0=B0())
+        : f(f), b0(b0) {
+        //TODO
+    }
+
+    template<typename T, typename R>
+    AllArgs<T*, R (T::*)(B0)>(T *obj, R (T::*method)(B0), B0 b0=B0())
+        : f(f), b0(B0()) {
+
+    }
+
+    template<typename T0, typename T1>
     static void copy(void *dest, void *src) {
         new (dest) Self(*(Self*)src);
     }
@@ -892,37 +915,37 @@ class Task: public TaskBase {
 public:
 
     Task(TaskQueue *q, F f)
-        : TaskBase((void*)&_partial.all, sizeof(_partial.all), &All::copy, &All::call_and_destroy),
+        : TaskBase((void*)&_partial.all, sizeof(_partial.all), &All::copy<F>, &All::call_and_destroy<F>),
           _queue(q), _partial(f) {
     }
 
     template <typename C0>
     Task(TaskQueue *q, F f, C0 c0)
-        : TaskBase((void*)&_partial.all, sizeof(_partial.all), &All::copy, &All::call_and_destroy),
+        : TaskBase((void*)&_partial.all, sizeof(_partial.all), &All::copy<F, C0>, &All::call_and_destroy<F, C0>),
           _queue(q), _partial(f, c0) {
     }
 
     template <typename C0, typename C1>
     Task(TaskQueue *q, F f, C0 c0, C1 c1)
-        : TaskBase((void*)&_partial.all, sizeof(_partial.all), &All::copy, &All::call_and_destroy),
+        : TaskBase((void*)&_partial.all, sizeof(_partial.all), &All::copy<F, C0>, &All::call_and_destroy<F, C0>),
           _queue(q), _partial(f, c0, c1) {
     }
 
     template <typename C0, typename C1, typename C2>
     Task(TaskQueue *q, F f, C0 c0, C1 c1, C2 c2)
-        : TaskBase((void*)&_partial.all, sizeof(_partial.all), &All::copy, &All::call_and_destroy),
+        : TaskBase((void*)&_partial.all, sizeof(_partial.all), &All::copy<F, C0>, &All::call_and_destroy<F, C0>),
           _queue(q), _partial(f, c0, c1, c2) {
     }
 
     template <typename C0, typename C1, typename C2, typename C3>
     Task(TaskQueue *q, F f, C0 c0, C1 c1, C2 c2, C3 c3)
-        : TaskBase((void*)&_partial.all, sizeof(_partial.all), &All::copy, &All::call_and_destroy),
+        : TaskBase((void*)&_partial.all, sizeof(_partial.all), &All::copy<F, C0>, &All::call_and_destroy<F, C0>),
           _queue(q), _partial(f, c0, c1, c2, c3) {
     }
 
     template <typename C0, typename C1, typename C2, typename C3, typename C4>
     Task(TaskQueue *q, F f, C0 c0, C1 c1, C2 c2, C3 c3, C4 c4)
-        : TaskBase((void*)&_partial.all, sizeof(_partial.all), &All::copy, &All::call_and_destroy),
+        : TaskBase((void*)&_partial.all, sizeof(_partial.all), &All::copy<F, C0>, &All::call_and_destroy<F, C0>),
           _queue(q), _partial(f, c0, c1, c2, c3, c4) {
     }
 
