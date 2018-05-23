@@ -20,7 +20,8 @@
 #include "mbed.h"
 #include "USBDevice_Types.h"
 #include "USBPhy.h"
-#include "mbed_critical.h"
+#include "events/PolledQueue.h"
+#include "events/Task.h"
 
 /**
  * \defgroup usb_device USB Device
@@ -531,7 +532,8 @@ private:
     bool _request_get_interface();
     bool _request_set_interface();
     void _change_state(DeviceState state);
-    void _run_later(void (USBDevice::*function)());
+    void _process();
+    void _dispatch();
 
     void _complete_request();
     void _complete_request_xfer_done();
@@ -599,14 +601,20 @@ private:
     control_transfer_t _transfer;
     usb_device_t _device;
     uint32_t _max_packet_size_ep0;
-    void (USBDevice::*_post_process)();
 
     bool _setup_ready;
     bool _abort_control;
 
     uint16_t _current_interface;
     uint8_t _current_alternate;
+
+    TaskQueue *_task_queue;
+    PolledQueue _default_queue;
+    Mutex _mut;
     uint32_t _locked;
+
+    Task<void()> _control_callback;
+    Task<void()> _phy_callback;
 };
 
 #endif

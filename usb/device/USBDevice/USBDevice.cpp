@@ -19,6 +19,8 @@
 #include "USBDevice.h"
 #include "USBDescriptor.h"
 #include "usb_phy_api.h"
+#include "mbed_critical.h"
+#include "Callback.h"
 
 //#define DEBUG
 
@@ -317,25 +319,28 @@ void USBDevice::complete_request_xfer_done(bool success)
 
     MBED_ASSERT(_transfer.user_callback == RequestXferDone);
     _transfer.args.status = success;
-    _run_later(&USBDevice::_complete_request_xfer_done);
+    _control_callback = callback(this, &USBDevice::_complete_request_xfer_done);
+    _control_callback.call();
 
     unlock();
 }
 
 void USBDevice::_complete_request_xfer_done()
 {
-    assert_locked();
+    lock();
 
     bool success = _transfer.args.status;
 
     _transfer.user_callback = None;
     if (_abort_control) {
         _control_abort();
+        unlock();
         return;
     }
 
     if (!success) {
         _phy->ep0_stall();
+        unlock();
         return;
     }
 
@@ -347,6 +352,8 @@ void USBDevice::_complete_request_xfer_done()
         _transfer.stage = Status;
         _phy->ep0_read(NULL, 0);
     }
+
+    unlock();
 }
 
 bool USBDevice::_request_set_address()
@@ -390,14 +397,14 @@ void USBDevice::complete_set_configuration(bool success)
 
     MBED_ASSERT(_transfer.user_callback == SetConfiguration);
     _transfer.args.status = success;
-    _run_later(&USBDevice::_complete_set_configuration);
-
+    _control_callback = callback(this, &USBDevice::_complete_set_configuration);
+    _control_callback.call();
     unlock();
 }
 
 void USBDevice::_complete_set_configuration()
 {
-    assert_locked();
+    lock();
 
     bool success = _transfer.args.status;
     if ((_abort_control || !success) && !configured()) {
@@ -412,6 +419,7 @@ void USBDevice::_complete_set_configuration()
     _transfer.user_callback = None;
     if (_abort_control) {
         _control_abort();
+        unlock();
         return;
     }
 
@@ -422,8 +430,11 @@ void USBDevice::_complete_set_configuration()
         _control_setup_continue();
     } else {
         _phy->ep0_stall();
+        unlock();
         return;
     }
+
+    unlock();
 }
 
 bool USBDevice::_request_get_configuration()
@@ -470,20 +481,21 @@ void USBDevice::complete_set_interface(bool success)
 
     MBED_ASSERT(_transfer.user_callback == SetInterface);
     _transfer.args.status = success;
-    _run_later(&USBDevice::_complete_set_interface);
-
+    _control_callback = callback(this, &USBDevice::_complete_set_interface);
+    _control_callback.call();
     unlock();
 }
 
 void USBDevice::_complete_set_interface()
 {
-    assert_locked();
+    lock();
 
     bool success = _transfer.args.status;
 
     _transfer.user_callback = None;
     if (_abort_control) {
         _control_abort();
+        unlock();
         return;
     }
 
@@ -493,8 +505,11 @@ void USBDevice::_complete_set_interface()
         _control_setup_continue();
     } else {
         _phy->ep0_stall();
+        unlock();
         return;
     }
+
+    unlock();
 }
 
 bool USBDevice::_request_set_feature()
@@ -700,14 +715,14 @@ void USBDevice::complete_request(RequestResult direction, uint8_t *data, uint32_
     _transfer.args.request.result = direction;
     _transfer.args.request.data = data;
     _transfer.args.request.size = size;
-    _run_later(&USBDevice::_complete_request);
-
+    _control_callback = callback(this, &USBDevice::_complete_request);
+    _control_callback.call();
     unlock();
 }
 
 void USBDevice::_complete_request()
 {
-    assert_locked();
+    lock();
 
     RequestResult direction = _transfer.args.request.result;
     uint8_t *data = _transfer.args.request.data;
@@ -721,6 +736,7 @@ void USBDevice::_complete_request()
         } else {
             _control_abort();
         }
+        unlock();
         return;
     }
 
@@ -728,6 +744,7 @@ void USBDevice::_complete_request()
         /* Standard requests */
         if (!_request_setup()) {
             _phy->ep0_stall();
+            unlock();
             return;
         }
 
@@ -737,6 +754,7 @@ void USBDevice::_complete_request()
         }
     } else if (direction == Failure) {
         _phy->ep0_stall();
+        unlock();
         return;
     } else {
         _transfer.notify = true;
@@ -745,6 +763,8 @@ void USBDevice::_complete_request()
         _transfer.direction = direction;
         _control_setup_continue();
     }
+
+    unlock();
 }
 
 void USBDevice::_control_abort_start()
@@ -982,9 +1002,14 @@ void USBDevice::deinit()
         disconnect();
         this->_phy->deinit();
         _initialized = false;
+        _control_callback.cancel();
+        _phy_callback.cancel();
     }
 
     unlock();
+
+    _control_callback.wait();
+    _phy_callback.wait();
 }
 
 bool USBDevice::configured()
@@ -1245,7 +1270,7 @@ void USBDevice::sof(int frame_number)
 }
 
 
-USBDevice::USBDevice(USBPhy *phy, uint16_t vendor_id, uint16_t product_id, uint16_t product_release)
+USBDevice::USBDevice(USBPhy *phy, uint16_t vendor_id, uint16_t product_id, uint16_t product_release): _default_queue(Callback<void()>(this, &USBDevice::_dispatch))
 {
     this->vendor_id = vendor_id;
     this->product_id = product_id;
@@ -1264,13 +1289,18 @@ USBDevice::USBDevice(USBPhy *phy, uint16_t vendor_id, uint16_t product_id, uint1
     _endpoint_add_remove_allowed = false;
     _current_interface = 0;
     _current_alternate = 0;
-    _locked = 0;
-    _post_process = NULL;
 
     /* Set initial device state */
     _device.state = Powered;
     _device.configuration = 0;
     _device.suspended = false;
+
+    _task_queue = &_default_queue;
+    _phy_callback = callback(this, &USBDevice::_process);
+    _control_callback.set(_task_queue);
+    _phy_callback.set(_task_queue);
+
+    _locked = 0;
 }
 
 USBDevice::~USBDevice()
@@ -1544,34 +1574,34 @@ const uint8_t *USBDevice::string_iproduct_desc()
 
 void USBDevice::start_process()
 {
-    lock();
-
-    _phy->process();
-
-    unlock();
+    _phy_callback.call();
 }
 
 void USBDevice::lock()
 {
-    core_util_critical_section_enter();
+    if (_task_queue == &_default_queue) {
+        core_util_critical_section_enter();
+    } else {
+        _mut.lock();
+    }
+
     _locked++;
-    MBED_ASSERT(_locked > 0);
 }
 
 void USBDevice::unlock()
 {
     if (_locked == 1) {
-        // Perform post processing before fully unlocking
-        while (_post_process != NULL) {
-            void (USBDevice::*call)() = _post_process;
-            _post_process = NULL;
-            (this->*call)();
-        }
+        _default_queue.dispatch();
     }
 
     MBED_ASSERT(_locked > 0);
     _locked--;
-    core_util_critical_section_exit();
+
+    if (_task_queue == &_default_queue) {
+        core_util_critical_section_exit();
+    } else {
+        _mut.unlock();
+    }
 }
 
 void USBDevice::assert_locked()
@@ -1606,7 +1636,21 @@ void USBDevice::_change_state(DeviceState new_state) {
     callback_state_change(new_state);
 }
 
-void USBDevice::_run_later(void (USBDevice::*function)())
+void USBDevice::_process()
 {
-    _post_process = function;
+    lock();
+
+    _phy->process();
+
+    unlock();
+}
+
+void USBDevice::_dispatch()
+{
+    lock();
+
+    // Unlocking will trigger processing if
+    // this is the last lock to unlock
+
+    unlock();
 }
