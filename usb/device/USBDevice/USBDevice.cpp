@@ -331,13 +331,11 @@ void USBDevice::_complete_request_xfer_done()
     _transfer.user_callback = None;
     if (_abort_control) {
         _control_abort();
-        unlock();
         return;
     }
 
     if (!success) {
         _phy->ep0_stall();
-        unlock();
         return;
     }
 
@@ -378,6 +376,7 @@ bool USBDevice::_request_set_configuration()
         _phy->unconfigure();
         _change_state(Address);
     } else {
+        _endpoint_ops_allowed = true;
         _transfer.user_callback = SetConfiguration;
         callback_set_configuration(_device.configuration);
     }
@@ -404,8 +403,14 @@ void USBDevice::_complete_set_configuration()
 
     _transfer.user_callback = None;
     if (_abort_control) {
+        if (!configured()) {
+            // The set configuration request was aborted so reset any
+            // endpoints which may have been added.
+            memset(_endpoint_info, 0, sizeof(_endpoint_info));
+            _device.configuration = 0;
+            _endpoint_ops_allowed = false;
+        }
         _control_abort();
-        unlock();
         return;
     }
 
@@ -478,7 +483,6 @@ void USBDevice::_complete_set_interface()
     _transfer.user_callback = None;
     if (_abort_control) {
         _control_abort();
-        unlock();
         return;
     }
 
@@ -716,7 +720,6 @@ void USBDevice::_complete_request()
         } else {
             _control_abort();
         }
-        unlock();
         return;
     }
 
@@ -1059,6 +1062,11 @@ bool USBDevice::endpoint_add(usb_ep_t endpoint, uint32_t max_packet_size, usb_ep
         return false;
     }
 
+    if (!_endpoint_ops_allowed) {
+        unlock();
+        return false;
+    }
+
     endpoint_info_t *info = &_endpoint_info[EP_TO_INDEX(endpoint)];
     MBED_ASSERT(!(info->flags & ENDPOINT_ENABLED));
     MBED_ASSERT(max_packet_size <= 1024);
@@ -1081,6 +1089,11 @@ void USBDevice::endpoint_remove(usb_ep_t endpoint)
 
     if (!EP_INDEXABLE(endpoint)) {
         MBED_ASSERT(0);
+        unlock();
+        return;
+    }
+
+    if (!_endpoint_ops_allowed) {
         unlock();
         return;
     }
@@ -1126,6 +1139,11 @@ void USBDevice::endpoint_stall(usb_ep_t endpoint)
         return;
     }
 
+    if (!_endpoint_ops_allowed) {
+        unlock();
+        return;
+    }
+
     endpoint_info_t *info = &_endpoint_info[EP_TO_INDEX(endpoint)];
     MBED_ASSERT(info->flags & ENDPOINT_ENABLED);
 
@@ -1141,6 +1159,11 @@ void USBDevice::endpoint_unstall(usb_ep_t endpoint)
 
     if (!EP_INDEXABLE(endpoint)) {
         MBED_ASSERT(0);
+        unlock();
+        return;
+    }
+
+    if (!_endpoint_ops_allowed) {
         unlock();
         return;
     }
@@ -1237,6 +1260,7 @@ USBDevice::USBDevice(USBPhy *phy, uint16_t vendor_id, uint16_t product_id, uint1
     _phy = phy;
     _initialized = false;
     _connected = false;
+    _endpoint_ops_allowed = false;
     _current_interface = 0;
     _current_alternate = 0;
     _locked = 0;
@@ -1280,8 +1304,7 @@ void USBDevice::endpoint_abort(usb_ep_t endpoint)
         return;
     }
 
-    bool configuring = _transfer.user_callback == SetConfiguration;
-    if (!configured() && !configuring) {
+    if (!_endpoint_ops_allowed) {
         unlock();
         return;
     }
@@ -1312,8 +1335,7 @@ bool USBDevice::read_start(usb_ep_t endpoint, uint8_t *buffer, uint32_t max_size
         return false;
     }
 
-    bool configuring = _transfer.user_callback == SetConfiguration;
-    if (!configured() && !configuring) {
+    if (!_endpoint_ops_allowed) {
         unlock();
         return false;
     }
@@ -1358,7 +1380,7 @@ uint32_t USBDevice::read_finish(usb_ep_t endpoint)
         return 0;
     }
 
-    if (!configured()) {
+    if (!_endpoint_ops_allowed) {
         unlock();
         return 0;
     }
@@ -1387,8 +1409,7 @@ bool USBDevice::write_start(usb_ep_t endpoint, uint8_t *buffer, uint32_t size)
         return false;
     }
 
-    bool configuring = _transfer.user_callback == SetConfiguration;
-    if (!configured() && !configuring) {
+    if (!_endpoint_ops_allowed) {
         unlock();
         return false;
     }
@@ -1436,12 +1457,12 @@ uint32_t USBDevice::write_finish(usb_ep_t endpoint)
     if (!EP_INDEXABLE(endpoint)) {
         MBED_ASSERT(0);
         unlock();
-        return false;
+        return 0;
     }
 
-    if (!configured()) {
+    if (!_endpoint_ops_allowed) {
         unlock();
-        return false;
+        return 0;
     }
 
     endpoint_info_t *info = &_endpoint_info[EP_TO_INDEX(endpoint)];
@@ -1599,6 +1620,7 @@ void USBDevice::_change_state(DeviceState new_state) {
     if (leaving_configured_state) {
         memset(_endpoint_info, 0, sizeof(_endpoint_info));
         _device.configuration = 0;
+        _endpoint_ops_allowed = false;
     }
 
     if (leaving_default_state) {
