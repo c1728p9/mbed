@@ -164,6 +164,7 @@ bool USBMSD::ready()
 
 void USBMSD::process()
 {
+    wait(1);
     _queue.dispatch();
 }
 
@@ -231,6 +232,7 @@ void USBMSD::callback_state_change(DeviceState new_state)
     // called in ISR context
 
     if (new_state != Configured) {
+        _reset_task.cancel();
         _reset_task.call();
     }
 }

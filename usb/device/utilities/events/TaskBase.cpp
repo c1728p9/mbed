@@ -117,6 +117,7 @@ void TaskBase::post()
 
     MBED_ASSERT(_queue);
     if (_queue) {
+        MBED_ASSERT(!_posted);
         _queue->post(this);
         _posted = true;
     }

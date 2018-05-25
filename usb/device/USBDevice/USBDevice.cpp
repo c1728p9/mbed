@@ -1460,6 +1460,7 @@ uint32_t USBDevice::write_finish(usb_ep_t endpoint)
         return 0;
     }
 
+    // TODO - change this check
     if (!_endpoint_ops_allowed) {
         unlock();
         return 0;
