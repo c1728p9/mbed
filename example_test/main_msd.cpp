@@ -2,6 +2,9 @@
 #include "SDBlockDevice.h"
 #include "USBMSD.h"
 #include "test_util.h"
+#include "usb_phy_api.h"
+#include "USBPhyTest.h"
+
 
 static volatile bool done = false;
 
@@ -32,7 +35,8 @@ int main_msd() {
         Thread msd_thread(osPriorityHigh);
         SDBlockDevice sd(PTE3, PTE1, PTE2, PTE4);
         sd.frequency(25000000);
-        USBMSD usb(&sd);
+        USBPhyTest phy(get_usb_phy());
+        USBMSD usb(&sd, &phy);
         msd_thread.start(callback(msd_process_main, &usb));
 
         printf("Connecting USB\r\n");
