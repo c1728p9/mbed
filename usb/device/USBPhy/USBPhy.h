@@ -26,27 +26,48 @@
  * * You can use any endpoint configurations that fit in the parameters
  *      of the table returned by USBPhy::endpoint_table.
  * * You can use all endpoints in any valid endpoint configuration concurrently.
+ *      Verified by ::ep_test_parallel_transfers and ::ep_test_parallel_transfers_ctrl.
  * * The device supports use of at least one control, bulk, interrupt and
  *      isochronous in each direction at the same time - at least 8 endpoints.
+ *      Verified by ::ep_test_parallel_transfers and ::ep_test_parallel_transfers_ctrl.
  * * USBPhy supports all standard endpoint sizes (wMaxPacketSize).
+ *      Not verified.
  * * USBPhy can handle an interrupt latency of at least 100ms if the host PC
- *      is not performing a reset or setting the device's address.
- * * USBPhy only sends USBPhyEvents when it is in the initialized state.
- * * When unpowered, USBPhy only sends the USBPhyEvents::power event.
+ *      is not performing a reset or setting the device's address. Not verified.
+ * * USBPhy only sends USBPhyEvents when it is in the initialized state. Not verified.
+ * * When unpowered, USBPhy only sends the USBPhyEvents::power event. Not verified.
  * * On USB reset, all endpoints are removed except for endpoint 0.
- * * A call to USBPhy::ep0_write results in the call of USBPhyEvents::in when
+ *      Verified by ::device_reset_test.
+ * * A call to USBPhy::ep0_write results in the call of USBPhyEvents::ep0_in when
  *      the PC reads the data unless a power loss, reset, or a call to
  *      USBPhy::disconnect occurs first.
+ *      Verified by ::control_basic_test.
  * * A call to USBPhy::endpoint_write results in the call of USBPhyEvents::in
- *      when the pc reads the data unless a power loss, reset, or a call to
- *      USBPhy::endpoint_abort occurs first.
+ *      when the pc reads the data unless a power loss, reset, or a call to one of
+ *      the following - USBPhy::disconnect or USBPhy::endpoint_abort occurs first.
+ *      Verified by ::ep_test_data_correctness.
  * * A call to USBPhy::endpoint_read results in the call of USBPhyEvents::out
- *      when the pc sends data unless a power loss, reset, or a call to
- *      USBPhy::endpoint_abort occurs first.
+ *      when the pc sends data unless a power loss, reset, or a call to one of
+ *      the following - USBPhy::disconnect or USBPhy::endpoint_abort occurs first.
+ *      Verified by ::ep_test_data_correctness.
+ * * A call to USBPhy::endpoint_abort cancels an operation started with
+ *      USBPhy::endpoint_write or endpoint_read.
+ *      Verified by ::ep_test_abort.
+ * * A call to USBPhy::endpoint_abort does not remove a stall condition
+ *      from an endpoint.
+ *      Not verified.
+ * * A call to USBPhy::endpoint_stall causes the endpoint to stall
+ *      further transfers.
+ *      Verified by ::ep_test_halt.
+ * * A call to USBPhy::endpoint_unstall clears stall on the given endpoint
+ *      and resets data toggle back to DATA0.
+ *      Verified by ::ep_test_halt.
  * * Endpoint 0 naks all transactions aside from setup packets until
  *      higher-level code calls one of USBPhy::ep0_read, USBPhy::ep0_write or
  *      USBPhy::ep0_stall.
+ *      Not verified.
  * * Endpoint 0 stall automatically clears on reception of a setup packet.
+ *      Verified by test ::control_stall_test.
  *
  * # Undefined behavior
  * * Calling USBPhy::endpoint_add or USBPhy::endpoint_remove outside of the
@@ -54,6 +75,10 @@
  * * Calling USBPhy::endpoint_remove on an endpoint that has an ongoing read
  *      or write operation. To avoid undefined behavior, you must abort ongoing
  *      operations with USBPhy::endpoint_abort.
+ * * It is undefined behavior if a transfer is aborted by a call to
+ *      USBPhy::endpoint_stall or USBPhy::endpoint_unstall. To avoid undefined
+ *      behavior abort ongoing transfers after USBPhy::endpoint_stall and
+ *      before USBPhy::endpoint_unstall.
  * * Devices behavior is undefined if latency is greater than 2ms when address
  *      is being set - see USB spec 9.2.6.3.
  * * Devices behavior is undefined if latency is greater than 10ms when a
