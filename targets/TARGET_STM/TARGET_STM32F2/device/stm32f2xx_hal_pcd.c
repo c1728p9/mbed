@@ -1044,6 +1044,46 @@ HAL_StatusTypeDef HAL_PCD_EP_Transmit(PCD_HandleTypeDef *hpcd, uint8_t ep_addr, 
 }
 
 /**
+  * @brief  Abort a transaction.  
+  * @param  hpcd: PCD handle
+  * @param  ep_addr: endpoint address
+  * @retval HAL status
+  */
+HAL_StatusTypeDef HAL_PCD_EP_Abort(PCD_HandleTypeDef *hpcd, uint8_t ep_addr)
+{
+  HAL_StatusTypeDef ret;
+  USB_OTG_EPTypeDef *ep;
+
+  /*stop the transfer and flush the fifo */
+  __HAL_LOCK(&hpcd->EPLock[ep_addr & 0x7F]);
+
+  if ((0x80 & ep_addr) == 0x80)
+  {
+    ep = &hpcd->IN_ep[ep_addr & 0x7F];
+  }
+  else
+  {
+    ep = &hpcd->OUT_ep[ep_addr];
+  }
+
+  ep->num   = ep_addr & 0x7F;
+  ep->is_in = ((ep_addr & 0x80) == 0x80);
+
+  ret = USB_EPStopXfer(hpcd->Instance , ep);
+  if ((ret == HAL_OK) && ((ep_addr & 0x80) == 0x80))
+  {
+    ret = USB_FlushTxFifo(hpcd->Instance, ep_addr & 0x7F);
+  }
+
+  ep->xfer_buff = NULL;
+  ep->xfer_len = 0;
+  ep->xfer_count = 0U;
+
+  __HAL_UNLOCK(&hpcd->EPLock[ep_addr & 0x7F]);
+  return ret;
+}
+
+/**
   * @brief  Set a STALL condition over an endpoint.
   * @param  hpcd: PCD handle
   * @param  ep_addr: endpoint address
