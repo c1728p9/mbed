@@ -49,7 +49,7 @@
 #define TEST_SIZE_EP_INT_3      (16)
 #define TEST_SIZE_EP_INT_4      TEST_SIZE_EP_INT_MIN
 
-#define TEST_SIZE_EP_ISO_MAX    (1023)
+#define TEST_SIZE_EP_ISO_MAX    (256)
 #define TEST_SIZE_EP_ISO_MIN    (1)
 #define TEST_SIZE_EP_ISO_0      (0)
 #define TEST_SIZE_EP_ISO_1      (0)

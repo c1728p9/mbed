@@ -410,8 +410,9 @@ bool USBPhyHw::endpoint_add(usb_ep_t endpoint, uint32_t max_packet, usb_ep_type_
 {
     uint32_t len;
     if (max_packet > MAXTRANSFER_SIZE) return false;
+
     if (endpoint & 0x80) {
-        HAL_PCDEx_SetTxFiFo(&hpcd, endpoint & 0x7f, (max_packet / 4) + 1);
+        HAL_PCDEx_SetTxFiFo(&hpcd, endpoint & 0x7f, 17);
         len = HAL_PCDEx_GetTxFiFo(&hpcd,endpoint & 0x7f);
         MBED_ASSERT(len >= max_packet);
     }
