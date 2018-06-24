@@ -764,18 +764,6 @@ HAL_StatusTypeDef USB_EPStopXfer(USB_OTG_GlobalTypeDef *USBx , USB_OTG_EPTypeDef
     /* EP enable, IN data in FIFO */
     if (((USBx_INEP(ep->num)->DIEPCTL) & USB_OTG_DIEPCTL_EPENA) == USB_OTG_DIEPCTL_EPENA)
     {
-      /* Set NAK on this endpoint */
-      USBx_INEP(ep->num)->DIEPCTL |= USB_OTG_DIEPCTL_SNAK;
-      count = 0;
-      do
-      {
-        if (++count > 200000U)
-        {
-          return HAL_TIMEOUT;
-        }
-      }
-      while ((USBx_INEP(ep->num)->DIEPCTL & USB_OTG_DIEPCTL_NAKSTS) != USB_OTG_DIEPCTL_NAKSTS);
-
       /* Disable this endpoint */
       USBx_INEP(ep->num)->DIEPCTL |= USB_OTG_DIEPCTL_EPDIS;
       count = 0;
@@ -788,23 +776,25 @@ HAL_StatusTypeDef USB_EPStopXfer(USB_OTG_GlobalTypeDef *USBx , USB_OTG_EPTypeDef
       }
       while ((USBx_INEP(ep->num)->DIEPCTL & USB_OTG_DIEPCTL_EPENA) == USB_OTG_DIEPCTL_EPENA);
     }
+    //TODO - clear interrupt
   }
   else /* OUT endpoint */
   {
     if (((USBx_OUTEP(ep->num)->DOEPCTL) & USB_OTG_DOEPCTL_EPENA) == USB_OTG_DOEPCTL_EPENA)
     {
-      /* Set NAK on this endpoint */
-      USBx_OUTEP(ep->num)->DOEPCTL |= USB_OTG_DOEPCTL_SNAK;
-      count = 0;
-      do
-      {
-        if (++count > 200000U)
+        /* Disable this endpoint */
+        USBx_OUTEP(ep->num)->DOEPCTL |= USB_OTG_DOEPCTL_EPDIS;
+        count = 0;
+        do
         {
-          return HAL_TIMEOUT;
+          if (++count > 200000U)
+          {
+            return HAL_TIMEOUT;
+          }
         }
-      }
-      while ((USBx_OUTEP(ep->num)->DOEPCTL & USB_OTG_DOEPCTL_NAKSTS) != USB_OTG_DOEPCTL_NAKSTS);
+        while ((USBx_OUTEP(ep->num)->DOEPCTL & USB_OTG_DOEPCTL_EPENA) == USB_OTG_DOEPCTL_EPENA);
     }
+    //TODO - clear interrupt
   }
   return ret;
 }
@@ -914,6 +904,82 @@ HAL_StatusTypeDef USB_EPClearStall(USB_OTG_GlobalTypeDef *USBx, USB_OTG_EPTypeDe
     {
       USBx_OUTEP(ep->num)->DOEPCTL |= USB_OTG_DOEPCTL_SD0PID_SEVNFRM; /* DATA0 */
     }    
+  }
+  return HAL_OK;
+}
+
+/**
+  * @brief  USB_EPSetNak : stop transfer and nak all tokens on this endpoint
+  * @param  USBx : Selected device
+  * @param  ep: pointer to endpoint structure
+  * @retval HAL status
+  */
+HAL_StatusTypeDef USB_EPSetNak(USB_OTG_GlobalTypeDef *USBx , USB_OTG_EPTypeDef *ep)
+{
+  uint32_t count = 0;
+  if (ep->is_in == 1U)
+  {
+    USBx_INEP(ep->num)->DIEPCTL |= USB_OTG_DIEPCTL_SNAK;
+    count = 0;
+    do
+    {
+      if (++count > 200000U)
+      {
+        return HAL_TIMEOUT;
+      }
+    }
+    while ((USBx_INEP(ep->num)->DIEPCTL & USB_OTG_DIEPCTL_NAKSTS) != USB_OTG_DIEPCTL_NAKSTS);
+  }
+  else
+  {
+    USBx_OUTEP(ep->num)->DOEPCTL |= USB_OTG_DOEPCTL_SNAK;
+    count = 0;
+    do
+    {
+      if (++count > 200000U)
+      {
+        return HAL_TIMEOUT;
+      }
+    }
+    while ((USBx_OUTEP(ep->num)->DOEPCTL & USB_OTG_DOEPCTL_NAKSTS) != USB_OTG_DOEPCTL_NAKSTS);
+  }
+  return HAL_OK;
+}
+
+/**
+  * @brief  USB_EPSetNak : resume transfer and stop naking on this endpoint
+  * @param  USBx : Selected device
+  * @param  ep: pointer to endpoint structure
+  * @retval HAL status
+  */
+HAL_StatusTypeDef USB_EPClearNak(USB_OTG_GlobalTypeDef *USBx , USB_OTG_EPTypeDef *ep)
+{
+  uint32_t count = 0;
+  if (ep->is_in == 1U)
+  {
+    USBx_INEP(ep->num)->DIEPCTL |= USB_OTG_DIEPCTL_CNAK;
+    count = 0;
+    do
+    {
+      if (++count > 200000U)
+      {
+        return HAL_TIMEOUT;
+      }
+    }
+    while ((USBx_INEP(ep->num)->DIEPCTL & USB_OTG_DIEPCTL_NAKSTS) == USB_OTG_DIEPCTL_NAKSTS);
+  }
+  else
+  {
+    USBx_OUTEP(ep->num)->DOEPCTL |= USB_OTG_DOEPCTL_CNAK;
+    count = 0;
+    do
+    {
+      if (++count > 200000U)
+      {
+        return HAL_TIMEOUT;
+      }
+    }
+    while ((USBx_OUTEP(ep->num)->DOEPCTL & USB_OTG_DOEPCTL_NAKSTS) == USB_OTG_DOEPCTL_NAKSTS);
   }
   return HAL_OK;
 }
