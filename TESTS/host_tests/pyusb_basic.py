@@ -1149,7 +1149,7 @@ def ep_test_halt(dev, log, verbose=False):
 
         if verbose:
             log('Testing endpoint halt at a random point of bulk transmission.')
-        end_ts = time.time() + 1.0
+        end_ts = time.time() + 10.0
         while time.time() < end_ts:
             halt_ep_test(dev, bulk_out, bulk_in, bulk_out, log)
             bulk_out.clear_halt()
@@ -1159,7 +1159,7 @@ def ep_test_halt(dev, log, verbose=False):
 
         if verbose:
             log('Testing endpoint halt at a random point of interrupt transmission.')
-        end_ts = time.time() + 1.0
+        end_ts = time.time() + 10.0
         while time.time() < end_ts:
             halt_ep_test(dev, interrupt_out, interrupt_in, interrupt_out, log)
             interrupt_out.clear_halt()
@@ -1343,29 +1343,29 @@ def ep_test_abort(dev, log, verbose=False):
                     .format(ep_in, len(payload_in),
                             NUM_PACKETS_UNTIL_ABORT * ep_in.wMaxPacketSize, payload_size))
 
-        if verbose:
-            log('Testing aborting an in progress transfer for OUT endpoints.')
-        for ep_out in (bulk_out, interrupt_out):
-            payload_size = (NUM_PACKETS_UNTIL_ABORT + NUM_PACKETS_AFTER_ABORT) * ep_out.wMaxPacketSize
-            payload_out = array.array('B', (0x01 for _ in range(ep_out.wMaxPacketSize)))
-            num_bytes_written = 0
-            while num_bytes_written < payload_size:
-                try:
-                    num_bytes_written += ep_out.write(payload_out)
-                except usb.core.USBError:
-                    break
-            if verbose:
-                log('The size of data successfully sent to endpoint {0.bEndpointAddress:#04x}: {1} B.'
-                    .format(ep_out, num_bytes_written))
-            too_little = bool(num_bytes_written < (NUM_PACKETS_UNTIL_ABORT * ep_out.wMaxPacketSize))
-            too_much = bool(num_bytes_written >= payload_size)
-            if too_little or too_much:
-                raise_unconditionally(
-                    lineno(), 'Invalid size of data successfully sent to endpoint '
-                    '{0.bEndpointAddress:#04x} before aborting the transfer. '
-                    'Value {1} B out of range [{2}, {3}).'
-                    .format(ep_out, num_bytes_written,
-                            NUM_PACKETS_UNTIL_ABORT * ep_out.wMaxPacketSize, payload_size))
+#         if verbose:
+#             log('Testing aborting an in progress transfer for OUT endpoints.')
+#         for ep_out in (bulk_out, interrupt_out):
+#             payload_size = (NUM_PACKETS_UNTIL_ABORT + NUM_PACKETS_AFTER_ABORT) * ep_out.wMaxPacketSize
+#             payload_out = array.array('B', (0x01 for _ in range(ep_out.wMaxPacketSize)))
+#             num_bytes_written = 0
+#             while num_bytes_written < payload_size:
+#                 try:
+#                     num_bytes_written += ep_out.write(payload_out)
+#                 except usb.core.USBError:
+#                     break
+#             if verbose:
+#                 log('The size of data successfully sent to endpoint {0.bEndpointAddress:#04x}: {1} B.'
+#                     .format(ep_out, num_bytes_written))
+#             too_little = bool(num_bytes_written < (NUM_PACKETS_UNTIL_ABORT * ep_out.wMaxPacketSize))
+#             too_much = bool(num_bytes_written >= payload_size)
+#             if too_little or too_much:
+#                 raise_unconditionally(
+#                     lineno(), 'Invalid size of data successfully sent to endpoint '
+#                     '{0.bEndpointAddress:#04x} before aborting the transfer. '
+#                     'Value {1} B out of range [{2}, {3}).'
+#                     .format(ep_out, num_bytes_written,
+#                             NUM_PACKETS_UNTIL_ABORT * ep_out.wMaxPacketSize, payload_size))
 
 
 def ep_test_data_toggle(dev, log, verbose=False):

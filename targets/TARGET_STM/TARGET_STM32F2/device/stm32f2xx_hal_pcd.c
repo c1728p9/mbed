@@ -366,6 +366,11 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
             }
           }
           
+          if (( epint & USB_OTG_DOEPINT_EPDISD) == USB_OTG_DOEPINT_EPDISD)
+          {
+              CLEAR_OUT_EP_INTR(epnum, USB_OTG_DOEPINT_EPDISD);
+          }
+
           if(( epint & USB_OTG_DOEPINT_STUP) == USB_OTG_DOEPINT_STUP)
           {
             /* Inform the upper layer that a setup packet is available */
@@ -485,7 +490,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
       if(hpcd->Init.use_dedicated_ep1)
       {
         USBx_DEVICE->DOUTEP1MSK |= (USB_OTG_DOEPMSK_STUPM | USB_OTG_DOEPMSK_XFRCM | USB_OTG_DOEPMSK_EPDM); 
-        USBx_DEVICE->DINEP1MSK |= (USB_OTG_DIEPMSK_TOM | USB_OTG_DIEPMSK_XFRCM | USB_OTG_DIEPMSK_EPDM);  
+        USBx_DEVICE->DINEP1MSK |= (USB_OTG_DIEPMSK_TOM | USB_OTG_DIEPMSK_XFRCM | USB_OTG_DIEPMSK_EPDM);
       }
       else
       {
@@ -1049,10 +1054,13 @@ HAL_StatusTypeDef HAL_PCD_EP_Abort(PCD_HandleTypeDef *hpcd, uint8_t ep_addr)
   ep->num   = ep_addr & 0x7F;
   ep->is_in = ((ep_addr & 0x80) == 0x80);
 
+  USB_EPSetNak(hpcd->Instance, ep);
+
   if ((0x80 & ep_addr) == 0x80)
   {
-      USB_EPSetNak(hpcd->Instance, ep);
+      uint32_t before = USBx_INEP(ep->num)->DIEPCTL;
       ret = USB_EPStopXfer(hpcd->Instance , ep);
+      uint32_t after = USBx_INEP(ep->num)->DIEPCTL;
       if (ret == HAL_OK) {
           ret = USB_FlushTxFifo(hpcd->Instance, ep_addr & 0x7F);
       }
