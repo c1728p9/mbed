@@ -54,6 +54,8 @@ static volatile uint16_t ticker_inited = 0;
 #define TMR_CMP_MIN         2
 #define TMR_CMP_MAX         0xFFFFFFu
 
+void set_pin(uint8_t index, uint8_t value);
+
 /* NOTE: When system clock is higher than timer clock, we need to add 3 engine clock
  *       (recommended by designer) delay to wait for above timer control to take effect. */
 
@@ -153,6 +155,7 @@ timestamp_t lp_ticker_read()
 
 void lp_ticker_set_interrupt(timestamp_t timestamp)
 {
+    set_pin(1, 1);
     /* In continuous mode, counter will be reset to zero with the following sequence: 
      * 1. Stop counting
      * 2. Configure new CMP value
@@ -170,15 +173,15 @@ void lp_ticker_set_interrupt(timestamp_t timestamp)
 
     /* NOTE: Rely on LPTICKER_DELAY_TICKS to be non-blocking. */
     timer_base->CMP = cmp_timer;
+    while ((timer_base->CMP & 0xFFFFFF) != (cmp_timer & 0xFFFFFF));
 
     /* We can call ticker_irq_handler now. */
     NVIC_EnableIRQ(TIMER_MODINIT.irq_n);
+    set_pin(1, 0);
 }
 
 void lp_ticker_disable_interrupt(void)
 {
-    /* We cannot call ticker_irq_handler now. */
-    NVIC_DisableIRQ(TIMER_MODINIT.irq_n);
 }
 
 void lp_ticker_clear_interrupt(void)
@@ -189,8 +192,11 @@ void lp_ticker_clear_interrupt(void)
      * TIMER_ClearIntFlag((TIMER_T *) NU_MODBASE(TIMER_MODINIT.modname));
      * TIMER_ClearWakeupFlag((TIMER_T *) NU_MODBASE(TIMER_MODINIT.modname));
      */
+    set_pin(0, 1);
     TIMER_T *timer_base = (TIMER_T *) NU_MODBASE(TIMER_MODINIT.modname);
     timer_base->INTSTS = TIMER_INTSTS_TIF_Msk | TIMER_INTSTS_TWKF_Msk;
+    while (timer_base->INTSTS & (TIMER_INTSTS_TIF_Msk | TIMER_INTSTS_TWKF_Msk));
+    set_pin(0, 0);
 }
 
 void lp_ticker_fire_interrupt(void)
@@ -212,8 +218,10 @@ const ticker_info_t* lp_ticker_get_info()
     return &info;
 }
 
+extern volatile uint8_t handle;
 static void tmr1_vec(void)
 {
+    set_pin(2, 1);
     /* NOTE: Avoid blocking in ISR due to wait for "clear interrupt flag"
      *
      * "clear interrupt flag" needs wait to take effect which isn't added here to avoid
@@ -232,10 +240,10 @@ static void tmr1_vec(void)
      *    which is just enough for  "clear interrupt flag" to take effect.
      */
     lp_ticker_clear_interrupt();
-    lp_ticker_disable_interrupt();
 
-    // NOTE: lp_ticker_set_interrupt() may get called in lp_ticker_irq_handler();
-    lp_ticker_irq_handler();
+    handle = 1;
+
+    set_pin(2, 0);
 }
 
 #endif
