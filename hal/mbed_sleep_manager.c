@@ -22,6 +22,7 @@
 #include "mbed_debug.h"
 #include "mbed_stats.h"
 #include "lp_ticker_api.h"
+#include "mbed_lp_ticker_wrapper.h"
 #include <limits.h>
 #include <stdio.h>
 #include "mbed_stats.h"
@@ -180,7 +181,11 @@ void sleep_manager_unlock_deep_sleep_internal(void)
 
 bool sleep_manager_can_deep_sleep(void)
 {
-    return deep_sleep_lock == 0 ? true : false;
+    uint32_t lock_count = deep_sleep_lock;
+    if (lp_ticker_get_timeout_pending() && (lock_count > 0)) {
+        lock_count--;
+    }
+    return lock_count == 0 ? true : false;
 }
 
 void sleep_manager_sleep_auto(void)
@@ -196,7 +201,7 @@ void sleep_manager_sleep_auto(void)
 #ifdef MBED_DEBUG
     hal_sleep();
 #else
-    if (sleep_manager_can_deep_sleep()) {
+    if (sleep_manager_can_deep_sleep() && !lp_ticker_get_timeout_pending()) {
         deep = true;
         hal_deepsleep();
     } else {
