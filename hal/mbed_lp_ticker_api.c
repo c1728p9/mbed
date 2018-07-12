@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 #include "hal/lp_ticker_api.h"
+#include "hal/mbed_lp_ticker_wrapper.h"
 
 #if DEVICE_LPTICKER
-
-void lp_ticker_set_interrupt_wrapper(timestamp_t timestamp);
 
 static ticker_event_queue_t events = { 0 };
 
