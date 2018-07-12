@@ -1064,7 +1064,7 @@
             }
         },
         "detect_code": ["0720"],
-        "macros_add": ["USB_STM_HAL", "USBHOST_OTHER"],
+        "macros_add": ["USB_STM_HAL", "USBHOST_OTHER", "MBED_TICKLESS"],
         "device_has_add": ["SERIAL_ASYNCH", "SERIAL_FC", "FLASH"],
         "release_versions": ["2", "5"],
         "device_name": "STM32F401RE"

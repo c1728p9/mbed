@@ -43,7 +43,7 @@
 
 /** The idle thread's stack size can be configured by the application, if not explicitly specified, it'll default to 512 */
 #ifndef MBED_CONF_APP_IDLE_THREAD_STACK_SIZE
-#define MBED_CONF_APP_IDLE_THREAD_STACK_SIZE    512
+#define MBED_CONF_APP_IDLE_THREAD_STACK_SIZE    768
 #endif
 
 #define OS_IDLE_THREAD_STACK_SIZE   MBED_CONF_APP_IDLE_THREAD_STACK_SIZE
