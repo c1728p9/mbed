@@ -20,6 +20,7 @@
 #include "ticker_api_tests.h"
 #include "hal/us_ticker_api.h"
 #include "hal/lp_ticker_api.h"
+#include "hal/mbed_lp_ticker_wrapper.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -469,6 +470,15 @@ utest::v1::status_t us_ticker_setup(const Case *const source, const size_t index
 
     OS_Tick_Disable();
 
+#if DEVICE_LPTICKER && (LPTICKER_DELAY_TICKS > 0)
+    // After the OS is disabled wait until the microsecond timer
+    // is no longer in use by the lp ticker wrapper code.
+    // This prevents the low power ticker wrapper code from
+    // getting stuck in a state where it is waiting for
+    // the microsecond Timeout to run.
+    while (lp_ticker_get_timeout_pending());
+#endif
+
     intf->init();
 
     prev_irq_handler = set_us_ticker_irq_handler(ticker_event_handler_stub);
@@ -496,6 +506,15 @@ utest::v1::status_t lp_ticker_setup(const Case *const source, const size_t index
     intf = get_lp_ticker_data()->interface;
 
     OS_Tick_Disable();
+
+#if DEVICE_LPTICKER && (LPTICKER_DELAY_TICKS > 0)
+    // After the OS is disabled wait until the microsecond timer
+    // is no longer in use by the lp ticker wrapper code.
+    // This prevents the low power ticker wrapper code from
+    // getting stuck in a state where it is waiting for
+    // the microsecond Timeout to run.
+    while (lp_ticker_get_timeout_pending());
+#endif
 
     intf->init();
 

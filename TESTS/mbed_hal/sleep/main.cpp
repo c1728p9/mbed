@@ -23,6 +23,7 @@
 #include "utest/utest.h"
 #include "unity/unity.h"
 #include "greentea-client/test_env.h"
+#include "mbed_lp_ticker_wrapper.h"
 
 #include "sleep_api_tests.h"
 
@@ -256,12 +257,23 @@ utest::v1::status_t greentea_failure_handler(const Case * const source, const fa
 utest::v1::status_t greentea_test_setup(const size_t number_of_cases)
 {
     GREENTEA_SETUP(60, "default_auto");
+    /* Suspend RTOS Kernel to enable sleep modes. */
+    osKernelSuspend();
+
+#if DEVICE_LPTICKER && (LPTICKER_DELAY_TICKS > 0)
+    // After the OS is disabled wait until the microsecond timer
+    // is no longer in use by the lp ticker wrapper code.
+    // This prevents the low power ticker wrapper code from
+    // getting stuck in a state where it is waiting for
+    // the microsecond Timeout to run.
+    while (lp_ticker_get_timeout_pending());
+#endif
+
     us_ticker_init();
 #if DEVICE_LPTICKER
     lp_ticker_init();
 #endif
-    /* Suspend RTOS Kernel to enable sleep modes. */
-    osKernelSuspend();
+
     return greentea_test_setup_handler(number_of_cases);
 }
 
