@@ -23,6 +23,7 @@
 #include "utest/utest.h"
 #include "unity/unity.h"
 #include "greentea-client/test_env.h"
+#include "mbed_lp_ticker_wrapper.h"
 
 #include "sleep_api_tests.h"
 
@@ -183,7 +184,9 @@ void deepsleep_lpticker_test()
     /* Give some time Green Tea to finish UART transmission before entering
      * deep-sleep mode.
      */
+    ticker_resume(get_us_ticker_data());
     wait_ms(SERIAL_FLUSH_TIME_MS);
+    ticker_suspend(get_us_ticker_data());
 
     TEST_ASSERT_TRUE_MESSAGE(sleep_manager_can_deep_sleep(), "deep sleep should not be locked");
 
@@ -205,6 +208,7 @@ void deepsleep_lpticker_test()
 
 }
 
+//TODO - determine why this test passes without delay ticks
 void deepsleep_high_speed_clocks_turned_off_test()
 {
     const ticker_data_t * us_ticker = get_us_ticker_data();
@@ -218,7 +222,9 @@ void deepsleep_high_speed_clocks_turned_off_test()
     /* Give some time Green Tea to finish UART transmission before entering
      * deep-sleep mode.
      */
+    ticker_resume(get_us_ticker_data());
     wait_ms(SERIAL_FLUSH_TIME_MS);
+    ticker_suspend(get_us_ticker_data());
 
     TEST_ASSERT_TRUE_MESSAGE(sleep_manager_can_deep_sleep(), "deep sleep should not be locked");
 
@@ -256,12 +262,20 @@ utest::v1::status_t greentea_failure_handler(const Case * const source, const fa
 utest::v1::status_t greentea_test_setup(const size_t number_of_cases)
 {
     GREENTEA_SETUP(60, "default_auto");
+    /* Suspend RTOS Kernel to enable sleep modes. */
+    osKernelSuspend();
+
+    while (lp_ticker_get_timeout_pending());
+
+    ticker_suspend(get_us_ticker_data());
+    ticker_suspend(get_lp_ticker_data());
+
     us_ticker_init();
 #if DEVICE_LPTICKER
     lp_ticker_init();
 #endif
-    /* Suspend RTOS Kernel to enable sleep modes. */
-    osKernelSuspend();
+	
+
     return greentea_test_setup_handler(number_of_cases);
 }
 
