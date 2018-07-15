@@ -182,7 +182,11 @@ void sleep_manager_unlock_deep_sleep_internal(void)
 bool sleep_manager_can_deep_sleep(void)
 {
     uint32_t lock_count = deep_sleep_lock;
-    if (lp_ticker_get_timeout_pending() && (lock_count > 0)) {
+    if (
+#if DEVICE_LPTICKER && (LPTICKER_DELAY_TICKS > 0)
+            lp_ticker_get_timeout_pending() &&
+#endif
+            (lock_count > 0)) {
         lock_count--;
     }
     return lock_count == 0 ? true : false;
@@ -198,16 +202,20 @@ void sleep_manager_sleep_auto(void)
     bool deep = false;
 
 // debug profile should keep debuggers attached, no deep sleep allowed
-#ifdef MBED_DEBUG
-    hal_sleep();
-#else
-    if (sleep_manager_can_deep_sleep() && !lp_ticker_get_timeout_pending()) {
+//#ifdef MBED_DEBUG
+//    hal_sleep();
+//#else
+    if (sleep_manager_can_deep_sleep()
+#if DEVICE_LPTICKER && (LPTICKER_DELAY_TICKS > 0)
+            && !lp_ticker_get_timeout_pending()
+#endif
+    ) {
         deep = true;
         hal_deepsleep();
     } else {
         hal_sleep();
     }
-#endif
+//#endif
 
     us_timestamp_t end = read_us();
     if (true == deep) {
