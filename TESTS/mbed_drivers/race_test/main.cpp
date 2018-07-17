@@ -73,6 +73,8 @@ static void main_class_race()
 
 void test_case_func_race()
 {
+    DeepSleepLock lock;
+
     Callback<void()> cb(main_func_race);
     Thread t1(osPriorityNormal, TEST_STACK_SIZE);
     Thread t2(osPriorityNormal, TEST_STACK_SIZE);
@@ -91,10 +93,14 @@ void test_case_func_race()
 
     // Reset instance count
     instance_count = 0;
+
+    lock.unlock();
 }
 
 void test_case_class_race()
 {
+    DeepSleepLock lock;
+
     Callback<void()> cb(main_class_race);
     Thread t1(osPriorityNormal, TEST_STACK_SIZE);
     Thread t2(osPriorityNormal, TEST_STACK_SIZE);
@@ -113,6 +119,8 @@ void test_case_class_race()
 
     // Reset instance count
     instance_count = 0;
+
+    lock.unlock();
 }
 
 Case cases[] = {

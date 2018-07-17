@@ -254,6 +254,8 @@ void test_created_stopped()
  */
 void test_stop()
 {
+    DeepSleepLock lock;
+
     Semaphore sem(0, 1);
     RtosTimer rtostimer(mbed::callback(sem_callback, &sem), osTimerOnce);
 
@@ -271,6 +273,8 @@ void test_stop()
 
     status = rtostimer.stop();
     TEST_ASSERT_EQUAL(osErrorResource, status);
+
+    lock.unlock();
 }
 
 /** Test timer started with infinite delay

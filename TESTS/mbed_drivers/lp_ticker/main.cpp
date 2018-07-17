@@ -71,6 +71,8 @@ void increment_multi_counter(void)
  */
 void test_multi_ticker(void)
 {
+    DeepSleepLock lock;
+
     LowPowerTicker ticker[TICKER_COUNT];
     const uint32_t extra_wait = 10; // extra 10ms wait time
 
@@ -105,6 +107,8 @@ void test_multi_ticker(void)
     // (e.g. when head event is removed), it's good to check if
     // no more callbacks were triggered during detaching.
     TEST_ASSERT_EQUAL(TICKER_COUNT, multi_counter);
+
+    lock.unlock();
 }
 
 /** Test multi callback time
@@ -140,6 +144,8 @@ void test_multi_call_time(void)
  */
 void test_detach(void)
 {
+    DeepSleepLock lock;
+
     LowPowerTicker ticker;
     int32_t ret;
     const float ticker_time_s = 0.1f;
@@ -157,6 +163,8 @@ void test_detach(void)
 
     ret = sem.wait(wait_time_ms);
     TEST_ASSERT_EQUAL(0, ret);
+
+    lock.unlock();
 }
 
 /** Test single callback time via attach

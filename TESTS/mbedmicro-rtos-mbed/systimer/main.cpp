@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#if !MBED_TICKLESS
+#ifndef MBED_TICKLESS
 #error [NOT_SUPPORTED] Tickless mode not supported for this target.
 #endif
 
@@ -198,6 +198,8 @@ void test_get_time(void)
  */
 void test_cancel_tick(void)
 {
+    DeepSleepLock lock;
+
     SysTimerTest st;
     st.cancel_tick();
     st.schedule_tick(TEST_TICKS);
@@ -206,6 +208,8 @@ void test_cancel_tick(void)
     int32_t sem_slots = st.sem_wait((DELAY_US + DELAY_DELTA_US) / 1000ULL);
     TEST_ASSERT_EQUAL_INT32(0, sem_slots);
     TEST_ASSERT_EQUAL_UINT32(0, st.get_tick());
+
+    lock.unlock();
 }
 
 /** Test schedule zero
@@ -216,11 +220,15 @@ void test_cancel_tick(void)
  */
 void test_schedule_zero(void)
 {
+    DeepSleepLock lock;
+
     SysTimerTest st;
 
     st.schedule_tick(0UL);
     int32_t sem_slots = st.sem_wait(0UL);
     TEST_ASSERT_EQUAL_INT32(1, sem_slots);
+
+    lock.unlock();
 }
 
 /** Test handler called once
@@ -234,6 +242,8 @@ void test_schedule_zero(void)
  */
 void test_handler_called_once(void)
 {
+    DeepSleepLock lock;
+
     SysTimerTest st;
     st.schedule_tick(TEST_TICKS);
     us_timestamp_t t1 = st.get_time();
@@ -249,6 +259,8 @@ void test_handler_called_once(void)
     sem_slots = st.sem_wait((DELAY_US + DELAY_DELTA_US) / 1000ULL);
     TEST_ASSERT_EQUAL_INT32(0, sem_slots);
     TEST_ASSERT_EQUAL_UINT32(1, st.get_tick());
+
+    lock.unlock();
 }
 
 #if DEVICE_SLEEP

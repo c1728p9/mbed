@@ -73,6 +73,8 @@ public:
 template<typename T>
 void test_single_call(void)
 {
+    DeepSleepLock lock;
+
     Semaphore sem(0, 1);
     T timeout;
 
@@ -88,6 +90,8 @@ void test_single_call(void)
     TEST_ASSERT_EQUAL(0, sem_slots);
 
     timeout.detach();
+
+    lock.unlock();
 }
 
 /** Template for tests: callback not called when cancelled
@@ -105,6 +109,8 @@ void test_single_call(void)
 template<typename T>
 void test_cancel(void)
 {
+    DeepSleepLock lock;
+
     Semaphore sem(0, 1);
     T timeout;
 
@@ -116,6 +122,8 @@ void test_cancel(void)
 
     sem_slots = sem.wait(TEST_DELAY_MS + 1);
     TEST_ASSERT_EQUAL(0, sem_slots);
+
+    lock.unlock();
 }
 
 /** Template for tests: callback override
@@ -137,6 +145,8 @@ void test_cancel(void)
 template<typename T>
 void test_override(void)
 {
+    DeepSleepLock lock;
+
     Semaphore sem1(0, 1);
     Semaphore sem2(0, 1);
     T timeout;
@@ -153,6 +163,8 @@ void test_override(void)
     TEST_ASSERT_EQUAL(0, sem_slots);
 
     timeout.detach();
+
+    lock.unlock();
 }
 
 /** Template for tests: multiple Timeouts
@@ -172,6 +184,8 @@ void test_override(void)
 template<typename T>
 void test_multiple(void)
 {
+    DeepSleepLock lock;
+
     volatile uint32_t callback_count = 0;
     T timeouts[NUM_TIMEOUTS];
     for (size_t i = 0; i < NUM_TIMEOUTS; i++) {
@@ -179,6 +193,8 @@ void test_multiple(void)
     }
     Thread::wait(TEST_DELAY_MS + 1);
     TEST_ASSERT_EQUAL(NUM_TIMEOUTS, callback_count);
+
+    lock.unlock();
 }
 
 /** Template for tests: zero delay
@@ -196,6 +212,8 @@ void test_multiple(void)
 template<typename T>
 void test_no_wait(void)
 {
+    DeepSleepLock lock;
+
     Semaphore sem(0, 1);
     T timeout;
     timeout.attach_callback(mbed::callback(sem_callback, &sem), 0ULL);
@@ -203,6 +221,8 @@ void test_no_wait(void)
     int32_t sem_slots = sem.wait(0);
     TEST_ASSERT_EQUAL(1, sem_slots);
     timeout.detach();
+
+    lock.unlock();
 }
 
 /** Template for tests: accuracy of timeout delay
