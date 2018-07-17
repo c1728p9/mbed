@@ -200,9 +200,9 @@ void sleep_manager_sleep_auto(void)
     bool deep = false;
 
 // debug profile should keep debuggers attached, no deep sleep allowed
-#ifdef MBED_DEBUG
-    hal_sleep();
-#else
+//#ifdef MBED_DEBUG
+//    hal_sleep();
+//#else
     if (sleep_manager_can_deep_sleep()
 #if DEVICE_LPTICKER && (LPTICKER_DELAY_TICKS > 0)
         && !lp_ticker_get_timeout_pending()
@@ -213,7 +213,7 @@ void sleep_manager_sleep_auto(void)
     } else {
         hal_sleep();
     }
-#endif
+//#endif
 
     us_timestamp_t end = read_us();
     if (true == deep) {
