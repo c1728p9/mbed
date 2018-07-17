@@ -43,7 +43,7 @@ static const ticker_data_t lp_data = {
 
 const ticker_data_t *get_lp_ticker_data(void)
 {
-    return &lp_data;
+    return get_lp_ticker_wrapper_data(&lp_data);
 }
 
 ticker_irq_handler_type set_lp_ticker_irq_handler(ticker_irq_handler_type ticker_irq_handler)
@@ -57,9 +57,13 @@ ticker_irq_handler_type set_lp_ticker_irq_handler(ticker_irq_handler_type ticker
 
 void lp_ticker_irq_handler(void)
 {
+#if LPTICKER_DELAY_TICKS > 0
+    lp_ticker_wrapper_irq_handler(irq_handler);
+#else
     if (irq_handler) {
         irq_handler(&lp_data);
     }
+#endif
 }
 
 #endif

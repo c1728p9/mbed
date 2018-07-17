@@ -23,18 +23,136 @@
 static const timestamp_t min_delta = LPTICKER_DELAY_TICKS;
 
 static bool init = false;
+
 static bool pending = false;
 static bool timeout_pending = false;
 static timestamp_t last_set_interrupt = 0;
 static timestamp_t last_request = 0;
 static timestamp_t next = 0;
 
-static timestamp_t mask;
-static timestamp_t reschedule_us;
+class LowPowerTickerWrapper {
+public:
+    LowPowerTickerWrapper(ticker_data_t *data);
+
+    void irq_handler();
+
+private:
+    Timeout timeout;
+    bool expecting_isr;
+    bool pending_timeout;
+    bool pending_set_interrupt_isr;
+
+    timestamp_t mask;
+    timestamp_t reschedule_us;
+};
+
+
+
+
+
+
+static ticker_irq_handler_type irq_handler = ticker_irq_handler;
+
+static const ticker_interface_t lp_interface = {
+    .init = lp_ticker_wrapper_init,
+    .read = lp_ticker_wrapper_read,
+    .disable_interrupt = lp_ticker_wrapper_disable_interrupt,
+    .clear_interrupt = lp_ticker_wrapper_clear_interrupt,
+    .set_interrupt = lp_ticker_wrapper_set_interrupt,
+    .fire_interrupt = lp_ticker_wrapper_fire_interrupt,
+    .get_info = lp_ticker_wrapper_get_info,
+};
+
+static const ticker_data_t lp_data = {
+    .interface = &lp_interface,
+    .queue = NULL,
+};
+
+
+
 
 // Do not use SingletonPtr since this must be initialized in a critical section
-static mbed::Timeout *timeout;
-static uint64_t timeout_data[sizeof(mbed::Timeout) / 8];
+static LowPowerTickerWrapper *ticker_wrapper;
+static uint64_t ticker_wrapper_data[(sizeof(LowPowerTickerWrapper) + 7) / 8];
+
+void lp_ticker_wrapper_irq_handler()
+{
+    ticker_wrapper->irq_handler();
+}
+
+ticker_data_t *get_lp_ticker_wrapper_data(ticker_data_t *data)
+{
+    if (!init) {
+        lp_data.queue = data->queue;
+        ticker_wrapper = new (LowPowerTickerWrapper) LowPowerTickerWrapper();
+    }
+    return &lp_data;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void lp_ticker_wrapper_init(void)
+{
+    ticker_wrapper->init();
+}
+
+void lp_ticker_wrapper_free();
+{
+    ticker_wrapper->free();
+}
+
+uint32_t lp_ticker_wrapper_read()
+{
+    return ticker_wrapper->read();
+}
+
+void lp_ticker_wrapper_set_interrupt(timestamp_t timestamp)
+{
+    ticker_wrapper->set_interrupt(timestamp);
+}
+
+void lp_ticker_wrapper_disable_interrupt()
+{
+    ticker_wrapper->disable_interrupt();
+}
+
+void lp_ticker_wrapper_clear_interrupt()
+{
+    ticker_wrapper->clear_interrupt();
+}
+
+void lp_ticker_wrapper_fire_interrupt()
+{
+    ticker_wrapper->fire_interrupt();
+}
+
+const ticker_info_t *lp_ticker_wrapper_get_info()
+{
+    return ticker_wrapper->get_info();
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 /**
  * Initialize variables
