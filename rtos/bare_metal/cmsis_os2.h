@@ -51,6 +51,9 @@
 #define __NO_RETURN
 #endif
 #endif
+
+// Temp workaround for define in pal_plat_rtos.cpp
+#define osRtxVersionAPI      20010002   ///< API version (2.1.2)
  
 #include <stdint.h>
 #include <stddef.h>

@@ -21,6 +21,7 @@
 #include "platform/mbed_error.h"
 #include "platform/mbed_error_hist.h"
 #include "platform/mbed_interface.h"
+#undef MBED_CONF_RTOS_PRESENT
 #ifdef MBED_CONF_RTOS_PRESENT
 #include "rtx_os.h"
 #endif
