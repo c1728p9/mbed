@@ -41,6 +41,7 @@
 #include "mbed_assert.h"
 #include "netsocket/nsapi_types.h"
 #include "mbed_shared_queues.h"
+#include "mbed_critical.h"
 
 #include "fsl_phy.h"
 
@@ -80,17 +81,6 @@ Kinetis_EMAC::Kinetis_EMAC() : xTXDCountSem(ENET_TX_RING_LEN, ENET_TX_RING_LEN),
 {
 }
 
-static osThreadId_t create_new_thread(const char *threadName, void (*thread)(void *arg), void *arg, int stacksize, osPriority_t priority, mbed_rtos_storage_thread_t *thread_cb)
-{
-    osThreadAttr_t attr = {0};
-    attr.name = threadName;
-    attr.stack_mem  = malloc(stacksize);
-    attr.cb_mem  = thread_cb;
-    attr.stack_size = stacksize;
-    attr.cb_size = sizeof(mbed_rtos_storage_thread_t);
-    attr.priority = priority;
-    return osThreadNew(thread, arg, &attr);
-}
 /********************************************************************************
  * Buffer management
  ********************************************************************************/
@@ -150,14 +140,20 @@ void Kinetis_EMAC::tx_reclaim()
  */
 void Kinetis_EMAC::rx_isr()
 {
-    if (thread) {
-        osThreadFlagsSet(thread, FLAG_RX);
-    }
+    core_util_critical_section_enter();
+    flags |= FLAG_RX;
+    queue->cancel(queue_event);
+    queue_event = queue->call(mbed::callback(this, &Kinetis_EMAC::event_handler));
+    core_util_critical_section_exit();
 }
 
 void Kinetis_EMAC::tx_isr()
 {
-    osThreadFlagsSet(thread, FLAG_TX);
+    core_util_critical_section_enter();
+    flags |= FLAG_TX;
+    queue->cancel(queue_event);
+    queue_event = queue->call(mbed::callback(this, &Kinetis_EMAC::event_handler));
+    core_util_critical_section_exit();
 }
 
 void Kinetis_EMAC::ethernet_callback(ENET_Type *base, enet_handle_t *handle, enet_event_t event, void *param)
@@ -341,22 +337,20 @@ void Kinetis_EMAC::input(int idx)
  *
  *  \param[in] pvParameters pointer to the interface data
  */
-void Kinetis_EMAC::thread_function(void* pvParameters)
+void Kinetis_EMAC::event_handler()
 {
-    struct Kinetis_EMAC *kinetis_enet = static_cast<Kinetis_EMAC *>(pvParameters);
+    uint32_t local_flags;
+    core_util_critical_section_enter();
+    local_flags = flags;
+    flags = 0;
+    core_util_critical_section_exit();
 
-    for (;;) {
-        uint32_t flags = osThreadFlagsWait(FLAG_RX|FLAG_TX, osFlagsWaitAny, osWaitForever);
+    if (local_flags & FLAG_RX) {
+        packet_rx();
+    }
 
-        MBED_ASSERT(!(flags & osFlagsError));
-
-        if (flags & FLAG_RX) {
-            kinetis_enet->packet_rx();
-        }
-
-        if (flags & FLAG_TX) {
-            kinetis_enet->packet_tx();
-        }
+    if (local_flags & FLAG_TX) {
+        packet_tx();
     }
 }
 
@@ -496,8 +490,9 @@ bool Kinetis_EMAC::power_up()
         return false;
     }
 
-    /* Worker thread */
-    thread = create_new_thread("Kinetis_EMAC_thread", &Kinetis_EMAC::thread_function, this, THREAD_STACKSIZE, THREAD_PRIORITY, &thread_cb);
+    queue = mbed::mbed_event_queue();
+    queue_event = 0;
+    flags = 0;
 
     /* Trigger thread to deal with any RX packets that arrived before thread was started */
     rx_isr();
@@ -580,7 +575,7 @@ void Kinetis_EMAC::set_all_multicast(bool all)
 
 void Kinetis_EMAC::power_down()
 {
-    /* No-op at this stage */
+    queue->cancel(queue_event);
 }
 
 void Kinetis_EMAC::set_memory_manager(EMACMemoryManager &mem_mngr)

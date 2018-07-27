@@ -8,6 +8,7 @@
 #include "EMAC.h"
 #include "rtos/Semaphore.h"
 #include "rtos/Mutex.h"
+#include "events/EventQueue.h"
 
 class Kinetis_EMAC : public EMAC {
 public:
@@ -145,12 +146,14 @@ private:
     void tx_reclaim();
     void input(int idx);
     emac_mem_buf_t *low_level_input(int idx);
-    static void thread_function(void* pvParameters);
+    void event_handler();
     void phy_task();
     static void ethernet_callback(ENET_Type *base, enet_handle_t *handle, enet_event_t event, void *param);
 
     mbed_rtos_storage_thread_t thread_cb;
-    osThreadId_t thread; /**< Processing thread */
+    events::EventQueue *queue;
+    int queue_event;
+    uint32_t flags;
     rtos::Mutex TXLockMutex;/**< TX critical section mutex */
     rtos::Semaphore xTXDCountSem; /**< TX free buffer counting semaphore */
     uint8_t tx_consume_index, tx_produce_index; /**< TX buffers ring */
