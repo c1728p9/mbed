@@ -49,7 +49,7 @@ EventQueue *do_shared_event_queue_with_thread()
 }
 #endif
 
-EventQueue *mbed_event_queue()
+MBED_WEAK EventQueue *mbed_event_queue()
 {
 #if MBED_CONF_EVENTS_SHARED_DISPATCH_FROM_APPLICATION || !defined MBED_CONF_RTOS_PRESENT
     /* Only create the EventQueue, but no dispatching thread */
@@ -63,7 +63,7 @@ EventQueue *mbed_event_queue()
 }
 
 #ifdef MBED_CONF_RTOS_PRESENT
-EventQueue *mbed_highprio_event_queue()
+MBED_WEAK EventQueue *mbed_highprio_event_queue()
 {
     return do_shared_event_queue_with_thread<osPriorityHigh, MBED_CONF_EVENTS_SHARED_HIGHPRIO_EVENTSIZE, MBED_CONF_EVENTS_SHARED_HIGHPRIO_STACKSIZE>();
 }
