@@ -23,6 +23,7 @@
 #include "mbed_assert.h"
 #include "nu_modutil.h"
 #include "nu_miscutil.h"
+#include "us_ticker_api.h"
 
 /* Micro seconds per second */
 #define NU_US_PER_SEC               1000000
@@ -70,6 +71,25 @@ static volatile uint16_t ticker_inited = 0;
  *    time is very short (at most 1 dummy interrupt). We won't take special handling for it.
  */
 
+static void busy_wait_us(uint32_t us)
+{
+    const uint32_t bits = 16;
+    const uint32_t mask = (1 << bits) - 1;
+    MBED_ASSERT(us_ticker_get_info()->frequency == 1000000);
+    MBED_ASSERT(us_ticker_get_info()->bits >= bits);
+
+    uint32_t prev = us_ticker_read();
+    while (1) {
+        const uint32_t cur = us_ticker_read();
+        const uint32_t elapsed = (cur - prev) & mask;
+        if (elapsed > us) {
+            break;
+        }
+        us -= elapsed;
+        prev = cur;
+    }
+}
+
 void lp_ticker_init(void)
 {
     if (ticker_inited) {
@@ -102,10 +122,10 @@ void lp_ticker_init(void)
     MBED_ASSERT(cmp_timer >= TMR_CMP_MIN && cmp_timer <= TMR_CMP_MAX);
     // Continuous mode
     timer_base->CTL = TIMER_CONTINUOUS_MODE | prescale_timer | TIMER_CTL_CNTDATEN_Msk;
-    wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
+    busy_wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
 
     timer_base->CMP = cmp_timer;
-    wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
+    busy_wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
 
     // Set vector
     NVIC_SetVector(TIMER_MODINIT.irq_n, (uint32_t) TIMER_MODINIT.var);
@@ -113,13 +133,13 @@ void lp_ticker_init(void)
     NVIC_DisableIRQ(TIMER_MODINIT.irq_n);
 
     TIMER_EnableInt(timer_base);
-    wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
+    busy_wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
 
     TIMER_EnableWakeup(timer_base);
-    wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
+    busy_wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
 
     TIMER_Start(timer_base);
-    wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
+    busy_wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
 
     /* Wait for timer to start counting and raise active flag */
     while(! (timer_base->CTL & TIMER_CTL_ACTSTS_Msk));
@@ -131,18 +151,18 @@ void lp_ticker_free(void)
 
     /* Stop counting */
     TIMER_Stop(timer_base);
-    wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
+    busy_wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
 
     /* Wait for timer to stop counting and unset active flag */
     while((timer_base->CTL & TIMER_CTL_ACTSTS_Msk));
 
     /* Disable wakeup */
     TIMER_DisableWakeup(timer_base);
-    wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
+    busy_wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
 
     /* Disable interrupt */
     TIMER_DisableInt(timer_base);
-    wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
+    busy_wait_us((NU_US_PER_SEC / NU_TMRCLK_PER_SEC) * 3);
 
     NVIC_DisableIRQ(TIMER_MODINIT.irq_n);
 
