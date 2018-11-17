@@ -49,6 +49,7 @@
 #include "pinmap_ex.h"
 
 #include "platform/mbed_critical.h"
+#include "debug_io.h"
 
 #if UART0_ENABLED == 0
 #error UART0 is disabled. DEVICE_SERIAL must also be disabled to continue.
@@ -1508,6 +1509,7 @@ int serial_getc(serial_t *obj)
  */
 void serial_putc(serial_t *obj, int character)
 {
+    set_pin(0, 1);
     bool done = false;
     MBED_ASSERT(obj);
 
@@ -1540,6 +1542,7 @@ void serial_putc(serial_t *obj, int character)
 
     /* Start transfer. */
     nrf_uarte_task_trigger(nordic_nrf5_uart_register[instance], NRF_UARTE_TASK_STARTTX);
+    set_pin(0, 0);
 }
 
 /** Check if the serial peripheral is readable
