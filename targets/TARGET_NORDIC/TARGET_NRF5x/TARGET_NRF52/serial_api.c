@@ -77,22 +77,31 @@
 /**
  * Default FIFO buffer size for UARTE0.
  */
+#ifdef MBED_CONF_NORDIC_UART_0_FIFO_SIZE
+#undef MBED_CONF_NORDIC_UART_0_FIFO_SIZE
+#endif
 #ifndef MBED_CONF_NORDIC_UART_0_FIFO_SIZE
-#define MBED_CONF_NORDIC_UART_0_FIFO_SIZE 32
+#define MBED_CONF_NORDIC_UART_0_FIFO_SIZE 128
 #endif
 
 /**
  * Default FIFO buffer size for UARTE1.
  */
+#ifdef MBED_CONF_NORDIC_UART_1_FIFO_SIZE
+#undef MBED_CONF_NORDIC_UART_1_FIFO_SIZE
+#endif
 #ifndef MBED_CONF_NORDIC_UART_1_FIFO_SIZE
-#define MBED_CONF_NORDIC_UART_1_FIFO_SIZE 32
+#define MBED_CONF_NORDIC_UART_1_FIFO_SIZE 128
 #endif
 
 /**
  * Default DMA buffer size. Each instance has two DMA buffers.
  */
+#ifdef MBED_CONF_NORDIC_UART_DMA_SIZE
+#undef MBED_CONF_NORDIC_UART_DMA_SIZE
+#endif
 #ifndef MBED_CONF_NORDIC_UART_DMA_SIZE
-#define MBED_CONF_NORDIC_UART_DMA_SIZE 8
+#define MBED_CONF_NORDIC_UART_DMA_SIZE 32
 #else
 #if MBED_CONF_NORDIC_UART_DMA_SIZE < 5
 #error MBED_CONF_NORDIC_UART_DMA_SIZE must be at least 5 bytes
@@ -184,6 +193,7 @@ typedef struct {
     bool callback_posted;
     uint8_t active_bank;
     nrf_atfifo_t *fifo;
+    uint32_t timeout_us;
 } nordic_uart_state_t;
 
 /**
@@ -265,6 +275,7 @@ serial_t stdio_uart = { 0 };
  */
 static void nordic_custom_ticker_set(uint32_t timeout, int channel)
 {
+    //TODO - set timeout based on buffer size and baudrate
     /**
      * Add timeout to current time and set as compare value for channel.
      */
@@ -287,13 +298,17 @@ static void nordic_custom_ticker_set(uint32_t timeout, int channel)
  */
 static void nordic_custom_ticker_set_timeout(int instance)
 {
+    set_pin(3, 1);
+    //const uint32_t timeout_us = nordic_nrf5_uart_state[instance].timeout_us;
+    //TODO
+    const uint32_t timeout_us = 300;
     if (instance == 0) {
 
-        nordic_custom_ticker_set(IDLE_TIMEOUT_US, UARTE0_RTC_TIMEOUT_CHANNEL);
+        nordic_custom_ticker_set(timeout_us, UARTE0_RTC_TIMEOUT_CHANNEL);
     }
     else if (instance == 1) {
 
-        nordic_custom_ticker_set(IDLE_TIMEOUT_US, UARTE1_RTC_TIMEOUT_CHANNEL);
+        nordic_custom_ticker_set(timeout_us, UARTE1_RTC_TIMEOUT_CHANNEL);
     }
 }
 
@@ -317,32 +332,34 @@ static void nordic_custom_ticker_set_timeout(int instance)
  */
 static void nordic_nrf5_uart_timeout_handler(uint32_t instance)
 {
-    /**
-     * Check if any characters have been received or buffers been flushed
-     * since the last idle timeout.
-     */
-    if ((nordic_nrf5_uart_state[instance].rxdrdy_counter > 0) ||
-        (nordic_nrf5_uart_state[instance].endrx_counter > 0)) {
-
-        /* Activity detected, reset timeout. */
-        nordic_custom_ticker_set_timeout(instance);
-
-    } else {
-
+    set_pin(3, 0);
+//    /**
+//     * Check if any characters have been received or buffers been flushed
+//     * since the last idle timeout.
+//     */
+//    if ((nordic_nrf5_uart_state[instance].rxdrdy_counter > 0) ||
+//        (nordic_nrf5_uart_state[instance].endrx_counter > 0)) {
+//
+//        /* Activity detected, reset timeout. */
+//        nordic_custom_ticker_set_timeout(instance);
+//
+//    } else {
+        set_pin(0, 1);
         /* No activity detected, no timeout set. */
         nordic_nrf5_uart_state[instance].ticker_is_running = false;
 
-        /**
-         * Stop Rx, this triggers a buffer swap and copies data from
-         * DMA buffer to FIFO buffer.
-         */
+//        /**
+//         * Stop Rx, this triggers a buffer swap and copies data from
+//         * DMA buffer to FIFO buffer.
+//         */
         nrf_uarte_task_trigger(nordic_nrf5_uart_register[instance],
-                               NRF_UARTE_TASK_STOPRX);
-    }
-
-    /* reset activity counters. */
-    nordic_nrf5_uart_state[instance].rxdrdy_counter = 0;
-    nordic_nrf5_uart_state[instance].endrx_counter = 0;
+                               NRF_UARTE_TASK_FLUSHRX);
+        set_pin(0, 0);
+//    }
+//
+//    /* reset activity counters. */
+//    nordic_nrf5_uart_state[instance].rxdrdy_counter = 0;
+//    nordic_nrf5_uart_state[instance].endrx_counter = 0;
 }
 
 /**
@@ -651,6 +668,7 @@ static void nordic_nrf5_uart_event_handler_rxstarted(int instance)
     uint8_t next_bank = nordic_nrf5_uart_state[instance].active_bank ^ 0x01;
 
     nrf_uarte_rx_buffer_set(nordic_nrf5_uart_register[instance], nordic_nrf5_uart_state[instance].buffer[next_bank], DMA_BUFFER_SIZE);
+    nordic_custom_ticker_set_timeout(instance);
 }
 
 /**
@@ -670,7 +688,7 @@ static void nordic_nrf5_uart_event_handler_rxdrdy(int instance)
 
         nordic_nrf5_uart_state[instance].ticker_is_running = true;
 
-        nordic_custom_ticker_set_timeout(instance);
+//        nordic_custom_ticker_set_timeout(instance);
     }
 }
 
@@ -714,7 +732,9 @@ static void nordic_nrf5_uart_event_handler(int instance)
     /* DMA buffer is full or has been swapped out by idle timeout. */
     if (nrf_uarte_event_check(nordic_nrf5_uart_register[instance], NRF_UARTE_EVENT_ENDRX))
     {
+        set_pin(4, 1);
         nrf_uarte_event_clear(nordic_nrf5_uart_register[instance], NRF_UARTE_EVENT_ENDRX);
+        set_pin(4, 0);
 
 #if DEVICE_SERIAL_ASYNCH
         /* Call appropriate event handler based on current mode. */
@@ -745,18 +765,22 @@ static void nordic_nrf5_uart_event_handler(int instance)
     /* Single character has been put in DMA buffer. */
     if (nrf_uarte_event_check(nordic_nrf5_uart_register[instance], NRF_UARTE_EVENT_RXDRDY))
     {
+        set_pin(1, 1);
         nrf_uarte_event_clear(nordic_nrf5_uart_register[instance], NRF_UARTE_EVENT_RXDRDY);
 
         nordic_nrf5_uart_event_handler_rxdrdy(instance);
+        set_pin(1, 0);
     }
 
     /* Tx DMA buffer has been sent. */
     if (nrf_uarte_event_check(nordic_nrf5_uart_register[instance], NRF_UARTE_EVENT_ENDTX))
     {
+        set_pin(2, 1);
         nrf_uarte_event_clear(nordic_nrf5_uart_register[instance], NRF_UARTE_EVENT_ENDTX);
 
         /* Use SWI to de-prioritize callback. */
         nordic_swi_tx_trigger(instance);
+        set_pin(2, 0);
     }
 }
 
@@ -855,6 +879,10 @@ static void nordic_nrf5_uart_configure_object(serial_t *obj)
     /* Set baudrate. */
     nrf_uarte_baudrate_set(nordic_nrf5_uart_register[uart_object->instance],
                            uart_object->baudrate);
+
+    /* Set timeout to the time for half the DMA buffer to fill */
+    nordic_nrf5_uart_state[uart_object->instance].timeout_us =
+            (MBED_CONF_NORDIC_UART_DMA_SIZE / 2) * 10 * 1000 * 1000 / uart_object->baudrate;
 }
 
 /**
@@ -1509,7 +1537,7 @@ int serial_getc(serial_t *obj)
  */
 void serial_putc(serial_t *obj, int character)
 {
-    set_pin(0, 1);
+//    set_pin(0, 1);
     bool done = false;
     MBED_ASSERT(obj);
 
@@ -1542,7 +1570,7 @@ void serial_putc(serial_t *obj, int character)
 
     /* Start transfer. */
     nrf_uarte_task_trigger(nordic_nrf5_uart_register[instance], NRF_UARTE_TASK_STARTTX);
-    set_pin(0, 0);
+//    set_pin(0, 0);
 }
 
 /** Check if the serial peripheral is readable
