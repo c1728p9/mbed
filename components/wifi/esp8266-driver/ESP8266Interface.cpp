@@ -25,6 +25,7 @@
 #include "mbed_trace.h"
 #include "platform/Callback.h"
 #include "platform/mbed_debug.h"
+#include "debug_io.h"
 
 #ifndef MBED_CONF_ESP8266_DEBUG
 #define MBED_CONF_ESP8266_DEBUG false
@@ -306,31 +307,56 @@ bool ESP8266Interface::_get_firmware_ok()
 nsapi_error_t ESP8266Interface::_init(void)
 {
     if (!_initialized) {
+        set_pin(4, 1);
         if (!_esp.at_available()) {
+            set_pin(4, 0);
             return NSAPI_ERROR_DEVICE_ERROR;
         }
+        set_pin(4, 0);
+        set_pin(4, 1);
         if (!_esp.stop_uart_hw_flow_ctrl()) {
+            set_pin(4, 0);
             return NSAPI_ERROR_DEVICE_ERROR;
         }
+        set_pin(4, 0);
+        set_pin(4, 1);
         if (!_esp.reset()) {
+            set_pin(4, 0);
             return NSAPI_ERROR_DEVICE_ERROR;
         }
+        set_pin(4, 0);
+        set_pin(4, 1);
         if (!_esp.echo_off()) {
+            set_pin(4, 0);
             return NSAPI_ERROR_DEVICE_ERROR;
         }
+        set_pin(4, 0);
+        set_pin(4, 1);
         if (!_esp.start_uart_hw_flow_ctrl()) {
+            set_pin(4, 0);
             return NSAPI_ERROR_DEVICE_ERROR;
         }
+        set_pin(4, 0);
+        set_pin(4, 1);
         if (!_get_firmware_ok()) {
+            set_pin(4, 0);
             return NSAPI_ERROR_DEVICE_ERROR;
         }
+        set_pin(4, 0);
+        set_pin(4, 1);
         if (!_esp.set_default_wifi_mode(ESP8266::WIFIMODE_STATION)) {
+            set_pin(4, 0);
             return NSAPI_ERROR_DEVICE_ERROR;
         }
+        set_pin(4, 0);
+        set_pin(4, 1);
         if (!_esp.cond_enable_tcp_passive_mode()) {
+            set_pin(4, 0);
             return NSAPI_ERROR_DEVICE_ERROR;
         }
-
+        set_pin(4, 0);
+        set_pin(4, 1);
+        set_pin(4, 0);
         _initialized = true;
     }
     return NSAPI_ERROR_OK;

@@ -81,7 +81,7 @@
 #undef MBED_CONF_NORDIC_UART_0_FIFO_SIZE
 #endif
 #ifndef MBED_CONF_NORDIC_UART_0_FIFO_SIZE
-#define MBED_CONF_NORDIC_UART_0_FIFO_SIZE 128
+#define MBED_CONF_NORDIC_UART_0_FIFO_SIZE 512
 #endif
 
 /**
@@ -91,7 +91,7 @@
 #undef MBED_CONF_NORDIC_UART_1_FIFO_SIZE
 #endif
 #ifndef MBED_CONF_NORDIC_UART_1_FIFO_SIZE
-#define MBED_CONF_NORDIC_UART_1_FIFO_SIZE 128
+#define MBED_CONF_NORDIC_UART_1_FIFO_SIZE 512
 #endif
 
 /**
@@ -101,7 +101,7 @@
 #undef MBED_CONF_NORDIC_UART_DMA_SIZE
 #endif
 #ifndef MBED_CONF_NORDIC_UART_DMA_SIZE
-#define MBED_CONF_NORDIC_UART_DMA_SIZE 32
+#define MBED_CONF_NORDIC_UART_DMA_SIZE 128
 #else
 #if MBED_CONF_NORDIC_UART_DMA_SIZE < 5
 #error MBED_CONF_NORDIC_UART_DMA_SIZE must be at least 5 bytes
@@ -117,7 +117,7 @@
 #define IDLE_TIMEOUT_US         MBED_CONF_NORDIC_UART_TIMEOUT_US
 #define UART0_FIFO_BUFFER_SIZE  MBED_CONF_NORDIC_UART_0_FIFO_SIZE
 #define UART1_FIFO_BUFFER_SIZE  MBED_CONF_NORDIC_UART_1_FIFO_SIZE
-#define DMA_BUFFER_SIZE         MBED_CONF_NORDIC_UART_DMA_SIZE
+#define DMA_BUFFER_SIZE         1//MBED_CONF_NORDIC_UART_DMA_SIZE
 #define NUMBER_OF_BANKS         2
 
 /**
@@ -668,7 +668,7 @@ static void nordic_nrf5_uart_event_handler_rxstarted(int instance)
     uint8_t next_bank = nordic_nrf5_uart_state[instance].active_bank ^ 0x01;
 
     nrf_uarte_rx_buffer_set(nordic_nrf5_uart_register[instance], nordic_nrf5_uart_state[instance].buffer[next_bank], DMA_BUFFER_SIZE);
-    nordic_custom_ticker_set_timeout(instance);
+//    nordic_custom_ticker_set_timeout(instance);
 }
 
 /**
@@ -768,7 +768,10 @@ static void nordic_nrf5_uart_event_handler(int instance)
         set_pin(1, 1);
         nrf_uarte_event_clear(nordic_nrf5_uart_register[instance], NRF_UARTE_EVENT_RXDRDY);
 
-        nordic_nrf5_uart_event_handler_rxdrdy(instance);
+//        nordic_nrf5_uart_event_handler_rxdrdy(instance);
+//
+//        nrf_uarte_task_trigger(nordic_nrf5_uart_register[instance],
+//                               NRF_UARTE_TASK_FLUSHRX);
         set_pin(1, 0);
     }
 

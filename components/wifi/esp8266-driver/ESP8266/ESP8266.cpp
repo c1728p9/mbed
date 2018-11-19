@@ -17,6 +17,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include "debug_io.h"
 
 #include "ESP8266.h"
 #include "features/netsocket/nsapi_types.h"
@@ -1033,11 +1034,23 @@ void ESP8266::_oob_connection_status()
     char status[13];
     if (_parser.recv("%12[^\"]\n", status)) {
         if (strcmp(status, "GOT IP\n") == 0) {
+            set_pin(5, 1);
             _conn_status = NSAPI_STATUS_GLOBAL_UP;
+            set_pin(5, 0);
         } else if (strcmp(status, "DISCONNECT\n") == 0) {
+            set_pin(5, 1);
+            set_pin(5, 0);
+            set_pin(5, 1);
             _conn_status = NSAPI_STATUS_DISCONNECTED;
+            set_pin(5, 0);
         } else if (strcmp(status, "CONNECTED\n") == 0) {
+            set_pin(5, 1);
+            set_pin(5, 0);
+            set_pin(5, 1);
+            set_pin(5, 0);
+            set_pin(5, 1);
             _conn_status = NSAPI_STATUS_CONNECTING;
+            set_pin(5, 0);
         } else {
             tr_error("invalid AT cmd \'%s\'", status);
             MBED_ERROR(MBED_MAKE_ERROR(MBED_MODULE_DRIVER, MBED_ERROR_CODE_EBADMSG), \

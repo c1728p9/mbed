@@ -18,6 +18,7 @@
 #if (DEVICE_SERIAL && DEVICE_INTERRUPTIN)
 
 #include "platform/mbed_poll.h"
+#include "debug_io.h"
 
 #if MBED_CONF_RTOS_PRESENT
 #include "rtos/ThisThread.h"
@@ -146,12 +147,12 @@ ssize_t UARTSerial::write_unbuffered(const char *buf_ptr, size_t length)
         SerialBase::_base_putc(*buf_ptr++);
         data_written++;
     }
-
     return length;
 }
 
 ssize_t UARTSerial::write(const void *buffer, size_t length)
 {
+
     size_t data_written = 0;
     const char *buf_ptr = static_cast<const char *>(buffer);
 
@@ -172,6 +173,7 @@ ssize_t UARTSerial::write(const void *buffer, size_t length)
 
         if (_txbuf.full()) {
             if (!_blocking) {
+                MBED_ASSERT(0);
                 break;
             }
             do {
@@ -195,6 +197,10 @@ ssize_t UARTSerial::write(const void *buffer, size_t length)
             }
         }
         core_util_critical_section_exit();
+    }
+
+    while (!_txbuf.empty()) {
+        wait_ms(1);
     }
 
     api_unlock();
