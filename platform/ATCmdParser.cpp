@@ -65,7 +65,11 @@ int ATCmdParser::getc()
     int count = poll(&fhs, 1, _timeout);
     if (count > 0 && (fhs.revents & POLLIN)) {
         unsigned char ch;
-        return _fh->read(&ch, 1) == 1 ? ch : -1;
+        int ret = _fh->read(&ch, 1) == 1 ? ch : -1;
+        if (ret != -1) {
+            ::putchar(ch);
+        }
+        return ret;
     } else {
         return -1;
     }
