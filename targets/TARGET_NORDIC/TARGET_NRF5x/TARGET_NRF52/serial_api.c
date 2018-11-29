@@ -129,7 +129,6 @@ typedef enum
  *  rx_in_progress: mutex for atomic Rx when using async API.
  *  tx_asynch: set synch or asynch mode for Tx.
  *  rx_asynch: set synch or asynch mode for Rx.
- *  callback_posted: flag for posting only one callback.
  *  active_bank: flag for buffer swapping.
  *  fifo: pointer to the FIFO buffer.
  */
@@ -142,7 +141,6 @@ typedef struct {
     volatile uint8_t rx_in_progress;
     bool tx_asynch;
     bool rx_asynch;
-    bool callback_posted;
     uint8_t active_bank;
     nrf_atfifo_t *fifo;
     uint32_t fifo_free_count;
@@ -197,14 +195,6 @@ NRF_ATFIFO_DEF(nordic_nrf5_uart_fifo_1, uint8_t, UART1_FIFO_BUFFER_SIZE);
 #endif
 
 /**
- * SWI IRQ mask.
- */
-static uint8_t nordic_nrf5_uart_swi_mask_tx_0 = 0;
-static uint8_t nordic_nrf5_uart_swi_mask_rx_0 = 0;
-static uint8_t nordic_nrf5_uart_swi_mask_tx_1 = 0;
-static uint8_t nordic_nrf5_uart_swi_mask_rx_1 = 0;
-
-/**
  * Global variables expected by mbed_retarget.cpp for STDOUT.
  */
 int stdio_uart_inited = 0;
@@ -229,9 +219,6 @@ serial_t stdio_uart = { 0 };
  */
 static void nordic_nrf5_uart_callback_handler(uint32_t instance)
 {
-    /* Flag that no callback is posted. */
-    nordic_nrf5_uart_state[instance].callback_posted = false;
-
     /* Check if callback handler is set and if event mask match. */
     uart_irq_handler callback = (uart_irq_handler) nordic_nrf5_uart_state[instance].owner->handler;
     uint32_t mask = nordic_nrf5_uart_state[instance].owner->mask;
@@ -300,98 +287,6 @@ static void nordic_nrf5_uart_event_handler_endtx_asynch(int instance)
 }
 #endif
 
-static void nordic_nrf5_uart_swi0(void)
-{
-    if (nordic_nrf5_uart_swi_mask_tx_0) {
-
-        nordic_nrf5_uart_swi_mask_tx_0 = 0;
-
-#if DEVICE_SERIAL_ASYNCH
-        if (nordic_nrf5_uart_state[0].tx_asynch) {
-
-            nordic_nrf5_uart_event_handler_endtx_asynch(0);
-        } else
-#endif
-        {
-            nordic_nrf5_uart_event_handler_endtx(0);
-        }
-    }
-
-    if (nordic_nrf5_uart_swi_mask_rx_0) {
-
-        nordic_nrf5_uart_swi_mask_rx_0 = 0;
-
-        nordic_nrf5_uart_callback_handler(0);
-    }
-
-
-#if UART1_ENABLED
-    if (nordic_nrf5_uart_swi_mask_tx_1) {
-
-        nordic_nrf5_uart_swi_mask_tx_1 = 0;
-
-#if DEVICE_SERIAL_ASYNCH
-        if (nordic_nrf5_uart_state[1].tx_asynch) {
-
-            nordic_nrf5_uart_event_handler_endtx_asynch(1);
-        } else
-#endif
-        {
-            nordic_nrf5_uart_event_handler_endtx(1);
-        }
-    }
-
-    if (nordic_nrf5_uart_swi_mask_rx_1) {
-
-        nordic_nrf5_uart_swi_mask_rx_1 = 0;
-
-        nordic_nrf5_uart_callback_handler(1);
-    }
-#endif
-}
-
-/**
- * @brief      Trigger Tx SWI.
- *
- * @param[in]  instance  The instance.
- */
-static void nordic_swi_tx_trigger(int instance)
-{
-    if (instance == 0) {
-
-        nordic_nrf5_uart_swi_mask_tx_0 = 1;
-        NVIC_SetPendingIRQ(SWI0_EGU0_IRQn);
-    }
-#if UART1_ENABLED
-    else if (instance == 1) {
-
-        nordic_nrf5_uart_swi_mask_tx_1 = 1;
-        NVIC_SetPendingIRQ(SWI0_EGU0_IRQn);
-    }
-#endif
-}
-
-/**
- * @brief      Trigger Rx SWI.
- *
- * @param[in]  instance  The instance
- */
-static void nordic_swi_rx_trigger(int instance)
-{
-    if (instance == 0) {
-
-        nordic_nrf5_uart_swi_mask_rx_0 = 1;
-        NVIC_SetPendingIRQ(SWI0_EGU0_IRQn);
-    }
-#if UART1_ENABLED
-    else if (instance == 1) {
-
-        nordic_nrf5_uart_swi_mask_rx_1 = 1;
-        NVIC_SetPendingIRQ(SWI0_EGU0_IRQn);
-    }
-#endif
-}
-
 /***
  *      _    _         _____ _______   ______               _     _    _                 _ _
  *     | |  | |  /\   |  __ \__   __| |  ____|             | |   | |  | |               | | |
@@ -446,12 +341,8 @@ static void nordic_nrf5_uart_event_handler_endrx(int instance)
             }
         }
 
-        /* Signal callback through lower priority SWI if not already posted. */
-        if (nordic_nrf5_uart_state[instance].callback_posted == false) {
-
-            nordic_nrf5_uart_state[instance].callback_posted = true;
-            nordic_swi_rx_trigger(instance);
-        }
+        /* Run callback */
+        nordic_nrf5_uart_callback_handler(instance);
     }
 }
 
@@ -552,8 +443,15 @@ static void nordic_nrf5_uart_event_handler(int instance)
     {
         nrf_uarte_event_clear(nordic_nrf5_uart_register[instance], NRF_UARTE_EVENT_ENDTX);
 
-        /* Use SWI to de-prioritize callback. */
-        nordic_swi_tx_trigger(instance);
+#if DEVICE_SERIAL_ASYNCH
+        if (nordic_nrf5_uart_state[0].tx_asynch) {
+
+            nordic_nrf5_uart_event_handler_endtx_asynch(instance);
+        } else
+#endif
+        {
+            nordic_nrf5_uart_event_handler_endtx(instance);
+        }
     }
 }
 
@@ -862,10 +760,6 @@ void serial_init(serial_t *obj, PinName tx, PinName rx)
         if (!nrf_drv_gpiote_is_init()) {
             nrf_drv_gpiote_init();
         }
-
-        /* Enable interrupts for SWI. */
-        NVIC_SetVector(SWI0_EGU0_IRQn, (uint32_t) nordic_nrf5_uart_swi0);
-        nrf_drv_common_irq_enable(SWI0_EGU0_IRQn, APP_IRQ_PRIORITY_LOWEST);
 
         /* Initialize FIFO buffer for UARTE0. */
         NRF_ATFIFO_INIT(nordic_nrf5_uart_fifo_0);
