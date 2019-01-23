@@ -24,6 +24,7 @@
 #include <stdbool.h>
 #include "hci_mbed_os_adaptation.h"
 #include "H4TransportDriver.h"
+#include "cycfg_pins.h"
 
 extern const int brcm_patch_ram_length;
 extern const uint8_t brcm_patchram_buf[];
@@ -40,24 +41,6 @@ static const int pre_brcm_patch_ram_length = sizeof(pre_brcm_patchram_buf);
 
 
 extern "C" uint32_t Set_GPIO_Clock(uint32_t port_idx);
-
-// 0: push pull
-// 1: open drain
-static void output_mode(PinName pin, int mode)
-{
-    MBED_ASSERT(pin != (PinName)NC);
-    uint32_t port_index = STM_PORT(pin);
-    uint32_t pin_index  = STM_PIN(pin);
-
-    // Enable GPIO clock
-    uint32_t gpio_add = Set_GPIO_Clock(port_index);
-    GPIO_TypeDef *gpio = (GPIO_TypeDef *)gpio_add;
-
-
-    /* Output mode configuration*/
-    gpio->OTYPER  &= ~((GPIO_OTYPER_OT_0) << ((uint16_t)pin_index)) ;
-    gpio->OTYPER |= (uint16_t)(((uint16_t)mode) << ((uint16_t)pin_index));
-}
 
 namespace ble {
 namespace vendor {
@@ -92,16 +75,30 @@ public:
 
     virtual void do_initialize()
     {
-        output_mode(bt_host_wake_name, 1);
-        output_mode(bt_device_wake_name, 0);
-        output_mode(bt_power_name, 1);
+        //output_mode(bt_host_wake_name, 1);
+        //Cy_GPIO_Pin_FastInit( BT_HOST_WAKE_PORT, BT_HOST_WAKE_PIN, \
+        //    BT_HOST_WAKE_config.driveMode, BT_HOST_WAKE_config.outVal, BT_HOST_WAKE_config.hsiom );
+
+        //output_mode(bt_device_wake_name, 0);
+        //Cy_GPIO_Pin_FastInit( BT_DEVICE_WAKE_PORT, BT_DEVICE_WAKE_PIN, \
+        //    BT_DEVICE_WAKE_config.driveMode, BT_DEVICE_WAKE_config.outVal, BT_DEVICE_WAKE_config.hsiom );
+        
+        //output_mode(bt_power_name, 1);
+        //Cy_GPIO_Pin_FastInit( BT_POWER_PORT, BT_POWER_PIN, \
+        //    BT_POWER_config.driveMode, BT_POWER_config.outVal, BT_POWER_config.hsiom );
+        
+        wait_ms(500);
+
+        //bt_device_wake = 0;
+
+        //DigitalInOut bt_host_wake;
+        
+        Cy_GPIO_Clr(BT_DEVICE_WAKE_PORT, BT_DEVICE_WAKE_PIN);
 
         wait_ms(500);
 
-        bt_device_wake = 0;
-        wait_ms(500);
-
-        bt_power = 1;
+        //bt_power = 1;
+        Cy_GPIO_Set(BT_POWER_PORT, BT_POWER_PIN);
         wait_ms(500);
     }
 
@@ -440,10 +437,12 @@ private:
 
 ble::vendor::cordio::CordioHCIDriver& ble_cordio_get_hci_driver() {
     static ble::vendor::cordio::H4TransportDriver transport_driver(
-        /* TX */ PA_2, /* RX */ PA_3, /* cts */ PA_0, /* rts */ PA_1, 115200
+        /* TX */ CY_BT_UART_TX, /* RX */ CY_BT_UART_RX,
+        /* cts */ CY_BT_UART_CTS, /* rts */ CY_BT_UART_RTS, 115200
     );
     static ble::vendor::wise1530::HCIDriver hci_driver(
-        transport_driver, /* host wake */ PC_0, /* device wake */ PB_8, /* bt_power */ PC_6
+        transport_driver, /* host wake */ CY_BT_PIN_HOST_WAKE,
+        /* device wake */ CY_BT_PIN_DEVICE_WAKE, /* bt_power */ CY_BT_PIN_POWER
     );
     return hci_driver;
 }
