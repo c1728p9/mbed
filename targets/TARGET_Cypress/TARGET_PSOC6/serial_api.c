@@ -213,14 +213,6 @@ static IRQn_Type serial_irq_allocate_channel(serial_obj_t *obj)
 }
 
 
-static void serial_irq_release_channel(IRQn_Type channel, uint32_t serial_id)
-{
-#if defined (TARGET_MCU_PSOC6_M0)
-    cy_m0_nvic_release_channel(channel, CY_SERIAL_IRQN_ID + serial_id);
-#endif  /* (TARGET_MCU_PSOC6_M0) */
-}
-
-
 static int serial_irq_setup_channel(serial_obj_t *obj)
 {
     cy_stc_sysint_t irq_config;
@@ -339,16 +331,14 @@ static cy_en_sysclk_status_t serial_init_clock(serial_obj_t *obj, uint32_t baudr
  * @param obj The serial object
  */
 static void serial_init_pins(serial_obj_t *obj)
-{
-    int tx_function = pinmap_function(obj->pin_tx, PinMap_UART_TX);
-    int rx_function = pinmap_function(obj->pin_rx, PinMap_UART_RX);
-    
-    if (cy_reserve_io_pin(obj->pin_tx) || cy_reserve_io_pin(obj->pin_rx)) {
+{   
+    if ((cy_reserve_io_pin(obj->pin_tx) || cy_reserve_io_pin(obj->pin_rx)) 
+        && !obj->already_reserved) {
         error("Serial TX/RX pin reservation conflict.");
     }
     
-    pin_function(obj->pin_tx, tx_function);
-    pin_function(obj->pin_rx, rx_function);
+    pin_function(obj->pin_tx, pinmap_function(obj->pin_tx, PinMap_UART_TX));
+    pin_function(obj->pin_rx, pinmap_function(obj->pin_rx, PinMap_UART_RX));
 }
 
 
@@ -359,21 +349,17 @@ static void serial_init_pins(serial_obj_t *obj)
 static void serial_init_flow_pins(serial_obj_t *obj)
 {
     if (obj->pin_rts != NC) {
-        int rts_function = pinmap_function(obj->pin_rts, PinMap_UART_RTS);
-        
-        if (cy_reserve_io_pin(obj->pin_rts)) {
+        if ((0 != cy_reserve_io_pin(obj->pin_rts)) && !obj->already_reserved) {
             error("Serial RTS pin reservation conflict.");
         }
-        pin_function(obj->pin_rts, rts_function);
+        pin_function(obj->pin_rts, pinmap_function(obj->pin_rts, PinMap_UART_RTS));
     }
 
     if (obj->pin_cts != NC) {
-        int cts_function = pinmap_function(obj->pin_cts, PinMap_UART_CTS);
-        
-        if (cy_reserve_io_pin(obj->pin_cts)) {
+        if ((0 != cy_reserve_io_pin(obj->pin_cts)) && !obj->already_reserved) {
             error("Serial CTS pin reservation conflict.");
         }
-        pin_function(obj->pin_cts, cts_function);
+        pin_function(obj->pin_cts, pinmap_function(obj->pin_cts, PinMap_UART_CTS));
     }
 }
 
@@ -476,6 +462,8 @@ void serial_init(serial_t *obj_in, PinName tx, PinName rx)
             obj->serial_id = serial_id;
             obj->clock     = CY_PIN_CLOCK(pinmap_function(tx, PinMap_UART_TX));
             obj->div_num   = CY_INVALID_DIVIDER;
+            obj->already_reserved = (0 != cy_reserve_scb(obj->serial_id));
+            
             obj->pin_tx    = tx;
             obj->pin_rx    = rx;
             obj->pin_rts   = NC;
@@ -484,28 +472,42 @@ void serial_init(serial_t *obj_in, PinName tx, PinName rx)
             obj->data_width = 8;
             obj->stop_bits  = CY_SCB_UART_STOP_BITS_1;
             obj->parity     = CY_SCB_UART_PARITY_NONE;
-        
-            /* Configure hardware resources */
-            if (0 != cy_reserve_scb(serial_id)) {
-                error("SCB (UART) Serial reservation conflict.");
+            
+            /* Check if resource severed */
+            if (obj->already_reserved) {
+                uint32_t map;
+                
+                /* SCB pins and clocks are connected */
+                
+                /* Disable block and get it into the default state */
+                Cy_SCB_UART_Disable(obj->base, NULL);
+                Cy_SCB_UART_DeInit (obj->base);
+                
+                /* Get connected clock */
+                map = Cy_SysClk_PeriphGetAssignedDivider(obj->clock);  
+                obj->div_num  = _FLD2VAL(CY_PERI_CLOCK_CTL_DIV_SEL,  map);
+                obj->div_type = (cy_en_divider_types_t) _FLD2VAL(CY_PERI_CLOCK_CTL_TYPE_SEL, map);                     
             }
-
+            else {
+            #if (DEVICE_SLEEP && DEVICE_LPTICKER && SERIAL_PM_CALLBACK_ENABLED)
+                /* Register callback once */
+                obj->pm_callback_handler.callback = serial_pm_callback;
+                obj->pm_callback_handler.type = CY_SYSPM_DEEPSLEEP;
+                obj->pm_callback_handler.skipMode = 0;
+                obj->pm_callback_handler.callbackParams = &obj->pm_callback_params;
+                obj->pm_callback_params.base = obj->base;
+                obj->pm_callback_params.context = obj;
+                
+                if (!Cy_SysPm_RegisterCallback(&obj->pm_callback_handler)) {
+                    error("PM callback registration failed!");
+                }
+            #endif /* (DEVICE_SLEEP && DEVICE_LPTICKER && SERIAL_PM_CALLBACK_ENABLED) */
+            }
+            
+            /* Configure hardware resources */
             serial_init_clock(obj, UART_DEFAULT_BAUDRATE);
             serial_init_pins(obj);
             serial_init_peripheral(obj);
-
-        #if (DEVICE_SLEEP && DEVICE_LPTICKER && SERIAL_PM_CALLBACK_ENABLED)
-            obj->pm_callback_handler.callback = serial_pm_callback;
-            obj->pm_callback_handler.type = CY_SYSPM_DEEPSLEEP;
-            obj->pm_callback_handler.skipMode = 0;
-            obj->pm_callback_handler.callbackParams = &obj->pm_callback_params;
-            obj->pm_callback_params.base = obj->base;
-            obj->pm_callback_params.context = obj;
-            
-            if (CY_SYSPM_SUCCESS != Cy_SysPm_RegisterCallback(&obj->pm_callback_handler)) {
-                error("PM callback registration failed!");
-            }
-        #endif /* (DEVICE_SLEEP && DEVICE_LPTICKER && SERIAL_PM_CALLBACK_ENABLED) */
 
             if (is_stdio) {
                 memcpy(&stdio_uart, obj_in, sizeof(serial_t));

@@ -90,17 +90,21 @@ void analogout_init(dac_t *obj, PinName pin)
 
     dac = pinmap_peripheral(pin, PinMap_DAC);
     if (dac != (uint32_t)NC) {
-        if (cy_reserve_io_pin(pin)) {
+      
+	if ((0 != cy_reserve_io_pin(pin)) && !ctdac_initialized) {
             error("ANALOG OUT pin reservation conflict.");
         }
+		
+        /* Initialize object */
         obj->base = (CTDAC_Type*)CY_PERIPHERAL_BASE(dac);
         obj->pin = pin;
 
-        // Configure clock.
+        /* Configure CTDAC hardware */
         dac_function = pinmap_function(pin, PinMap_DAC);
         obj->clock = CY_PIN_CLOCK(dac_function);
         pin_function(pin, dac_function);
         ctdac_init(obj);
+        
     } else {
         error("ANALOG OUT pinout mismatch.");
     }
@@ -108,7 +112,7 @@ void analogout_init(dac_t *obj, PinName pin)
 
 void analogout_free(dac_t *obj)
 {
-    // Not supported yet.
+    /* MBED AnalogIn driver does not call this function in destructor */ 
 }
 
 void analogout_write(dac_t *obj, float value)

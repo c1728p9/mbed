@@ -74,6 +74,7 @@ static I2cDividerInfo i2c_dividers[I2C_NUM_DIVIDERS] = {
     { I2C_INVALID_DIVIDER, CY_SYSCLK_DIV_8_BIT, CY_SCB_I2C_SLAVE_FSTP_CLK_MIN }
 };
 
+
 typedef struct i2c_s i2c_obj_t;
 
 #if DEVICE_I2C_ASYNCH
@@ -92,13 +93,6 @@ static IRQn_Type i2c_irq_allocate_channel(i2c_obj_t *obj)
     return cy_m0_nvic_allocate_channel(CY_SERIAL_IRQN_ID + obj->i2c_id);
 #else
     return (IRQn_Type)(scb_0_interrupt_IRQn + obj->i2c_id); 
-#endif /* (TARGET_MCU_PSOC6_M0) */
-}
-
-static void i2c_irq_release_channel(IRQn_Type channel, uint32_t i2c_id)
-{
-#if defined (TARGET_MCU_PSOC6_M0)
-    cy_m0_nvic_release_channel(channel, CY_SERIAL_IRQN_ID + i2c_id);
 #endif /* (TARGET_MCU_PSOC6_M0) */
 }
 
@@ -213,11 +207,12 @@ static cy_en_sysclk_status_t i2c_init_clock(i2c_obj_t *obj, uint32_t speed)
  * Initializes i/o pins for i2c sda/scl.
  */
 static void i2c_init_pins(i2c_obj_t *obj)
-{
-    int sda_function = pinmap_function(obj->pin_sda, PinMap_I2C_SDA);
-    int scl_function = pinmap_function(obj->pin_scl, PinMap_I2C_SCL);
-    pin_function(obj->pin_sda, sda_function);
-    pin_function(obj->pin_scl, scl_function);
+{   
+    /* MBED driver reserves pins for I2C as Ditigal IO while doing I2C error 
+     * recovery in constructor.
+     */
+    pin_function(obj->pin_sda, pinmap_function(obj->pin_sda, PinMap_I2C_SDA));
+    pin_function(obj->pin_scl, pinmap_function(obj->pin_scl, PinMap_I2C_SCL));
 }
 
 
@@ -276,19 +271,18 @@ static cy_en_syspm_status_t i2c_pm_callback(cy_stc_syspm_callback_params_t *call
 void i2c_init(i2c_t *obj_in, PinName sda, PinName scl)
 {
     i2c_obj_t *obj = OBJ_P(obj_in);
+    
     uint32_t i2c = pinmap_peripheral(sda, PinMap_I2C_SDA);
     i2c = pinmap_merge(i2c, pinmap_peripheral(scl, PinMap_I2C_SCL));
-    if (i2c != (uint32_t)NC) 
+    
+    if (i2c != (uint32_t) NC)
     {
-        /* The I2C pins are reserved by I2C MBED calling recovery function
-         * therefore call cy_reserve_io_pin() is not needed
-         */
-     
         /* Initialize configuration */
         obj->base    = (CySCB_Type*) i2c;
         obj->i2c_id  = ((I2CName) i2c - I2C_0) / (I2C_1 - I2C_0);
         obj->clock   = CY_PIN_CLOCK(pinmap_function(scl, PinMap_I2C_SCL));
         obj->divider = I2C_INVALID_DIVIDER;
+        obj->already_reserved = (0 != cy_reserve_scb(obj->i2c_id));
         obj->pin_sda = sda;
         obj->pin_scl = scl;
 
@@ -301,26 +295,38 @@ void i2c_init(i2c_t *obj_in, PinName sda, PinName scl)
         obj->events  = 0;
     #endif /* (DEVICE_I2C_ASYNCH) */
 
-        /* Configure hardware resources */
-        if (0 != cy_reserve_scb(obj->i2c_id)) {
-            error("I2C (SCB) reservation conflict.");
-        }
+        /* Check if resource severed */
+        if (obj->already_reserved) {
 
+            /* SCB pins and clocks are connected */
+            
+            /* Disable block and get it into the default state */
+            Cy_SCB_I2C_Disable(obj->base, &obj->context);
+            Cy_SCB_I2C_DeInit (obj->base);
+            
+            /* The proper clock will be connected by i2c_init_clock(obj, I2C_DEFAULT_SPEED) */
+            obj->divider = I2C_DIVIDER_LOW;  
+        }
+        else {
+        #if (DEVICE_SLEEP && DEVICE_LPTICKER)
+            /* Register callback once */
+            obj->pm_callback_handler.callback = i2c_pm_callback;
+            obj->pm_callback_handler.type = CY_SYSPM_DEEPSLEEP;
+            obj->pm_callback_handler.skipMode = 0;
+            obj->pm_callback_handler.callbackParams = &obj->pm_callback_params;
+            obj->pm_callback_params.base = obj->base;
+            obj->pm_callback_params.context = obj;
+            if (!Cy_SysPm_RegisterCallback(&obj->pm_callback_handler)) {
+                error("PM callback registration failed!");
+            }
+        #endif /* (DEVICE_SLEEP && DEVICE_LPTICKER) */        
+        }
+        
+        /* Configure hardware resources */
         i2c_init_clock(obj, I2C_DEFAULT_SPEED);
         i2c_init_pins(obj);
         i2c_init_peripheral(obj);
 
-    #if (DEVICE_SLEEP && DEVICE_LPTICKER)
-        obj->pm_callback_handler.callback = i2c_pm_callback;
-        obj->pm_callback_handler.type = CY_SYSPM_DEEPSLEEP;
-        obj->pm_callback_handler.skipMode = 0;
-        obj->pm_callback_handler.callbackParams = &obj->pm_callback_params;
-        obj->pm_callback_params.base = obj->base;
-        obj->pm_callback_params.context = obj;
-        if (!Cy_SysPm_RegisterCallback(&obj->pm_callback_handler)) {
-            error("PM callback registration failed!");
-        }
-    #endif /* (DEVICE_SLEEP && DEVICE_LPTICKER) */
     } else {
         error("I2C pinout mismatch. Requested pins SDA and SCL can't be used for the same I2C communication.");
     }

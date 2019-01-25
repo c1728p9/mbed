@@ -1,6 +1,6 @@
 /***************************************************************************//**
 * \file  cy_sysint.c
-* \version 1.30
+* \version 1.20
 *
 * \brief
 * Provides an API implementation of the SysInt driver.
@@ -47,7 +47,7 @@
 * moved to __ramVectors in SRAM. Otherwise it is ignored.
 *
 * \funcusage
-* \snippet sysint\1.30\snippet\main.c snippet_Cy_SysInt_Init
+* \snippet sysint\1.20\snippet\main.c snippet_Cy_SysInt_Init
 *
 *******************************************************************************/
 cy_en_sysint_status_t Cy_SysInt_Init(const cy_stc_sysint_t* config, cy_israddress userIsr)
@@ -106,7 +106,7 @@ cy_en_sysint_status_t Cy_SysInt_Init(const cy_stc_sysint_t* config, cy_israddres
 * \note This function is available for CM0+ core only.
 *
 * \funcusage
-* \snippet sysint\1.30\snippet\main.c snippet_Cy_SysInt_SetInterruptSource
+* \snippet sysint\1.20\snippet\main.c snippet_Cy_SysInt_SetInterruptSource
 *
 *******************************************************************************/
 void Cy_SysInt_SetInterruptSource(IRQn_Type IRQn, cy_en_intr_t devIntrSrc)
@@ -149,7 +149,7 @@ void Cy_SysInt_SetInterruptSource(IRQn_Type IRQn, cy_en_intr_t devIntrSrc)
 * \note This function is available for CM0+ core only.
 *
 * \funcusage
-* \snippet sysint\1.30\snippet\main.c snippet_Cy_SysInt_DisconnectInterruptSource
+* \snippet sysint\1.20\snippet\main.c snippet_Cy_SysInt_DisconnectInterruptSource
 *
 *******************************************************************************/
 void Cy_SysInt_DisconnectInterruptSource(IRQn_Type IRQn, cy_en_intr_t devIntrSrc)
@@ -184,7 +184,7 @@ void Cy_SysInt_DisconnectInterruptSource(IRQn_Type IRQn, cy_en_intr_t devIntrSrc
 * other devices, use the Cy_SysInt_GetNvicConnection() function.
 *
 * \funcusage
-* \snippet sysint\1.30\snippet\main.c snippet_Cy_SysInt_SetInterruptSource
+* \snippet sysint\1.20\snippet\main.c snippet_Cy_SysInt_SetInterruptSource
 *
 *******************************************************************************/
 cy_en_intr_t Cy_SysInt_GetInterruptSource(IRQn_Type IRQn)
@@ -225,7 +225,7 @@ cy_en_intr_t Cy_SysInt_GetInterruptSource(IRQn_Type IRQn)
 * \note This function supports only devices using CPUSS_ver2 or higher.
 *
 * \funcusage
-* \snippet sysint\1.30\snippet\main.c snippet_Cy_SysInt_SetInterruptSource
+* \snippet sysint\1.20\snippet\main.c snippet_Cy_SysInt_SetInterruptSource
 *
 *******************************************************************************/
 IRQn_Type Cy_SysInt_GetNvicConnection(cy_en_intr_t devIntrSrc)
@@ -266,7 +266,7 @@ IRQn_Type Cy_SysInt_GetNvicConnection(cy_en_intr_t devIntrSrc)
 * \note This function supports only devices using CPUSS_ver2 or higher.
 *
 * \funcusage
-* \snippet sysint\1.30\snippet\main.c snippet_Cy_SysInt_GetInterruptActive
+* \snippet sysint\1.20\snippet\main.c snippet_Cy_SysInt_GetInterruptActive
 *
 *******************************************************************************/
 cy_en_intr_t Cy_SysInt_GetInterruptActive(IRQn_Type IRQn)
@@ -307,7 +307,7 @@ cy_en_intr_t Cy_SysInt_GetInterruptActive(IRQn_Type IRQn)
 * channel on the NVIC.
 *
 * \funcusage
-* \snippet sysint\1.30\snippet\main.c snippet_Cy_SysInt_SetVector
+* \snippet sysint\1.20\snippet\main.c snippet_Cy_SysInt_SetVector
 *
 *******************************************************************************/
 cy_israddress Cy_SysInt_SetVector(IRQn_Type IRQn, cy_israddress userIsr)
@@ -351,7 +351,7 @@ cy_israddress Cy_SysInt_SetVector(IRQn_Type IRQn, cy_israddress userIsr)
 * channel on the NVIC.
 *
 * \funcusage
-* \snippet sysint\1.30\snippet\main.c snippet_Cy_SysInt_SetVector
+* \snippet sysint\1.20\snippet\main.c snippet_Cy_SysInt_SetVector
 *
 *******************************************************************************/
 cy_israddress Cy_SysInt_GetVector(IRQn_Type IRQn)

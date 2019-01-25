@@ -89,18 +89,6 @@ static IRQn_Type spi_irq_allocate_channel(spi_obj_t *obj)
 }
 
 
-/** Releases channel for SPI interrupt.
- *
- * @param obj      The serial object
- */
-static void spi_irq_release_channel(IRQn_Type channel, uint32_t spi_id)
-{
-#if defined (TARGET_MCU_PSOC6_M0)
-    cy_m0_nvic_release_channel(channel, CY_SERIAL_IRQN_ID + spi_id);
-#endif /* (TARGET_MCU_PSOC6_M0) */
-}
-
-
 /** Setup channel for SPI interrupt and enable interrupt in the NVIC.
  *
  * @param obj      The serial object
@@ -143,7 +131,7 @@ static int allocate_divider(spi_obj_t *obj)
         obj->div_type = CY_SYSCLK_DIV_16_BIT;
         obj->div_num = cy_clk_allocate_divider(CY_SYSCLK_DIV_16_BIT);
     }
-    return (obj->div_num == CY_INVALID_DIVIDER)? -1 : 0;
+    return (obj->div_num == CY_INVALID_DIVIDER) ? -1 : 0;
 }
 
 
@@ -160,6 +148,12 @@ static cy_en_sysclk_status_t spi_init_clock(spi_obj_t *obj, uint32_t frequency)
         if (allocate_divider(obj) < 0) {
             error("spi: cannot allocate clock divider.");
         }
+        
+        /* Assign divider after it was allocated */
+        status = Cy_SysClk_PeriphAssignDivider(obj->clock, obj->div_type, obj->div_num);
+        if (status != CY_SYSCLK_SUCCESS) {
+            error("spi: cannot assign clock divider.");
+        }
     }
 
     /* Set up proper frequency; round up the divider so the frequency is not higher than specified. */
@@ -172,13 +166,6 @@ static cy_en_sysclk_status_t spi_init_clock(spi_obj_t *obj, uint32_t frequency)
     }
     Cy_SysClk_PeriphEnableDivider(obj->div_type, obj->div_num);
 
-    if (obj->div_num != CY_INVALID_DIVIDER) {
-        status = Cy_SysClk_PeriphAssignDivider(obj->clock, obj->div_type, obj->div_num);
-        if (status != CY_SYSCLK_SUCCESS) {
-            error("spi: cannot assign clock divider.");
-        }
-    }
-
     return CY_SYSCLK_SUCCESS;
 }
 
@@ -189,41 +176,32 @@ static cy_en_sysclk_status_t spi_init_clock(spi_obj_t *obj, uint32_t frequency)
  */
 static void spi_init_pins(spi_obj_t *obj)
 {
-    bool conflict = false;
-
-    /*SPI SCKL pin is not optional for master and slave configuration */
-    conflict = cy_reserve_io_pin(obj->pin_sclk);
-    
-    if (!conflict) {
+    if (obj->pin_sclk != NC) {
+        if ((0 != cy_reserve_io_pin(obj->pin_sclk)) && !obj->already_reserved) {
+           error("SPI SCLK pin reservation conflict.");
+        }
         pin_function(obj->pin_sclk, pinmap_function(obj->pin_sclk, PinMap_SPI_SCLK));
-    }
+    }    
 
     if (obj->pin_mosi != NC) {
-        if (!cy_reserve_io_pin(obj->pin_mosi)) {
-            pin_function(obj->pin_mosi, pinmap_function(obj->pin_mosi, PinMap_SPI_MOSI));
-        } else {
-            conflict = true;
+        if ((0 != cy_reserve_io_pin(obj->pin_mosi)) && !obj->already_reserved) {
+            error("SPI MOSI pin reservation conflict."); 
         }
+        pin_function(obj->pin_mosi, pinmap_function(obj->pin_mosi, PinMap_SPI_MOSI));
     }
 
     if (obj->pin_miso != NC) {
-        if (!cy_reserve_io_pin(obj->pin_miso)) {
-            pin_function(obj->pin_miso, pinmap_function(obj->pin_miso, PinMap_SPI_MISO));
-        } else {
-            conflict = true;
-        }
+        if ((0 != cy_reserve_io_pin(obj->pin_miso)) && !obj->already_reserved) {
+            error("SPI MISO pin reservation conflict.");
+        }       
+        pin_function(obj->pin_miso, pinmap_function(obj->pin_miso, PinMap_SPI_MISO));
     }
 
     if (obj->pin_ssel != NC) {
-        if (!cy_reserve_io_pin(obj->pin_ssel)) {
-            pin_function(obj->pin_ssel, pinmap_function(obj->pin_ssel, PinMap_SPI_SSEL));
-        } else {
-            conflict = true;
+        if ((0 != cy_reserve_io_pin(obj->pin_ssel)) && !obj->already_reserved) {
+            error("SPI SSEL pin reservation conflict.");
         }
-    }
-
-    if (conflict) {
-        error("SPI pin reservation conflict.");
+        pin_function(obj->pin_ssel, pinmap_function(obj->pin_ssel, PinMap_SPI_SSEL));
     }
 
     /* Pin configuration in PinMap defaults to Master mode; revert for Slave */
@@ -273,7 +251,7 @@ void spi_init(spi_t *obj_in, PinName mosi, PinName miso, PinName sclk, PinName s
 {
     spi_obj_t *obj = OBJ_P(obj_in);
     uint32_t spi = (uint32_t)NC;
-    en_clk_dst_t clock;
+    en_clk_dst_t clock = PCLK_SCB0_CLOCK;
 
     if (mosi != NC) {
         spi = pinmap_merge(spi, pinmap_peripheral(mosi, PinMap_SPI_MOSI));
@@ -293,11 +271,13 @@ void spi_init(spi_t *obj_in, PinName mosi, PinName miso, PinName sclk, PinName s
     }
 
     if (spi != (uint32_t)NC) {
+
         /* Initialize configuration */
         obj->base    = (CySCB_Type*)spi;
         obj->spi_id  = ((SPIName)spi - SPI_0) / (SPI_1 - SPI_0);
         obj->clock   = clock;
         obj->div_num = CY_INVALID_DIVIDER;
+        obj->already_reserved = (0 != cy_reserve_scb(obj->spi_id));
 
         obj->pin_mosi = mosi;
         obj->pin_miso = miso;
@@ -317,27 +297,42 @@ void spi_init(spi_t *obj_in, PinName mosi, PinName miso, PinName sclk, PinName s
         obj->rx_buffer_size = 0;
     #endif /* (DEVICE_SPI_ASYNCH) */
         
-        /* Configure hardware resources */
-        if (0 != cy_reserve_scb(obj->spi_id)) {
-            error("SPI (SCB) reservation conflict.");
+        /* Check if resource severed */
+        if (obj->already_reserved) {
+            uint32_t map;
+            
+            /* SCB pins and clocks are connected */
+            
+            /* Disable block and get it into the default state */
+            Cy_SCB_SPI_Disable(obj->base, &obj->context);
+            Cy_SCB_SPI_DeInit (obj->base);
+            
+            /* Get connected clock */
+            map = Cy_SysClk_PeriphGetAssignedDivider(obj->clock);  
+            obj->div_num  = _FLD2VAL(CY_PERI_CLOCK_CTL_DIV_SEL,  map);
+            obj->div_type = (cy_en_divider_types_t) _FLD2VAL(CY_PERI_CLOCK_CTL_TYPE_SEL, map);                     
+        }
+        else {
+        #if (DEVICE_SLEEP && DEVICE_LOWPOWERTIMER)
+            /* Register callback once */
+            obj->pm_callback_handler.callback = spi_pm_callback;
+            obj->pm_callback_handler.type     = CY_SYSPM_DEEPSLEEP;
+            obj->pm_callback_handler.skipMode = 0;
+            obj->pm_callback_handler.callbackParams = &obj->pm_callback_params;
+            obj->pm_callback_params.base = obj->base;
+            obj->pm_callback_params.context = obj;
+
+            if (!Cy_SysPm_RegisterCallback(&obj->pm_callback_handler)) {
+                error("PM callback registration failed!");
+            }
+        #endif /* (DEVICE_SLEEP && DEVICE_LOWPOWERTIMER) */
         }
 
+        /* Configure hardware resources */
         spi_init_clock(obj, SPI_DEFAULT_SPEED);
         spi_init_pins(obj);
         spi_init_peripheral(obj);
 
-    #if (DEVICE_SLEEP && DEVICE_LOWPOWERTIMER)
-        obj->pm_callback_handler.callback = spi_pm_callback;
-        obj->pm_callback_handler.type     = CY_SYSPM_DEEPSLEEP;
-        obj->pm_callback_handler.skipMode = 0;
-        obj->pm_callback_handler.callbackParams = &obj->pm_callback_params;
-        obj->pm_callback_params.base = obj->base;
-        obj->pm_callback_params.context = obj;
-
-        if (CY_SYSPM_SUCCESS != Cy_SysPm_RegisterCallback(&obj->pm_callback_handler)) {
-            error("PM callback registration failed!");
-        }
-    #endif /* (DEVICE_SLEEP && DEVICE_LOWPOWERTIMER) */
     } else {
         error("SPI pinout mismatch. Requested SCLK/MOSI/MISO/SSEL pins can't be used for the same SPI communication.");
     }

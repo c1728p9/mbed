@@ -56,7 +56,7 @@ ENTRY(Reset_Handler)
 #endif
 
 #if !defined(MBED_BOOT_STACK_SIZE)
-    #define MBED_BOOT_STACK_SIZE 0x1000
+    #define MBED_BOOT_STACK_SIZE 0x400
 #endif
 
 STACK_SIZE = MBED_BOOT_STACK_SIZE;
@@ -316,20 +316,11 @@ SECTIONS
         __HeapLimit = .;
     } > ram
 
-
-    /* .stack_dummy section doesn't contains any symbols. It is only
-     * used for linker to calculate size of stack sections, and assign
-     * values to stack symbols later */
-    .stack_dummy (NOLOAD):
-    {
-        KEEP(*(.stack*))
-    } > ram
-
-
+    
     /* Set stack top to end of RAM, and stack limit move down by
      * size of stack_dummy section */
     __StackTop = ORIGIN(ram) + LENGTH(ram);
-    __StackLimit = __StackTop - SIZEOF(.stack_dummy);
+    __StackLimit = __StackTop - STACK_SIZE;
     PROVIDE(__stack = __StackTop);
 
     /* Check if data + heap + stack exceeds RAM limit */

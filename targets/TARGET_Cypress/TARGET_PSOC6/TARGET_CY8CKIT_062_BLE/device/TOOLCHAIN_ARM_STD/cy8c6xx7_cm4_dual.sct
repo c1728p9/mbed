@@ -58,7 +58,7 @@
 #endif
 
 #if !defined(MBED_BOOT_STACK_SIZE)
-  #define MBED_BOOT_STACK_SIZE 0x1000
+  #define MBED_BOOT_STACK_SIZE 0x400
 #endif
 
 #define Stack_Size MBED_BOOT_STACK_SIZE

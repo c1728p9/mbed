@@ -86,10 +86,10 @@ static void pwm_start_16b(pwmout_t *obj, uint32_t period, uint32_t width)
         period /= 2;
         prescaler += 1;
     }
+    
     if (period > MAX_16_BIT_PERIOD) {
         // We have reached the prescaler limit, set period to max value.
         error("Can't configure required PWM period.");
-        period = MAX_16_BIT_PERIOD;
     }
 
     obj->prescaler = prescaler;
@@ -156,59 +156,78 @@ void pwmout_init(pwmout_t *obj, PinName pin)
 
     MBED_ASSERT(obj);
     MBED_ASSERT(pin != (PinName)NC);
-    // Allocate and setup clock.
+    
+    // Allocate and setup clock (same clock for all PWMs)
     if (pwm_clock_divider == CY_INVALID_DIVIDER) {
+        
         pwm_clock_divider = cy_clk_allocate_divider(CY_SYSCLK_DIV_8_BIT);
         if (pwm_clock_divider == CY_INVALID_DIVIDER) {
             error("PWM clock divider allocation failed.");
-            return;
         }
-        Cy_SysClk_PeriphSetDivider(CY_SYSCLK_DIV_8_BIT,
-                                   pwm_clock_divider,
+        
+        /* Configure divider */
+        Cy_SysClk_PeriphSetDivider(CY_SYSCLK_DIV_8_BIT, pwm_clock_divider,
                                    (cy_PeriClkFreqHz / PWMOUT_BASE_CLOCK_HZ) - 1);
         Cy_SysClk_PeriphEnableDivider(CY_SYSCLK_DIV_8_BIT, pwm_clock_divider);
     }
 
+    /* Find instance using pins */
     pwm_cnt = pinmap_peripheral(pin, PinMap_PWM_OUT);
     if (pwm_cnt != (uint32_t)NC) {
-        if (cy_reserve_io_pin(pin)) {
-            error("PWMOUT pin reservation conflict.");
-        }
+        
+        obj->pin  = pin;
         obj->base = (TCPWM_Type*)CY_PERIPHERAL_BASE(pwm_cnt);
-        obj->pin = pin;
         if (obj->base == TCPWM0) {
+            /* TCPWM0 is used */
             obj->counter_id = ((PWMName)pwm_cnt - PWM_32b_0) / (PWM_32b_1 - PWM_32b_0);
             abs_cnt_num = obj->counter_id;
         } else {
-            // TCPWM1 is used.
+            /* TCPWM1 is used */
             obj->counter_id = ((PWMName)pwm_cnt - PWM_16b_0) / (PWM_16b_1 - PWM_16b_0);
             abs_cnt_num = obj->counter_id + 8;
         }
-        if (cy_reserve_tcpwm(abs_cnt_num)) {
-            error("PWMOUT Timer/Counter reservation conflict.");
+        
+        /* Check if resource severed */
+        if (0 != cy_reserve_tcpwm(abs_cnt_num))
+        {
+            Cy_TCPWM_PWM_Disable(obj->base, obj->counter_id);
+            Cy_TCPWM_PWM_DeInit (obj->base, obj->counter_id, &pwm_config);
+        }
+        else
+        {
+            if (cy_reserve_io_pin(pin)) {
+              error("PWMOUT pin reservation conflict.");
+            }
+            
+        #if DEVICE_SLEEP && DEVICE_LPTICKER
+            /* Register callback once */
+            obj->pm_callback_handler.callback = pwm_pm_callback;
+            obj->pm_callback_handler.type     = CY_SYSPM_DEEPSLEEP;
+            obj->pm_callback_handler.skipMode = 0;
+            obj->pm_callback_handler.callbackParams = &obj->pm_callback_params;
+            obj->pm_callback_params.base    = obj->base;
+            obj->pm_callback_params.context = obj;
+            if (!Cy_SysPm_RegisterCallback(&obj->pm_callback_handler)) {
+                error("PM callback registration failed!");
+            }
+        #endif // DEVICE_SLEEP && DEVICE_LPTICKER       
         }
 
-        // Configure clock.
+        /* Configure pin */
         pwm_function = pinmap_function(pin, PinMap_PWM_OUT);
+        pin_function(pin, pwm_function);
+        
+        /* Connect clock */
         obj->clock = CY_PIN_CLOCK(pwm_function);
         Cy_SysClk_PeriphAssignDivider(obj->clock, CY_SYSCLK_DIV_8_BIT, pwm_clock_divider);
+        
+        /* Configure hardarwe */
         Cy_TCPWM_PWM_Init(obj->base, obj->counter_id, &pwm_config);
-        pin_function(pin, pwm_function);
+        
         // These will be properly configured later on.
-        obj->period = 0;
+        obj->period      = 0;
         obj->pulse_width = 0;
-        obj->prescaler = 0;
-#if DEVICE_SLEEP && DEVICE_LPTICKER
-        obj->pm_callback_handler.callback = pwm_pm_callback;
-        obj->pm_callback_handler.type = CY_SYSPM_DEEPSLEEP;
-        obj->pm_callback_handler.skipMode = 0;
-        obj->pm_callback_handler.callbackParams = &obj->pm_callback_params;
-        obj->pm_callback_params.base = obj->base;
-        obj->pm_callback_params.context = obj;
-        if (!Cy_SysPm_RegisterCallback(&obj->pm_callback_handler)) {
-            error("PM callback registration failed!");
-        }
-#endif // DEVICE_SLEEP && DEVICE_LPTICKER
+        obj->prescaler   = 0;
 
     } else {
         error("PWM OUT pinout mismatch.");
@@ -217,7 +236,9 @@ void pwmout_init(pwmout_t *obj, PinName pin)
 
 void pwmout_free(pwmout_t *obj)
 {
-    // TODO: Not implemented yet.
+    /* Does nothing because it is not called in the MBED PWMOUT driver 
+    * destructor. The pwmout_init handles multiple calls of constructor.
+    */
 }
 
 void pwmout_write(pwmout_t *obj, float percent)

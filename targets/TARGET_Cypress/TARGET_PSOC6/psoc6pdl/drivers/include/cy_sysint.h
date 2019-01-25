@@ -1,6 +1,6 @@
 /***************************************************************************//**
 * \file cy_sysint.h
-* \version 1.30
+* \version 1.20
 *
 * \brief
 * Provides an API declaration of the SysInt driver
@@ -45,17 +45,17 @@
 * section for the implementation details.
 *
 * The default interrupt handler functions are defined as weak functions to a dummy handler
-* in the startup file. The naming convention for the interrupt handler names are
-* <interrupt_name>_IRQHandler. Defining these in the user application will allow
-* the linker to place them in the vector table in flash. For example:
+* in the startup file. The naming convention is <interrupt_name>_IRQHandler.
+* Defining these in the user application allows the linker to place them in 
+* the vector table in flash. For example:
 * \code
 * void ioss_interrupts_gpio_0_IRQHandler(void)
 * {
 *     ...
 * }
-\endcode
-* And can be used at the next scenario:
-* \snippet sysint\1.30\snippet\main.c snippet_Cy_SysInt_flashVT
+* \endcode
+* And can be used like this:
+* \snippet sysint\1.20\snippet\main.c snippet_Cy_SysInt_flashVT
 * Using this method avoids the need for a RAM vector table. However in this scenario, 
 * interrupt handler re-location at run-time is not possible, unless the vector table is
 * relocated to RAM.
@@ -65,7 +65,7 @@
 * \subsection group_sysint_initialization Initialization
 *
 * Interrupt numbers are defined in a device-specific header file, such as 
-* cy8c68237bz_ble.h, and is consistent with interrupt handlers defined in the 
+* cy8c68237bz_ble.h, and are consistent with interrupt handlers defined in the 
 * vector table.
 *
 * To configure an interrupt, call Cy_SysInt_Init(). Populate
@@ -169,9 +169,9 @@
 * <table class="doxtable">
 *   <tr><th>Version</th><th>Changes</th><th>Reason for Change</th></tr>
 *   <tr>
-*     <td>1.30</td>
-*     <td>TODO: psoc6sw1.1 updates</td>
-*     <td></td>
+*     <td>1.20.1</td>
+*     <td>The Vector Table section is extended with a code snippet.</td>
+*     <td>Documentation enhancement.</td>
 *   </tr>
 *   <tr>
 *     <td rowspan="3">1.20</td>
@@ -264,7 +264,7 @@ extern cy_israddress __ramVectors[]; /**< Relocated vector table in SRAM */
 #define CY_SYSINT_DRV_VERSION_MAJOR    1
     
 /** Driver minor version */
-#define CY_SYSINT_DRV_VERSION_MINOR    30
+#define CY_SYSINT_DRV_VERSION_MINOR    20
 
 /** SysInt driver ID */
 #define CY_SYSINT_ID CY_PDL_DRV_ID     (0x15U)
@@ -423,7 +423,7 @@ cy_israddress Cy_SysInt_GetVector(IRQn_Type IRQn);
 * Hence modification of the NMI source is strongly discouraged for this core.
 *
 * \funcusage
-* \snippet sysint\1.30\snippet\main.c snippet_Cy_SysInt_SetNmiSource
+* \snippet sysint\1.20\snippet\main.c snippet_Cy_SysInt_SetNmiSource
 *
 *******************************************************************************/
 #if (!CY_CPU_CORTEX_M0P) || defined (CY_DOXYGEN)
@@ -464,7 +464,7 @@ __STATIC_INLINE void Cy_SysInt_SetNmiSource(cy_en_sysint_nmi_t nmiNum, cy_en_int
 * based on the selected core.
 *
 * \funcusage
-* \snippet sysint\1.30\snippet\main.c snippet_Cy_SysInt_SetNmiSource
+* \snippet sysint\1.20\snippet\main.c snippet_Cy_SysInt_SetNmiSource
 *
 *******************************************************************************/
 #if (!CY_CPU_CORTEX_M0P) || defined (CY_DOXYGEN)
@@ -500,7 +500,7 @@ __STATIC_INLINE cy_en_intr_t Cy_SysInt_GetNmiSource(cy_en_sysint_nmi_t nmiNum)
 * Interrupt source
 *
 * \funcusage
-* \snippet sysint\1.30\snippet\main.c snippet_Cy_SysInt_SoftwareTrig
+* \snippet sysint\1.20\snippet\main.c snippet_Cy_SysInt_SoftwareTrig
 *
 * \note Only privileged software can enable unprivileged access to the
 * Software Trigger Interrupt Register (STIR).

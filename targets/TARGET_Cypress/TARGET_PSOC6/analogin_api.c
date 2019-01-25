@@ -18,6 +18,7 @@
 #include "device.h"
 #include "analogin_api.h"
 #include "cy_sar.h"
+#include "cy_sysanalog.h"
 #include "psoc6_utils.h"
 #include "mbed_assert.h"
 #include "mbed_error.h"
@@ -110,6 +111,10 @@ static void sar_init(analogin_t *obj)
         Cy_SysClk_PeriphEnableDivider(CY_SYSCLK_DIV_8_BIT, sar_clock_divider);
         Cy_SysClk_PeriphAssignDivider(obj->clock, CY_SYSCLK_DIV_8_BIT, sar_clock_divider);
 
+        /* Init and Enable the Analog Reference for SAR ADC operation */
+        Cy_SysAnalog_Init(&Cy_SysAnalog_Fast_Local);
+        Cy_SysAnalog_Enable();
+
         Cy_SAR_Init(obj->base, &sar_config);
         Cy_SAR_Enable(obj->base);
     }
@@ -126,18 +131,22 @@ void analogin_init(analogin_t *obj, PinName pin)
 
     sar = pinmap_peripheral(pin, PinMap_ADC);
     if (sar != (uint32_t)NC) {
-        if (cy_reserve_io_pin(pin)) {
+	
+	if ((0 != cy_reserve_io_pin(pin)) && !sar_initialized) {
             error("ANALOG IN pin reservation conflict.");
         }
-        obj->base = (SAR_Type*)CY_PERIPHERAL_BASE(sar);
+		
+        /* Initialize object */
+        obj->base = (SAR_Type*) CY_PERIPHERAL_BASE(sar);
         obj->pin = pin;
         obj->channel_mask = 1 << CY_PIN(pin);
 
-        // Configure clock.
+        /* Configure SAR hardware */
         sar_function = pinmap_function(pin, PinMap_ADC);
         obj->clock = CY_PIN_CLOCK(sar_function);
         sar_init(obj);
         pin_function(pin, sar_function);
+
     } else {
         error("ANALOG IN pinout mismatch.");
     }

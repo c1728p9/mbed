@@ -69,6 +69,7 @@ struct port_s {
 struct serial_s {
     CySCB_Type                  *base;
     uint32_t                    serial_id;
+    bool                        already_reserved;
     PinName                     pin_rx;
     PinName                     pin_tx;
     PinName                     pin_cts;
@@ -99,6 +100,7 @@ struct serial_s {
 struct spi_s {
     CySCB_Type                          *base;
     uint32_t                            spi_id;
+    bool                                already_reserved;    
     PinName                             pin_miso;
     PinName                             pin_mosi;
     PinName                             pin_sclk;
@@ -137,6 +139,7 @@ struct spi_s {
 struct i2c_s {
     CySCB_Type                          *base;
     uint32_t                            i2c_id;
+    bool                                already_reserved;
     PinName                             pin_sda;
     PinName                             pin_scl;
     en_clk_dst_t                        clock;
@@ -171,16 +174,16 @@ struct i2c_s {
 #include "cy_tcpwm.h"
 
 struct pwmout_s {
-    TCPWM_Type *base;
-    PinName pin;
-    uint32_t counter_id;
-    uint32_t clock;
-    uint32_t period;
-    uint32_t pulse_width;
-    uint32_t prescaler;
+    TCPWM_Type  *base;
+    PinName      pin;
+    uint32_t     counter_id;
+    en_clk_dst_t clock;
+    uint32_t     period;
+    uint32_t     pulse_width;
+    uint32_t     prescaler;
 #if DEVICE_SLEEP && DEVICE_LPTICKER
-    cy_stc_syspm_callback_params_t      pm_callback_params;
-    cy_stc_syspm_callback_t             pm_callback_handler;
+    cy_stc_syspm_callback_params_t pm_callback_params;
+    cy_stc_syspm_callback_t        pm_callback_handler;
 #endif
 };
 #endif // DEVICE_PWMOUT
@@ -192,7 +195,7 @@ struct analogin_s {
     SAR_Type *base;
     PinName pin;
     uint32_t channel_mask;
-    uint32_t clock;
+    en_clk_dst_t clock;
 };
 #endif // DEVICE_ANALOGIN
 
@@ -202,7 +205,7 @@ struct analogin_s {
 struct dac_s {
     CTDAC_Type *base;
     PinName pin;
-    uint32_t clock;
+    en_clk_dst_t clock;
 };
 #endif // DEVICE_ANALOGOUT
 
