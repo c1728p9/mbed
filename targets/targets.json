@@ -7768,7 +7768,7 @@
     },
     "MCU_PSOC6": {
         "inherits": ["Target"],
-        "macros": ["MBED_MPU_CUSTOM"],
+        "macros": ["MBED_MPU_CUSTOM", "MBEDTLS_CONFIG_HW_SUPPORT"],
         "default_toolchain": "GCC_ARM",
         "supported_toolchains": ["GCC_ARM", "IAR", "ARM"],
         "core": "Cortex-M4F",
@@ -7878,6 +7878,7 @@
         "extra_labels_remove": ["PSOC6"],
         "device_has_remove": ["TRNG", "CRC"],
         "macros_add": ["CY8C6347BZI_BLD53"],
+        "macros_remove": ["MBEDTLS_CONFIG_HW_SUPPORT"],
         "detect_code": ["6000"],
         "post_binary_hook": {
             "function": "PSOC6Code.complete"
@@ -7908,6 +7909,7 @@
         "extra_labels_remove": ["PSOC6"],
         "device_has_remove": ["TRNG", "CRC"],
         "macros_add": ["CY8C6347BZI_BLD53"],
+        "macros_remove": ["MBEDTLS_CONFIG_HW_SUPPORT"],
         "detect_code": ["6000"],
         "m0_core_img": "psoc63_m0_default_1.02.hex",
         "post_binary_hook": {
