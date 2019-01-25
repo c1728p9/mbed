@@ -106,7 +106,7 @@ static void sar_init(analogin_t *obj)
         }
         Cy_SysClk_PeriphSetDivider(CY_SYSCLK_DIV_8_BIT,
                                    sar_clock_divider,
-                                   ((CY_CLK_PERICLK_FREQ_HZ + SAR_BASE_CLOCK_HZ / 2) / SAR_BASE_CLOCK_HZ) - 1);
+                                   ((cy_PeriClkFreqHz + SAR_BASE_CLOCK_HZ / 2) / SAR_BASE_CLOCK_HZ) - 1);
         Cy_SysClk_PeriphEnableDivider(CY_SYSCLK_DIV_8_BIT, sar_clock_divider);
         Cy_SysClk_PeriphAssignDivider(obj->clock, CY_SYSCLK_DIV_8_BIT, sar_clock_divider);
 

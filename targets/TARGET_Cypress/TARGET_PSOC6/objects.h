@@ -25,8 +25,8 @@
 
 #include "gpio_irq_api.h"
 #include "gpio_object.h"
-#include "drivers/peripheral/sysclk/cy_sysclk.h"
-#include "drivers/peripheral/syspm/cy_syspm.h"
+#include "cy_sysclk.h"
+#include "cy_syspm.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -185,7 +185,7 @@ struct pwmout_s {
 };
 #endif // DEVICE_PWMOUT
 
-#if DEVICE_ANALOGIN
+#ifdef DEVICE_ANALOGIN
 #include "cy_sar.h"
 
 struct analogin_s {
@@ -196,7 +196,7 @@ struct analogin_s {
 };
 #endif // DEVICE_ANALOGIN
 
-#if DEVICE_ANALOGOUT
+#ifdef DEVICE_ANALOGOUT
 #include "cy_ctdac.h"
 
 struct dac_s {
@@ -206,7 +206,7 @@ struct dac_s {
 };
 #endif // DEVICE_ANALOGOUT
 
-#if DEVICE_FLASH
+#ifdef DEVICE_FLASH
 struct flash_s {
     /*  nothing to be stored for now */
     void *dummy;
@@ -219,6 +219,15 @@ struct trng_s {
     void *dummy;
 };
 #endif // DEVICE_TRNG
+
+#if DEVICE_CAPSENSE
+#include "cy_capsense.h"
+
+typedef struct {
+    cy_stc_capsense_context_t * ptrContext;
+} capsense_t;
+
+#endif /* DEVICE_CAPSENSE */
 
 #ifdef __cplusplus
 }

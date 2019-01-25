@@ -19,34 +19,28 @@
 #ifndef MBED_MBED_RTX_H
 #define MBED_MBED_RTX_H
 
-#if defined(TARGET_MCU_PSOC6_M0)
-
-#ifdef TARGET_PSA
-#ifndef INITIAL_SP
-#define INITIAL_SP              (PSA_SECURE_RAM_START + PSA_SECURE_RAM_SIZE)
-#endif // INITIAL_SP
+#if defined(TARGET_CY8CKIT_062_4343W)
+    #ifndef INITIAL_SP
+        #define INITIAL_SP              (0x08002000 + 0x000FD800)  /* Ram origin + length */
+    #endif
+#elif defined(TARGET_CY8CKIT_062_BLE)
+    #ifndef INITIAL_SP
+        #define INITIAL_SP              (0x08002000 + 0x00045800)  /* Ram origin + length */
+    #endif
+#elif defined(TARGET_CY8CKIT_062_WIFI_BT)
+    #ifndef INITIAL_SP
+        #define INITIAL_SP              (0x08002000 + 0x00045800)  /* Ram origin + length */
+    #endif
+#elif defined(TARGET_CY8CMOD_062_4343W)
+    #ifndef INITIAL_SP
+        #define INITIAL_SP              (0x08002000 + 0x000FD800)  /* Ram origin + length */
+    #endif
+#elif defined(TARGET_CYW943012P6EVB_01)
+    #ifndef INITIAL_SP
+        #define INITIAL_SP              (0x08002000 + 0x00045800)  /* Ram origin + length */
+    #endif
 #else
-#ifndef INITIAL_SP
-#define INITIAL_SP              (0x08000000 + 0x00010000)  // Ram origin + length
-#endif // INITIAL_SP
-
-#endif // TARGET_PSA
-#elif defined(TARGET_MCU_PSOC6_M4)
-
-#ifdef TARGET_PSA
-#ifndef INITIAL_SP
-#define INITIAL_SP              (PSA_NON_SECURE_RAM_START + PSA_NON_SECURE_RAM_SIZE)
-#endif // INITIAL_SP
-#else
-#ifndef INITIAL_SP
-#define INITIAL_SP              (0x08010000 + 0x00037800)  // Ram origin + length
-#endif // INITIAL_SP
-#endif // TARGET_PSA
-
-#else
-
-#error "Unknown board"
-
+    #error "Unknown board"
 #endif
 
-#endif  // MBED_MBED_RTX_H
+#endif  /* MBED_MBED_RTX_H */

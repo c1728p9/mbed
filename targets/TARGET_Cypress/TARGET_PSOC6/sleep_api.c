@@ -19,7 +19,7 @@
 #include "device.h"
 #include "cy_syspm.h"
 
-#if DEVICE_SLEEP
+#ifdef DEVICE_SLEEP
 
 void hal_sleep(void)
 {

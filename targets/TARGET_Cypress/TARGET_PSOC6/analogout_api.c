@@ -70,7 +70,7 @@ static void ctdac_init(dac_t *obj)
         }
         Cy_SysClk_PeriphSetDivider(CY_SYSCLK_DIV_8_BIT,
                                    dac_clock_divider,
-                                   ((CY_CLK_PERICLK_FREQ_HZ + CTDAC_BASE_CLOCK_HZ / 2) / CTDAC_BASE_CLOCK_HZ) - 1);
+                                   ((cy_PeriClkFreqHz + CTDAC_BASE_CLOCK_HZ / 2) / CTDAC_BASE_CLOCK_HZ) - 1);
         Cy_SysClk_PeriphEnableDivider(CY_SYSCLK_DIV_8_BIT, dac_clock_divider);
         Cy_SysClk_PeriphAssignDivider(obj->clock, CY_SYSCLK_DIV_8_BIT, dac_clock_divider);
 

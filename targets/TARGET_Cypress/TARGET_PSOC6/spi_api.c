@@ -24,16 +24,16 @@
 #include "spi_api.h"
 #include "psoc6_utils.h"
 
-#include "drivers/peripheral/sysclk/cy_sysclk.h"
-#include "drivers/peripheral/gpio/cy_gpio.h"
-#include "drivers/peripheral/scb/cy_scb_spi.h"
-#include "drivers/peripheral/sysint/cy_sysint.h"
+#include "cy_sysclk.h"
+#include "cy_gpio.h"
+#include "cy_scb_spi.h"
+#include "cy_sysint.h"
 
 #define SPI_DEFAULT_SPEED               100000
 #define NUM_SPI_PORTS                   8
 #define SPI_DEFAULT_IRQ_PRIORITY        3
 #define SPI_OVERSAMPLE                  4       /* 4..16 */
-// Default timeout in milliseconds.
+/* Default timeout in milliseconds */
 #define SPI_DEFAULT_TIMEOUT             1000
 
 #define PENDING_NONE                    0
@@ -41,8 +41,7 @@
 #define PENDING_TX                      2
 #define PENDING_TX_RX                   3
 
-
-
+/* Default SPI configuration */
 static const cy_stc_scb_spi_config_t default_spi_config = {
     .spiMode                = CY_SCB_SPI_MASTER,
     .subMode                = CY_SCB_SPI_MOTOROLA,
@@ -65,35 +64,47 @@ static const cy_stc_scb_spi_config_t default_spi_config = {
 };
 
 
-
 typedef struct spi_s spi_obj_t;
-
-#if DEVICE_SPI_ASYNCH
-#define OBJ_P(in)     (&(in->spi))
+#if (DEVICE_SPI_ASYNCH)
+    #define OBJ_P(in)     (&(in->spi))
 #else
-#define OBJ_P(in)     (in)
-#endif
+    #define OBJ_P(in)     (in)
+#endif /* (DEVICE_SPI_ASYNCH) */
 
 
-#if DEVICE_SPI_ASYNCH
+#if (DEVICE_SPI_ASYNCH)
 
+/** Allocates channel for SPI interrupt.
+ *
+ * @param obj      The serial object
+ */
 static IRQn_Type spi_irq_allocate_channel(spi_obj_t *obj)
 {
 #if defined (TARGET_MCU_PSOC6_M0)
     obj->cm0p_irq_src = scb_0_interrupt_IRQn + obj->spi_id;
     return cy_m0_nvic_allocate_channel(CY_SERIAL_IRQN_ID + obj->spi_id);
 #else
-    return (IRQn_Type)(ioss_interrupts_gpio_0_IRQn + obj->spi_id);
-#endif // M0
+    return (IRQn_Type)(scb_0_interrupt_IRQn + obj->spi_id);
+#endif /* (TARGET_MCU_PSOC6_M0) */
 }
 
+
+/** Releases channel for SPI interrupt.
+ *
+ * @param obj      The serial object
+ */
 static void spi_irq_release_channel(IRQn_Type channel, uint32_t spi_id)
 {
 #if defined (TARGET_MCU_PSOC6_M0)
     cy_m0_nvic_release_channel(channel, CY_SERIAL_IRQN_ID + spi_id);
-#endif //M0
+#endif /* (TARGET_MCU_PSOC6_M0) */
 }
 
+
+/** Setup channel for SPI interrupt and enable interrupt in the NVIC.
+ *
+ * @param obj      The serial object
+ */
 static int spi_irq_setup_channel(spi_obj_t *obj)
 {
     cy_stc_sysint_t irq_config;
@@ -103,7 +114,8 @@ static int spi_irq_setup_channel(spi_obj_t *obj)
         if (irqn < 0) {
             return (-1);
         }
-        // Configure NVIC
+
+        /* Configure NVIC */
         irq_config.intrPriority = SPI_DEFAULT_IRQ_PRIORITY;
         irq_config.intrSrc = irqn;
 #if defined (TARGET_MCU_PSOC6_M0)
@@ -118,9 +130,13 @@ static int spi_irq_setup_channel(spi_obj_t *obj)
     }
     return 0;
 }
+#endif /* DEVICE_SPI_ASYNCH */
 
-#endif // DEVICE_SPI_ASYNCH
 
+/** Allocates 16-bit divider for SPI.
+ *
+ * @param obj      The serial object
+ */
 static int allocate_divider(spi_obj_t *obj)
 {
     if (obj->div_num == CY_INVALID_DIVIDER) {
@@ -131,8 +147,9 @@ static int allocate_divider(spi_obj_t *obj)
 }
 
 
-/*
- * Initializes spi clock for the required speed
+/**  Initializes spi clock for the required speed
+ *
+ * @param obj      The serial object
  */
 static cy_en_sysclk_status_t spi_init_clock(spi_obj_t *obj, uint32_t frequency)
 {
@@ -142,13 +159,13 @@ static cy_en_sysclk_status_t spi_init_clock(spi_obj_t *obj, uint32_t frequency)
     if (obj->div_num == CY_INVALID_DIVIDER) {
         if (allocate_divider(obj) < 0) {
             error("spi: cannot allocate clock divider.");
-            return CY_SYSCLK_INVALID_STATE;
         }
     }
 
-    // Set up proper frequency; round up the divider so the frequency is not higher than specified.
-    div_value = (CY_CLK_PERICLK_FREQ_HZ + frequency *(SPI_OVERSAMPLE - 1)) / frequency / SPI_OVERSAMPLE;
-    obj->clk_frequency = CY_CLK_PERICLK_FREQ_HZ / div_value / SPI_OVERSAMPLE;
+    /* Set up proper frequency; round up the divider so the frequency is not higher than specified. */
+    div_value = (cy_PeriClkFreqHz + frequency * (SPI_OVERSAMPLE - 1)) / frequency / SPI_OVERSAMPLE;
+    obj->clk_frequency = cy_PeriClkFreqHz / div_value / SPI_OVERSAMPLE;
+
     Cy_SysClk_PeriphDisableDivider(obj->div_type, obj->div_num);
     if (Cy_SysClk_PeriphSetDivider(obj->div_type, obj->div_num, div_value) != CY_SYSCLK_SUCCESS) {
         obj->div_num = CY_INVALID_DIVIDER;
@@ -159,22 +176,28 @@ static cy_en_sysclk_status_t spi_init_clock(spi_obj_t *obj, uint32_t frequency)
         status = Cy_SysClk_PeriphAssignDivider(obj->clock, obj->div_type, obj->div_num);
         if (status != CY_SYSCLK_SUCCESS) {
             error("spi: cannot assign clock divider.");
-            return status;
         }
     }
+
     return CY_SYSCLK_SUCCESS;
 }
 
-/*
- * Initializes i/o pins for spi.
+
+/** Initializes i/o pins for spi.
+ *
+ * @param obj      The serial object
  */
 static void spi_init_pins(spi_obj_t *obj)
 {
     bool conflict = false;
+
+    /*SPI SCKL pin is not optional for master and slave configuration */
     conflict = cy_reserve_io_pin(obj->pin_sclk);
+    
     if (!conflict) {
         pin_function(obj->pin_sclk, pinmap_function(obj->pin_sclk, PinMap_SPI_SCLK));
     }
+
     if (obj->pin_mosi != NC) {
         if (!cy_reserve_io_pin(obj->pin_mosi)) {
             pin_function(obj->pin_mosi, pinmap_function(obj->pin_mosi, PinMap_SPI_MOSI));
@@ -182,6 +205,7 @@ static void spi_init_pins(spi_obj_t *obj)
             conflict = true;
         }
     }
+
     if (obj->pin_miso != NC) {
         if (!cy_reserve_io_pin(obj->pin_miso)) {
             pin_function(obj->pin_miso, pinmap_function(obj->pin_miso, PinMap_SPI_MISO));
@@ -189,6 +213,7 @@ static void spi_init_pins(spi_obj_t *obj)
             conflict = true;
         }
     }
+
     if (obj->pin_ssel != NC) {
         if (!cy_reserve_io_pin(obj->pin_ssel)) {
             pin_function(obj->pin_ssel, pinmap_function(obj->pin_ssel, PinMap_SPI_SSEL));
@@ -196,11 +221,12 @@ static void spi_init_pins(spi_obj_t *obj)
             conflict = true;
         }
     }
+
     if (conflict) {
         error("SPI pin reservation conflict.");
     }
 
-    // Pin configuration in PinMap defaults to Master mode; revert for Slave.
+    /* Pin configuration in PinMap defaults to Master mode; revert for Slave */
     if (obj->ms_mode == CY_SCB_SPI_SLAVE) {
         pin_mode(obj->pin_sclk, PullNone);
         pin_mode(obj->pin_mosi, PullNone);
@@ -209,17 +235,21 @@ static void spi_init_pins(spi_obj_t *obj)
     }
 }
 
-/*
- * Initializes and enables SPI/SCB.
+
+/** Initializes and enables SPI/SCB.
+ *
+ * @param obj      The serial object
  */
 static void spi_init_peripheral(spi_obj_t *obj)
 {
     cy_stc_scb_spi_config_t spi_config = default_spi_config;
-    spi_config.spiMode = obj->ms_mode;
-    spi_config.sclkMode = obj->clk_mode;
+
+    spi_config.spiMode     = obj->ms_mode;
+    spi_config.sclkMode    = obj->clk_mode;
     spi_config.rxDataWidth = obj->data_bits;
     spi_config.txDataWidth = obj->data_bits;
-    Cy_SCB_SPI_Init(obj->base, &spi_config, &obj->context);
+    
+    Cy_SCB_SPI_Init  (obj->base, &spi_config, &obj->context);
     Cy_SCB_SPI_Enable(obj->base);
 }
 
@@ -236,7 +266,7 @@ static cy_en_syspm_status_t spi_pm_callback(cy_stc_syspm_callback_params_t *call
 
     return Cy_SCB_SPI_DeepSleepCallback(&params);
 }
-#endif // DEVICE_SLEEP && DEVICE_LOWPOWERTIMER
+#endif /* DEVICE_SLEEP && DEVICE_LOWPOWERTIMER */
 
 
 void spi_init(spi_t *obj_in, PinName mosi, PinName miso, PinName sclk, PinName ssel)
@@ -263,187 +293,223 @@ void spi_init(spi_t *obj_in, PinName mosi, PinName miso, PinName sclk, PinName s
     }
 
     if (spi != (uint32_t)NC) {
-        obj->base = (CySCB_Type*)spi;
-        obj->spi_id = ((SPIName)spi - SPI_0) / (SPI_1 - SPI_0);
+        /* Initialize configuration */
+        obj->base    = (CySCB_Type*)spi;
+        obj->spi_id  = ((SPIName)spi - SPI_0) / (SPI_1 - SPI_0);
+        obj->clock   = clock;
+        obj->div_num = CY_INVALID_DIVIDER;
+
         obj->pin_mosi = mosi;
         obj->pin_miso = miso;
         obj->pin_sclk = sclk;
         obj->pin_ssel = ssel;
-        obj->data_bits = 8;
-        obj->clock = clock;
-        obj->div_num = CY_INVALID_DIVIDER;
+        
         obj->ms_mode = CY_SCB_SPI_MASTER;
-#if DEVICE_SPI_ASYNCH
+        obj->data_bits = 8;
+
+    #if DEVICE_SPI_ASYNCH
+        obj->irqn    = unconnected_IRQn;
         obj->pending = PENDING_NONE;
         obj->events = 0;
         obj->tx_buffer = NULL;
-        obj->tx_buffer_size = 0;
         obj->rx_buffer = NULL;
+        obj->tx_buffer_size = 0;
         obj->rx_buffer_size = 0;
-#endif // DEVICE_SPI_ASYNCH
+    #endif /* (DEVICE_SPI_ASYNCH) */
+        
+        /* Configure hardware resources */
+        if (0 != cy_reserve_scb(obj->spi_id)) {
+            error("SPI (SCB) reservation conflict.");
+        }
+
         spi_init_clock(obj, SPI_DEFAULT_SPEED);
         spi_init_pins(obj);
         spi_init_peripheral(obj);
-#if DEVICE_SLEEP && DEVICE_LOWPOWERTIMER
+
+    #if (DEVICE_SLEEP && DEVICE_LOWPOWERTIMER)
         obj->pm_callback_handler.callback = spi_pm_callback;
-        obj->pm_callback_handler.type = CY_SYSPM_DEEPSLEEP;
+        obj->pm_callback_handler.type     = CY_SYSPM_DEEPSLEEP;
         obj->pm_callback_handler.skipMode = 0;
         obj->pm_callback_handler.callbackParams = &obj->pm_callback_params;
         obj->pm_callback_params.base = obj->base;
         obj->pm_callback_params.context = obj;
-        if (!Cy_SysPm_RegisterCallback(&obj->pm_callback_handler)) {
+
+        if (CY_SYSPM_SUCCESS != Cy_SysPm_RegisterCallback(&obj->pm_callback_handler)) {
             error("PM callback registration failed!");
         }
-#endif // DEVICE_SLEEP && DEVICE_LOWPOWERTIMER
+    #endif /* (DEVICE_SLEEP && DEVICE_LOWPOWERTIMER) */
     } else {
-        error("SPI pinout mismatch. Requested Rx and Tx pins can't be used for the same SPI communication.");
+        error("SPI pinout mismatch. Requested SCLK/MOSI/MISO/SSEL pins can't be used for the same SPI communication.");
     }
 }
 
+
+void spi_free(spi_t *obj)
+{
+    error("This function is not supported.");    
+}
+
+
 void spi_format(spi_t *obj_in, int bits, int mode, int slave)
 {
+    MBED_ASSERT((bits >= 4) && (bits <= 16));
+
     spi_obj_t *obj = OBJ_P(obj_in);
-    cy_en_scb_spi_mode_t new_mode = slave? CY_SCB_SPI_SLAVE : CY_SCB_SPI_MASTER;
-    if ((bits < 4) || (bits > 16)) return;
+    cy_en_scb_spi_mode_t new_mode = slave ? CY_SCB_SPI_SLAVE : CY_SCB_SPI_MASTER;
+
     Cy_SCB_SPI_Disable(obj->base, &obj->context);
     obj->data_bits = bits;
     obj->clk_mode = (cy_en_scb_spi_sclk_mode_t)(mode & 0x3);
+    
     if (obj->ms_mode != new_mode) {
         obj->ms_mode = new_mode;
         spi_init_pins(obj);
     }
+
     spi_init_peripheral(obj);
 }
+
 
 void spi_frequency(spi_t *obj_in, int hz)
 {
     spi_obj_t *obj = OBJ_P(obj_in);
+
     Cy_SCB_SPI_Disable(obj->base, &obj->context);
-    spi_init_clock(obj, hz);
-    Cy_SCB_SPI_Enable(obj->base);
+    spi_init_clock    (obj, hz);
+    Cy_SCB_SPI_Enable (obj->base);
 }
+
 
 int  spi_master_write(spi_t *obj_in, int value)
 {
     spi_obj_t *obj = OBJ_P(obj_in);
-
-    if (obj->ms_mode == CY_SCB_SPI_MASTER) {
-        while (spi_busy(obj_in)) {
-            // wait for the device to become ready
-        }
-        Cy_SCB_SPI_Write(obj->base, value);
-        while (!Cy_SCB_SPI_IsTxComplete(obj->base)) {
-            // wait for the transmission to complete
-        }
-        return Cy_SCB_SPI_Read(obj->base);
-    } else {
-        return (int)CY_SCB_SPI_RX_NO_DATA;
+    MBED_ASSERT(obj->ms_mode == CY_SCB_SPI_MASTER);
+        
+    Cy_SCB_SPI_Write(obj->base, value);
+    while (spi_busy(obj_in)) {
+        /* Wait until transfer complete */
     }
+    
+    return Cy_SCB_SPI_Read(obj->base);
 }
 
-int spi_master_block_write(spi_t *obj_in, const char *tx_buffer, int tx_length, char *rx_buffer, int rx_length,  char write_fill)
+
+int spi_master_block_write(spi_t *obj_in, const char *tx_buffer, int tx_length, char *rx_buffer, int rx_length, char write_fill)
 {
     spi_obj_t *obj = OBJ_P(obj_in);
+    MBED_ASSERT(obj->ms_mode == CY_SCB_SPI_MASTER);
+
     int trans_length = 0;
     int rx_count = 0;
     int tx_count = 0;
-    uint8_t tx_byte = (uint8_t)write_fill;
+    uint8_t tx_byte = (uint8_t) write_fill;
 
-    if (obj->ms_mode != CY_SCB_SPI_MASTER) {
-        return 0;
-    }
-
-    // Make sure no leftovers from previous transactions.
+    /* Make sure no leftovers from previous transactions */
     Cy_SCB_SPI_ClearRxFifo(obj->base);
-    // Calculate transaction length,
-    trans_length = (tx_length > rx_length)? tx_length : rx_length;
-    // get first byte to transmit.
-    if (tx_count < tx_length) {
+
+    /* Calculate transaction length */
+    trans_length = (tx_length > rx_length) ? tx_length : rx_length;
+    
+    /* Get first byte to transmit */
+    if (0 != tx_length) {
         tx_byte = *tx_buffer++;
     }
-    // Send required number of bytes.
+    
+    /* Send required number of bytes */
     while (tx_count < trans_length) {
-        if (Cy_SCB_SPI_Write(obj->base, tx_byte)) {
+	    /* Put data into the TX FIFO to transmit */
+        if (0 != Cy_SCB_SPI_Write(obj->base, tx_byte)) {
             ++tx_count;
-            // Get next byte to transfer.
+            /* Get next byte to transfer */
             if (tx_count < tx_length) {
                 tx_byte = *tx_buffer++;
             } else {
-                tx_byte = (uint8_t)write_fill;
+                tx_byte = (uint8_t) write_fill;
             }
         }
-        // If we have bytes to receive check the rx fifo.
+
+        /* If we have bytes to receive check the RX FIFO */
         if (rx_count < rx_length) {
             if (Cy_SCB_SPI_GetNumInRxFifo(obj->base) > 0) {
-                *rx_buffer++ = (char)Cy_SCB_SPI_Read(obj->base);
+                *rx_buffer++ = (char) Cy_SCB_SPI_Read(obj->base);
                 ++rx_count;
             }
         }
     }
-    // Wait for tx fifo to empty while reading received bytes.
-    while (!Cy_SCB_SPI_IsTxComplete(obj->base)) {
+
+    /* Wait until trasnfer completion and probe RX FIFO */
+    while (true) {
+        bool spi_free = (0 == spi_busy(obj_in));
+         
         if ((rx_count < rx_length) && (Cy_SCB_SPI_GetNumInRxFifo(obj->base) > 0)) {
             *rx_buffer++ = (char)Cy_SCB_SPI_Read(obj->base);
             ++rx_count;
         }
+        
+        if (spi_free) {
+            /* Exit after try read from RX FIFO to catch last byte */
+            break;
+        }
     }
-    // Read any remaining bytes from the fifo.
-    while (rx_count < rx_length) {
-        *rx_buffer++ = (char)Cy_SCB_SPI_Read(obj->base);
-        ++rx_count;
-    }
-    // Clean up if we have read less bytes than available.
+    
+    /* Clear RX FIFO (handles case when rx_length less than tx_length) */
     Cy_SCB_SPI_ClearRxFifo(obj->base);
+
     return trans_length;
 }
+
 
 int  spi_slave_receive(spi_t *obj_in)
 {
     spi_obj_t *obj = OBJ_P(obj_in);
-    if (obj->ms_mode == CY_SCB_SPI_SLAVE) {
-        return Cy_SCB_SPI_GetNumInRxFifo(obj->base);
-    } else {
-        return 0;
-    }
+    MBED_ASSERT(obj->ms_mode == CY_SCB_SPI_SLAVE);
+    
+    return Cy_SCB_SPI_GetNumInRxFifo(obj->base);
 }
+
 
 int  spi_slave_read(spi_t *obj_in)
 {
     spi_obj_t *obj = OBJ_P(obj_in);
-
-    if (obj->ms_mode == CY_SCB_SPI_SLAVE) {
-        while (Cy_SCB_SPI_GetNumInRxFifo(obj->base) == 0) {
-            // Wait for data.
-        }
-        return Cy_SCB_SPI_GetNumInRxFifo(obj->base);
-    } else {
-        return (int)CY_SCB_SPI_RX_NO_DATA;
+    MBED_ASSERT(obj->ms_mode == CY_SCB_SPI_SLAVE);
+    
+    while (0 == Cy_SCB_SPI_GetNumInRxFifo(obj->base)) {
+         /* Wait for data to be read */
     }
+    
+    return Cy_SCB_SPI_Read(obj->base);
 }
+
 
 void spi_slave_write(spi_t *obj_in, int value)
 {
     spi_obj_t *obj = OBJ_P(obj_in);
+    MBED_ASSERT(obj->ms_mode == CY_SCB_SPI_SLAVE);
 
-    if (obj->ms_mode == CY_SCB_SPI_SLAVE) {
-        while ((Cy_SCB_SPI_GetTxFifoStatus(obj->base) & CY_SCB_SPI_TX_NOT_FULL) == 0) {
-            // Wait for a place available in a fifo.
-        }
-        Cy_SCB_SPI_Write(obj->base, value);
+    while (0 == Cy_SCB_SPI_Write(obj->base, value)) {
+        /* Wait for a place available in a FIFO to make a successful write */
     }
 }
 
-int  spi_busy(spi_t *obj)
+
+int  spi_busy(spi_t *obj_in)
 {
-    return !Cy_SCB_SPI_IsTxComplete(OBJ_P(obj)->base);
+    spi_obj_t *obj = OBJ_P(obj_in);
+
+    /* Determine end of transfer condition (MISRA Rule 12.2) */
+    bool busy        =  Cy_SCB_SPI_IsBusBusy(obj->base);
+    bool trasmitting = !Cy_SCB_SPI_IsTxComplete(obj->base);
+        
+    return (busy || trasmitting);
 }
+
 
 uint8_t spi_get_module(spi_t *obj_in)
 {
     return (uint8_t) OBJ_P(obj_in)->spi_id;
 }
 
-#if DEVICE_SPI_ASYNCH
+#if (DEVICE_SPI_ASYNCH)
 
 void spi_master_transfer(spi_t *obj_in,
                          const void *tx,
@@ -455,101 +521,121 @@ void spi_master_transfer(spi_t *obj_in,
                          uint32_t event,
                          DMAUsage hint)
 {
+    (void) hint; /* At the moment we do not support DAM transfers, so this parameter gets ignored. */
+    
     spi_obj_t *obj = OBJ_P(obj_in);
-
-    (void)hint; // At the moment we do not support DAM transfers, so this parameter gets ignored.
+    MBED_ASSERT(obj->ms_mode == CY_SCB_SPI_MASTER);	
 
     if (obj->pending != PENDING_NONE) {
         return;
     }
 
-    // Validate buffer parameters.
-    if (((obj->data_bits <= 8) && (bit_width != 8)) || ((obj->data_bits > 8) && (bit_width != 16))) {
-        error("spi: buffer configurations does not match device configuration");
-        return;
+    /* Validate buffer parameters */
+    if (((obj->data_bits <= 8) && (bit_width != 8)) || 
+        ((obj->data_bits >  8) && (bit_width != 16))) {
+        error("SPI: buffer configurations does not match device configuration");
     }
 
-    obj->events = event;
+    /* Configure interrupt handler */
     obj->handler = handler;
     if (spi_irq_setup_channel(obj) < 0) {
         return;
     }
 
+    /* Setup transfer */ 
+    obj->events = event;
     if (tx_length > rx_length) {
         if (rx_length > 0) {
-            // I) write + read, II) write only
+            /* I) write + read, II) write only */
             obj->pending = PENDING_TX_RX;
             obj->rx_buffer = NULL;
-            obj->tx_buffer = (bit_width == 8)?
+            obj->tx_buffer = (bit_width == 8) ?
                              (void*)(((uint8_t*)tx) + rx_length) :
                              (void*)(((uint16_t*)tx) + rx_length);
             obj->tx_buffer_size = tx_length - rx_length;
             Cy_SCB_SPI_Transfer(obj->base, (void*)tx, rx, rx_length, &obj->context);
         } else {
-            // I) write only.
+            /*  I) write only */
             obj->pending = PENDING_TX;
             obj->rx_buffer = NULL;
             obj->tx_buffer = NULL;
+            
             Cy_SCB_SPI_Transfer(obj->base, (void*)tx, NULL, tx_length, &obj->context);
         }
     } else if (rx_length > tx_length) {
         if (tx_length > 0) {
-            // I) write + read, II) read only
+            /*  I) write + read, II) read only */
             obj->pending = PENDING_TX_RX;
-            obj->rx_buffer = (bit_width == 8)?
+            obj->rx_buffer = (bit_width == 8) ?
                              (void*)(((uint8_t*)rx) + tx_length) :
                              (void*)(((uint16_t*)rx) + tx_length);
             obj->rx_buffer_size = rx_length - tx_length;
             obj->tx_buffer = NULL;
+
             Cy_SCB_SPI_Transfer(obj->base, (void*)tx, rx, tx_length, &obj->context);
         } else {
-            // I) read only.
+            /*  I) read only. */
             obj->pending = PENDING_RX;
             obj->rx_buffer = NULL;
             obj->tx_buffer = NULL;
+
             Cy_SCB_SPI_Transfer(obj->base, NULL, rx, rx_length, &obj->context);
         }
     } else {
-        // Rx and Tx of the same size
-        // I) write + read.
+        /* RX and TX of the same size: I) write + read. */
         obj->pending = PENDING_TX_RX;
         obj->rx_buffer = NULL;
         obj->tx_buffer = NULL;
+
         Cy_SCB_SPI_Transfer(obj->base, (void*)tx, rx, tx_length, &obj->context);
     }
 }
+
 
 uint32_t spi_irq_handler_asynch(spi_t *obj_in)
 {
     spi_obj_t *obj = OBJ_P(obj_in);
     uint32_t event = 0;
     void *buf;
-    // Process actual interrupt.
+
+    /* Process actual interrupt */
     Cy_SCB_SPI_Interrupt(obj->base, &obj->context);
-    if (obj->context.status & CY_SCB_SPI_TRANSFER_OVERFLOW) {
-        event = SPI_EVENT_RX_OVERFLOW;
-    } else if (obj->context.status & (CY_SCB_SPI_SLAVE_TRANSFER_ERR | CY_SCB_SPI_TRANSFER_OVERFLOW)) {
-        event = SPI_EVENT_ERROR;
-    } else if (0 == (obj->context.status & CY_SCB_SPI_TRANSFER_ACTIVE)) {
-        // Check to see if the second transfer phase needs to be started.
+
+    if (0 != (Cy_SCB_SPI_GetTransferStatus(obj->base, &obj->context) & CY_SCB_SPI_TRANSFER_OVERFLOW)) {
+        event = SPI_EVENT_RX_OVERFLOW;    
+    } 
+	
+    if (0 != (Cy_SCB_SPI_GetTransferStatus(obj->base, &obj->context) & CY_SCB_SPI_SLAVE_TRANSFER_ERR)) {
+        event |= SPI_EVENT_ERROR;
+    }
+        
+    if (0 == (Cy_SCB_SPI_GetTransferStatus(obj->base, &obj->context) & CY_SCB_SPI_TRANSFER_ACTIVE)) {
+        /* Check to see if the second transfer phase needs to be started */
         MBED_ASSERT(!(obj->tx_buffer && obj->rx_buffer));
+
         if (obj->tx_buffer) {
+            /* Start TX transfer */
             obj->pending = PENDING_TX;
             buf = obj->tx_buffer;
             obj->tx_buffer = NULL;
+
             Cy_SCB_SPI_Transfer(obj->base, buf, NULL, obj->tx_buffer_size, &obj->context);
         } else if (obj->rx_buffer) {
+            /* Start RX transfer */
             obj->pending = PENDING_RX;
             buf = obj->rx_buffer;
             obj->rx_buffer = NULL;
+
             Cy_SCB_SPI_Transfer(obj->base, NULL, buf, obj->rx_buffer_size, &obj->context);
         } else {
             event = SPI_EVENT_COMPLETE;
             obj->pending = PENDING_NONE;
         }
     }
-    return event & obj->events;
+
+    return (event & obj->events);
 }
+
 
 uint8_t spi_active(spi_t *obj_in)
 {
@@ -557,10 +643,14 @@ uint8_t spi_active(spi_t *obj_in)
     return (obj->pending != PENDING_NONE);
 }
 
+
 void spi_abort_asynch(spi_t *obj_in)
 {
     spi_obj_t *obj = OBJ_P(obj_in);
+    
     Cy_SCB_SPI_AbortTransfer(obj->base, &obj->context);
+    obj->pending = PENDING_NONE;
 }
 
-#endif // DEVICE_ASYNCH
+#endif /* (DEVICE_ASYNCH) */
+

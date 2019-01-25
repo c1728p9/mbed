@@ -19,8 +19,8 @@
 #include "device.h"
 #include "mbed_error.h"
 #include "lp_ticker_api.h"
-#include "device/drivers/peripheral/mcwdt/cy_mcwdt.h"
-#include "device/drivers/peripheral/sysint/cy_sysint.h"
+#include "cy_mcwdt.h"
+#include "cy_sysint.h"
 #include "psoc6_utils.h"
 
 #if DEVICE_LPTICKER
@@ -40,9 +40,13 @@
 #endif
 #define LPT_MCWDT_DELAY_WAIT    0                // Recommended value is 93, but then we fail function execution time test.
 
+#if !defined (CY_CFG_SYSCLK_CLKLF_FREQ_HZ)
+    #define CY_CFG_SYSCLK_CLKLF_FREQ_HZ    32000UL  /* Default to 32K ILO */
+#endif /* CY_CFG_SYSCLK_CLKLF_FREQ_HZ */
+
 static const ticker_info_t lp_ticker_info = {
-    .frequency = CY_CLK_WCO_FREQ_HZ,
-    .bits = 16,
+    .frequency = CY_CFG_SYSCLK_CLKLF_FREQ_HZ,
+    .bits = 16UL,
 };
 
 static bool lpt_init_done = false;
