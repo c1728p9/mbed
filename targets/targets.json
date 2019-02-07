@@ -2406,7 +2406,6 @@
             }
         },
         "macros_add": [
-            "MBED_TICKLESS"
         ],
         "overrides": { "lpticker_delay_ticks": 4 },
         "detect_code": ["0744"],
@@ -2584,7 +2583,6 @@
         "overrides": { "lpticker_delay_ticks": 4 },
         "detect_code": ["0743"],
         "macros_add": [
-            "MBED_TICKLESS",
             "USB_STM_HAL",
             "USBHOST_OTHER"
         ],
@@ -2625,7 +2623,6 @@
         "overrides": { "lpticker_delay_ticks": 4 },
         "detect_code": ["0743"],
         "macros_add": [
-            "MBED_TICKLESS",
             "USB_STM_HAL",
             "USBHOST_OTHER"
         ],
@@ -2850,7 +2847,6 @@
             }
         },
         "macros_add": [
-            "MBED_TICKLESS",
             "USBHOST_OTHER"
         ],
         "supported_form_factors": ["ARDUINO"],
@@ -2900,7 +2896,6 @@
             }
         },
         "macros_add": [
-            "MBED_TICKLESS",
             "USBHOST_OTHER",
             "MBEDTLS_CONFIG_HW_SUPPORT"
         ],
@@ -2955,7 +2950,6 @@
         },
         "supported_form_factors": ["ARDUINO"],
         "macros_add": [
-            "MBED_TICKLESS",
             "USBHOST_OTHER"
         ],
         "detect_code": ["0818"],
@@ -3008,7 +3002,6 @@
             }
         },
         "macros_add": [
-            "MBED_TICKLESS"
         ],
         "overrides": { "lpticker_delay_ticks": 4 },
         "supported_form_factors": ["ARDUINO"],
@@ -3125,7 +3118,6 @@
             }
         },
         "macros_add": [
-            "MBED_TICKLESS"
         ],
         "overrides": { "lpticker_delay_ticks": 4 },
         "detect_code": ["0760"],
@@ -3178,7 +3170,6 @@
             }
         },
         "macros_add": [
-            "MBED_TICKLESS"
         ],
         "overrides": { "lpticker_delay_ticks": 4 },
         "detect_code": ["0770"],
@@ -3212,7 +3203,6 @@
             }
         },
         "macros_add": [
-            "MBED_TICKLESS"
         ],
         "overrides": { "lpticker_delay_ticks": 4 },
         "detect_code": ["0779"],
@@ -3276,7 +3266,6 @@
         "overrides": { "lpticker_delay_ticks": 4 },
         "detect_code": ["0765"],
         "macros_add": [
-            "MBED_TICKLESS",
             "USBHOST_OTHER",
             "TWO_RAM_REGIONS"
         ],
@@ -3338,7 +3327,6 @@
         "overrides": { "lpticker_delay_ticks": 4 },
         "detect_code": ["0827"],
         "macros_add": [
-            "MBED_TICKLESS",
             "USBHOST_OTHER",
             "MBEDTLS_CONFIG_HW_SUPPORT",
             "TWO_RAM_REGIONS"
@@ -3745,7 +3733,6 @@
             }
         },
         "macros_add": [
-            "MBED_TICKLESS"
         ],
         "overrides": { "lpticker_delay_ticks": 4 },
         "detect_code": ["0833"],
@@ -3809,7 +3796,6 @@
         },
         "detect_code": ["0815"],
         "macros_add": [
-            "MBED_TICKLESS",
             "USB_STM_HAL",
             "USBHOST_OTHER"
         ],
@@ -3860,7 +3846,6 @@
         },
         "detect_code": ["0817"],
         "macros_add": [
-            "MBED_TICKLESS",
             "USB_STM_HAL",
             "USBHOST_OTHER"
         ],
@@ -3902,7 +3887,6 @@
         "supported_form_factors": ["ARDUINO"],
         "detect_code": ["0764"],
         "macros_add": [
-            "MBED_TICKLESS",
             "USBHOST_OTHER",
             "TWO_RAM_REGIONS"
         ],
@@ -3937,7 +3921,6 @@
         "overrides": { "lpticker_delay_ticks": 4 },
         "detect_code": ["0820"],
         "macros_add": [
-            "MBED_TICKLESS",
             "USBHOST_OTHER",
             "TWO_RAM_REGIONS"
         ],
@@ -7338,7 +7321,6 @@
             }
         },
         "macros_add": [
-            "MBED_TICKLESS"
         ],
         "overrides": { "lpticker_delay_ticks": 4 },
         "detect_code": ["0822"],
@@ -7373,7 +7355,6 @@
             }
         },
         "macros_add": [
-            "MBED_TICKLESS"
         ],
         "overrides": { "lpticker_delay_ticks": 4 },
         "detect_code": ["0823"],
@@ -7411,7 +7392,6 @@
             }
         },
         "macros_add": [
-            "MBED_TICKLESS"
         ],
         "overrides": { "lpticker_delay_ticks": 4 },
         "detect_code": ["0776"],
